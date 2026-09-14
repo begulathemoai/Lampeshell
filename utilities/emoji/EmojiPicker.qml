@@ -58,7 +58,7 @@ PanelWindow {
     LazyLoader {
         id: contentLoader
 
-        activeAsync: emojiWindow.visible
+        activeAsync: true
 
         component: Component {
             Item {
@@ -428,6 +428,11 @@ PanelWindow {
                             highlightMoveDuration: 120
                             highlightFollowsCurrentItem: true
                             onCurrentIndexChanged: updateEmojiLabel()
+
+                            reuseItems: true
+                            cacheBuffer: 600
+                            displayMarginBeginning: 60
+                            displayMarginEnd: 60
 
                             delegate: EmojiDelegate {}
                         }

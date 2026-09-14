@@ -40,6 +40,8 @@ Item {
 
         text: delegateRoot.emojiChar
 
+        textFormat: Text.PlainText
+
         font {
             family: "Noto Color Emoji"
             pixelSize: 28
