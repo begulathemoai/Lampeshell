@@ -49,6 +49,14 @@ Variants {
             id: statusModule
             windowHandle: mainBar
             anchors {
+                right: commandCenterModule.left
+                rightMargin: 15
+                verticalCenter: parent.verticalCenter
+            }
+        }
+        CommandCenter {
+            id: commandCenterModule
+            anchors {
                 right: parent.right
                 rightMargin: 15
                 verticalCenter: parent.verticalCenter
