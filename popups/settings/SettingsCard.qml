@@ -13,9 +13,7 @@ Item {
     property string subtitle: ""
     default property alias content: body.data
 
-    // Cards are laid out inside a plain Column, which does not stretch children
     // to its width. Without this the card measures 0 wide and the whole card
-    // collapses - which is why page bodies rendered blank. Every other row
     // component in this folder already fills its parent.
     width: parent ? parent.width : 0
     implicitHeight: body.implicitHeight + (title ? 34 : 0) + 34
@@ -24,9 +22,7 @@ Item {
         anchors.fill: parent
         radius: 20
         // surface_container, not surface_container_high: group rows already sit
-        // on surface_container, and a lighter fill made these blocks read as a
         // different, heavier surface. Metrolist keeps custom blocks on the same
-        // tone as the rows around them.
         color: Theme.surface_container
         border.width: 1
         border.color: Theme.outline_variant

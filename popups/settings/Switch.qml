@@ -60,7 +60,6 @@ Item {
         id: thumb
 
         // Unchecked: 16dp sitting 4dp in. Checked: 24dp sitting 4dp from the
-        // trailing edge. Both stay vertically centred.
         width: root.checked ? 24 : 16
         height: width
         radius: width / 2
@@ -70,7 +69,6 @@ Item {
         color: root.checked ? Theme.on_primary : Theme.outline
 
         // The icon sits inside the thumb; the smallest thumb is 16dp, so the
-        // icon is drawn at 12dp there and 16dp on the larger one.
         Text {
             anchors.centerIn: parent
             text: root.checked ? "check" : "close"

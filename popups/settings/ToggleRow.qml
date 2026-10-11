@@ -2,7 +2,6 @@ import QtQuick
 import qs.theme
 import "."
 
-/**
  * Labelled on/off row.
  *
  * Built from SettingsRow plus the shell's own Switch rather than
@@ -23,7 +22,6 @@ Item {
     property bool checked: false
     property bool enabled: true
     // Real signal - see ActionButton.qml for why a `property var onToggled`
-    // turns every `onToggled:` handler into an eagerly-evaluated binding.
     signal toggled(bool checked)
 
     width: parent ? parent.width : 0

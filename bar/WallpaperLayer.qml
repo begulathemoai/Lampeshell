@@ -42,28 +42,21 @@ Variants {
         readonly property HyprlandMonitor monitor: Hyprland.monitorFor(screen)
 
         // The surface stays mapped even while something covers the whole
-        // output. Toggling `visible` unmapped and remapped it, and the remap
         // landed after the fullscreen transition had already finished - so the
-        // wallpaper popped in late every time you left a fullscreen game.
         // Fading an inner item instead keeps the surface (and its decoded
-        // image) alive, so leaving fullscreen is a cross-fade.
 
         // sourceSize keeps the decode at the surface's real pixel size. On a
         // scaled output the surface is larger in device pixels than in layout
         // units, and decoding the full-resolution original for every pixel of
-        // every screen is what makes naive wallpaper layers stutter.
         readonly property real pixelScale: screen && screen.scale ? screen.scale : 1
 
-        // ThemeService owns the current wallpaper; Theme.wallpaper reads it back
         // out of colors.json. Preferring the service means the picker and the
         // desktop can never disagree about which image is current.
         readonly property string wallpaperSource: ThemeService.currentWallpaper.length > 0
             ? "file://" + ThemeService.currentWallpaper
             : Theme.wallpaper
 
-        // Fullscreen cross-fade. Entering fades out so the wallpaper is not
         // composited under the game; leaving fades back in over the transition
-        // instead of appearing all at once at the end.
         Item {
             id: fadeRoot
 
@@ -112,7 +105,6 @@ Variants {
         }
 
         // Shown when colors.json points at an image that is not there, which is
-        // what a wallpaper_path left over from another machine looks like.
         Rectangle {
             anchors.fill: parent
             color: Theme.background

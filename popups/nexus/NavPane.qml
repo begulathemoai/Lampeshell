@@ -18,7 +18,6 @@ Item {
 
     implicitWidth: 272
 
-    // Flat registry -> grouped model, so each group's first/last entry can be
     // marked for the connected shape.
     readonly property var groups: {
         const out = [];
@@ -94,7 +93,6 @@ Item {
 
                             width: group.width
 
-                            // Connected corners within this group only.
                             isFirst: index === 0
                             isLast: index === group.modelData.pages.length - 1
 
@@ -110,7 +108,6 @@ Item {
     }
 
     // Pages are identified by label, so find the index rather than threading an
-    // index through the grouped model.
     function pageIndexFor(page) {
         for (let i = 0; i < PageRegistry.pages.length; i++) {
             if (PageRegistry.pages[i].label === page.label)

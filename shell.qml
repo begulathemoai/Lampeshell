@@ -16,7 +16,6 @@ ShellRoot {
     id: root
 
     // Wallpaper first and on the Bottom layer: it has to be under everything
-    // else, and being declared first keeps it that way if a layer ever changes.
     WallpaperLayer {
         id: wallpaperLayer
     }

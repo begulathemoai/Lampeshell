@@ -76,16 +76,13 @@ PageBase {
         ScrollBar.vertical: ScrollBar {}
 
         delegate: WallpaperTile {
-            // modelData, not `entry`: declaring a property named `entry` here
             // would shadow WallpaperTile's own required property and turn
-            // `entry: entry` into a self-assignment.
             required property var modelData
             width: root.cellWidth
             entry: modelData
             currentPath: ThemeService.currentWallpaper
             onClicked: {
                 // A subdirectory tile opens that category as a detail view;
-                // a plain image applies immediately.
                 if (modelData.category.length > 0) {
                     root.nState.selectedWallpaperCategory = modelData.category;
                     root.nState.openSubPage(2);

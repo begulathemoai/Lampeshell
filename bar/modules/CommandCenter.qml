@@ -10,9 +10,7 @@ import qs.theme
 Item {
     id: root
 
-    // The pill emits `clicked`; TopBar forwards it to QuickSettings.toggle().
     // Nothing handled this signal in the upstream config, which is why the
-    // status pill looked inert.
     signal clicked
 
     implicitWidth: visualPill.implicitWidth

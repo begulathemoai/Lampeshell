@@ -12,7 +12,6 @@ FileView {
     property string wallpaper: "file://" + colors.wallpaper_path
 
     // The applied wallpaper's path, without the file:// prefix. Exposed as a
-    // real alias rather than parsed out of `wallpaper` so it can be bound to -
     // ThemeService.currentWallpaper depends on this.
     property alias wallpaperPath: colors.wallpaper_path
 
@@ -38,9 +37,7 @@ FileView {
     property alias on_surface: colors.on_surface
 
     // Material's surfaceDim/surfaceBright pair. On a dark scheme surfaceBright
-    // is lighter than every surface_container tone, which makes it the correct
     // token for a raised surface that has to read as "above" the desktop -
-    // floating panels and the launcher card.
     property alias surface_dim: colors.surface_dim
     property alias surface_bright: colors.surface_bright
 

@@ -141,7 +141,6 @@ Rectangle {
      */
     property int workspaceCount: 10
 
-    // Slots mimic the HyprlandWorkspace shape (including activate()) so the
     // existing delegate works unchanged for both live and not-yet-created
     // workspaces.
     readonly property var workspaceSlots: {
@@ -163,7 +162,6 @@ Rectangle {
                 focused: ws ? ws.focused === true : n === focusId,
                 active: ws ? ws.active === true : false,
                 // A workspace that does not exist yet has no monitor object.
-                // Claiming it for this bar's monitor keeps the delegate's
                 // per-monitor visibility check working for empty slots too.
                 monitor: ws?.monitor ?? { name: root.targetMonitor },
                 toplevels: ws ? ws.toplevels : { values: [] },
@@ -172,7 +170,6 @@ Rectangle {
                         ws.activate();
                         return;
                     }
-                    // Not created yet: switching to it makes Hyprland create it.
                     Hypr.focusWorkspace(n);
                 }
             });
@@ -214,7 +211,6 @@ Rectangle {
 
     Component.onCompleted: {
         // Also forces the Hypr singleton to instantiate, which is what registers
-        // its IPC target.
         Hypr.refreshAll();
         Qt.callLater(() => {
             root.isLoaded = true;

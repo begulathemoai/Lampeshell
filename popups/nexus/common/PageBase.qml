@@ -3,7 +3,6 @@ import QtQuick.Controls
 import qs.theme
 import qs.popups.nexus
 
-/**
  * Shared chrome for every settings page: a title header that grows a back button
  * when the page is pushed as a sub-page, and a scrollable body.
  *
@@ -20,7 +19,6 @@ Item {
     property bool isSubPage: false
 
     // Sub-pages get a back affordance unless they opt out (a root page can be
-    // pushed onto the stack too, and should still be able to go back).
     readonly property bool showBack: nState.subPageIdxStack.length > 0
 
     default property alias body: content.data

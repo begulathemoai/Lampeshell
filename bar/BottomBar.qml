@@ -26,7 +26,6 @@ Variants {
         readonly property bool fullscreen: FullscreenState.isFullscreen(monitor)
 
         // Collapse rather than destroy: see TopBar.qml for why toggling
-        // `visible` breaks the exclusive zone on the way back.
 
         // --- Geometry & Positioning ---
         anchors {

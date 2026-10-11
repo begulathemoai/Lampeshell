@@ -60,7 +60,6 @@ PanelWindow {
     }
 
     // Set by shell.qml to the settings panel's open function. Declared as a
-    // property because QML ids are file-scoped, so QuickSettings.qml cannot
     // reach into Settings.qml directly - the shell wires the two together the
     // same way it passes statusPillHandler to the bar.
     property var settingsHandler: null
@@ -69,7 +68,6 @@ PanelWindow {
     property var sessionHandler: null
 
     // See Settings.qml: a focus grab can lose the race with surface mapping and
-    // clear immediately, which must not be mistaken for the user clicking away.
     property double openedAt: 0
     property int grabRetries: 0
 
@@ -154,7 +152,6 @@ PanelWindow {
         }
     }
 
-    // Escape closes, matching the other popups.
 
     // Panel chrome: rounded surface with an outline and drop shadow. The
     // window itself is transparent, so this supplies the menu's background.
@@ -169,7 +166,6 @@ PanelWindow {
         border.color: Theme.outline_variant
         focus: true
 
-        // Escape closes. Must live on the focused item rather than the window:
         // a PanelWindow cannot hold active focus, so window-level Keys handlers
         // never fire.
         Keys.onEscapePressed: function(event) {
@@ -370,7 +366,6 @@ PanelWindow {
                 // Slider track + fill
                 Rectangle {
                     id: volumeTrack
-                    // Row has three children (icon, track, label) and two gaps,
                     // so subtract the icon AND label widths plus both spacings.
                     width: parent.width - muteButton.width - volumePercentLabel.width - parent.spacing * 2
                     height: 6
@@ -537,9 +532,7 @@ PanelWindow {
                         width: netColumn.width
                         height: 44
 
-                        // Referenced through netRow rather than parent chains:
                         // inside the nested Row/Column, parent.parent resolves to
-                        // the Row, not the delegate.
                         readonly property bool isConnected: modelData.connected === true
                         readonly property string netName: {
                             if (!modelData)

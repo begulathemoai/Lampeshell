@@ -109,7 +109,6 @@ PanelWindow {
         }
     }
 
-    // Only covers this window's own bounds; real click-away is handled by the
     // focus grab above.
     MouseArea {
         anchors.fill: parent
@@ -224,7 +223,6 @@ PanelWindow {
                         }
 
                         // Armed state explains itself instead of relying on the
-                        // user remembering they pressed something.
                         Text {
                             visible: sessionRow.armed
                             text: "Press again to confirm"
@@ -238,7 +236,6 @@ PanelWindow {
                 }
 
                 // Armed rows show a progress sweep over the 4s window, so the
-                // confirm affordance is visible rather than implicit.
                 Rectangle {
                     anchors {
                         left: parent.left
