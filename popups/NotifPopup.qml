@@ -354,7 +354,7 @@ Variants {
 
                         layer.effect: MultiEffect {
                             shadowEnabled: true
-                            shadowColor: "#40000000"
+                            shadowColor: Qt.rgba(Theme.shadow.r, Theme.shadow.g, Theme.shadow.b, 0.25)
                             blurMax: 32
                             shadowBlur: interactionArea.containsMouse ? 1.0 : 0.85
                             shadowVerticalOffset: interactionArea.containsMouse ? 6 : 4
@@ -469,7 +469,7 @@ Variants {
                                         id: headerMask
                                         anchors.fill: parent
                                         radius: width / 2
-                                        color: "black"
+                                        color: Theme.shadow
                                         visible: false
                                         layer.enabled: true
                                         layer.smooth: true

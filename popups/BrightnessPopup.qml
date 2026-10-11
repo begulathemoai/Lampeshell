@@ -110,7 +110,7 @@ Variants {
                 layer.effect: MultiEffect {
                     shadowEnabled: true
                     shadowBlur: 1.0
-                    shadowColor: "#40000000"
+                    shadowColor: Qt.rgba(Theme.shadow.r, Theme.shadow.g, Theme.shadow.b, 0.25)
                     shadowVerticalOffset: 6
                 }
 

@@ -5,6 +5,7 @@ import Quickshell.Hyprland
 import Quickshell.Widgets
 import qs.theme
 import qs.bar.widgets
+import qs.services
 
 Rectangle {
     id: root
@@ -127,6 +128,59 @@ Rectangle {
         return ws.filter(w => w.id >= 1 && w.monitor?.name === root.targetMonitor).sort((a, b) => a.id - b.id);
     }
 
+    /**
+     * How many workspace slots to render.
+     *
+     * Hyprland only reports workspaces that currently *exist*; an unvisited
+     * workspace is absent from the list entirely. Building the bar straight
+     * from that list (as sortedWorkspaces did) means the bar can only ever
+     * show - and therefore only ever let you switch to - workspaces that
+     * already exist, so 3,4,5,7..10 were simply unreachable. Caelestia avoids
+     * this by always rendering a fixed 1..shown range and letting Hyprland
+     * create a workspace on first visit; same approach here.
+     */
+    property int workspaceCount: 10
+
+    // Slots mimic the HyprlandWorkspace shape (including activate()) so the
+    // existing delegate works unchanged for both live and not-yet-created
+    // workspaces.
+    readonly property var workspaceSlots: {
+        const existing = {};
+        const live = Hyprland.workspaces.values;
+        for (let i = 0; i < live.length; i++) {
+            const w = live[i];
+            if (w && w.id >= 1)
+                existing[w.id] = w;
+        }
+
+        const focusId = root.focusedWorkspace ? root.focusedWorkspace.id : -1;
+        const slots = [];
+
+        for (let n = 1; n <= root.workspaceCount; n++) {
+            const ws = existing[n] ?? null;
+            slots.push({
+                id: n,
+                focused: ws ? ws.focused === true : n === focusId,
+                active: ws ? ws.active === true : false,
+                // A workspace that does not exist yet has no monitor object.
+                // Claiming it for this bar's monitor keeps the delegate's
+                // per-monitor visibility check working for empty slots too.
+                monitor: ws?.monitor ?? { name: root.targetMonitor },
+                toplevels: ws ? ws.toplevels : { values: [] },
+                activate: function() {
+                    if (ws && typeof ws.activate === "function") {
+                        ws.activate();
+                        return;
+                    }
+                    // Not created yet: switching to it makes Hyprland create it.
+                    Hypr.focusWorkspace(n);
+                }
+            });
+        }
+
+        return slots;
+    }
+
     // The monitor object for this bar instance — the authoritative source for
     // "what workspace is current here", rather than scanning workspace flags.
     readonly property var currentMonitor: {
@@ -159,28 +213,15 @@ Rectangle {
     radius: height / 2
 
     Component.onCompleted: {
-        Hyprland.refreshToplevels();
-        Hyprland.refreshWorkspaces();
-        Hyprland.refreshMonitors();
+        // Also forces the Hypr singleton to instantiate, which is what registers
+        // its IPC target.
+        Hypr.refreshAll();
         Qt.callLater(() => {
             root.isLoaded = true;
         });
     }
 
-    Connections {
-        target: Hyprland
-        function onRawEvent(event) {
-            if (event.name === "openwindow" || event.name === "closewindow" || event.name === "movewindow") {
-                Hyprland.refreshToplevels();
-                Hyprland.refreshWorkspaces();
-            } else if (event.name === "workspace" || event.name === "workspacev2"
-                       || event.name === "focusedmon" || event.name === "focusedmonv2"
-                       || event.name === "moveworkspace" || event.name === "moveworkspacev2") {
-                Hyprland.refreshWorkspaces();
-                Hyprland.refreshMonitors();
-            }
-        }
-    }
+    // Model refresh on Hyprland events is handled centrally by services/Hypr.qml.
 
     // Active highlight.
     Rectangle {
@@ -249,7 +290,7 @@ Rectangle {
         Repeater {
             id: dotRepeater
             model: ScriptModel {
-                values: root.sortedWorkspaces
+                values: root.workspaceSlots
             }
 
             delegate: Item {
@@ -388,7 +429,7 @@ Rectangle {
                                 width: 18
                                 height: 18
                                 radius: 9
-                                color: "black"
+                                color: Theme.shadow
                                 visible: false
                                 layer.enabled: true
                             }

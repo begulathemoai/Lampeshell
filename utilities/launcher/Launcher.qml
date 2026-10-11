@@ -12,8 +12,8 @@ PanelWindow {
     // Add any apps you want to hide to this list
     property var hiddenKeywords: ["avahi", "uuctl", "bssh", "bvnc"]
 
-    implicitWidth: 800
-    implicitHeight: 739
+    // Full-screen so the launcher can dim the desktop behind it, the way a
+    // Spotlight-style overlay does. The card is centred inside this surface.
     color: "transparent"
     visible: false
 
@@ -23,11 +23,10 @@ PanelWindow {
     exclusiveZone: -1
 
     anchors {
+        top: true
         bottom: true
-    }
-
-    margins {
-        bottom: 170
+        left: true
+        right: true
     }
 
     function scoreMatch(text, query) {
@@ -138,25 +137,54 @@ PanelWindow {
         id: ctrl
 
         onOpenMenuRequested: {
-            if (launcherWindow.visible) {
+            if (launcherWindow.visible && !launcherWindow.closing) {
                 closeMenu();
             } else {
-                ctrl.searchText = ""; // Reset backend state
-                launcherWindow.visible = true; // Triggers UI build
+                openMenu();
             }
         }
 
         onCloseMenuRequested: closeMenu()
     }
 
-    function closeMenu() {
-        launcherWindow.visible = false; // Destroys the UI and frees memory
+    // Metrolist does not tear the overlay down instantly: it fades the card out
+    // over ~180ms and only then drops the surface, which stops the dismissal
+    // reading as a snap.
+    property bool closing: false
+
+    function openMenu() {
+        ctrl.searchText = "";
+        closing = false;
+        launcherWindow.visible = true; // Triggers UI build
     }
 
+    function closeMenu() {
+        if (!launcherWindow.visible || launcherWindow.closing)
+            return;
+        launcherWindow.closing = true;
+        contentLoader.exit();
+    }
+
+    /**
+     * Floating search, modelled on Metrolist's desktop FloatingSearchOverlay.
+     *
+     * The shape of it: a dimmed scrim across the whole screen, one centred card
+     * (max 640 wide, 16 radius, surfaceContainerHigh, hairline border, deep
+     * shadow), a search row at the top, a hairline divider, then results that
+     * cap at a fixed height and the card grows and shrinks with them.
+     *
+     * There is no banner and no footer - the field is the hero and the results
+     * are the only other thing in the panel.
+     */
     LazyLoader {
         id: contentLoader
 
         activeAsync: launcherWindow.visible
+
+        function exit() {
+            if (item)
+                item.dismiss();
+        }
 
         component: Component {
             Item {
@@ -165,114 +193,129 @@ PanelWindow {
                 parent: launcherWindow.contentItem
                 anchors.fill: parent
 
-                anchors.margins: 80
-                anchors.bottomMargin: 50
-
                 HyprlandFocusGrab {
                     id: focusGrab
                     windows: [launcherWindow]
                     onCleared: launcherWindow.closeMenu()
                 }
 
+                // Launched through the loader, which only knows about this item.
+                function dismiss() {
+                    cardCenter.dismiss();
+                }
+
                 Component.onCompleted: {
                     focusGrab.active = true;
                     searchField.forceActiveFocus();
+                    enterAnim.start();
                 }
 
-                Rectangle {
-                    id: shadowCaster
-                    anchors.fill: mainUi
-                    anchors.margins: 2
-                    radius: 26
-                    color: "black"
-                    visible: false
-                }
-
-                MultiEffect {
-                    anchors.fill: shadowCaster
-                    source: shadowCaster
-                    shadowEnabled: true
-                    shadowBlur: 1.5
-                    shadowColor: "#60000000"
-                    shadowVerticalOffset: 16
-                }
-
-                Rectangle {
-                    id: mainUiMask
-                    anchors.fill: mainUi
-                    radius: 28
-                    color: "black"
-                    visible: false
-                    layer.enabled: true
-                    layer.smooth: true
-                }
-
-                Rectangle {
-                    id: mainUi
+                // Click-catcher only. Metrolist dims the desktop behind its
+                // overlay; this shell does not, but clicks outside the card
+                // still dismiss, so something has to own that area.
+                MouseArea {
                     anchors.fill: parent
-                    color: Theme.surface_container_low
-                    radius: 28
-                    focus: true
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                    onClicked: launcherWindow.closeMenu()
+                }
 
-                    layer.enabled: true
-                    layer.smooth: true
-                    layer.effect: MultiEffect {
-                        maskEnabled: true
-                        maskSource: mainUiMask
-                        maskThresholdMin: 0.5
-                        maskSpreadAtMin: 1.0
+                // --- Card ---
+                Item {
+                    id: cardCenter
+
+                    readonly property real maxWidth: 640
+
+                    width: Math.min(maxWidth, lazyContentRoot.width - 48)
+                    // Height follows the column's implicit height, and animates
+                    // as results come and go - Metrolist's animateContentSize.
+                    //
+                    // Deliberately not `card.height`: the card is anchored to
+                    // fill this item, so binding the other way round is a
+                    // circular binding and the whole panel collapses to zero.
+                    height: cardColumn.implicitHeight
+                    x: (lazyContentRoot.width - width) / 2
+                    y: (lazyContentRoot.height - height) / 2
+
+                    Behavior on height {
+                        NumberAnimation {
+                            duration: 240
+                            easing.type: Easing.OutCubic
+                        }
                     }
 
-                    Item {
-                        id: edgeBanner
-                        anchors.top: parent.top
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        height: 180
+                    // Enter and exit transform, so the card itself stays a plain
+                    // centred rectangle.
+                    opacity: 0
+                    scale: 0.90
+                    transformOrigin: Item.Center
 
-                        Image {
-                            id: bannerImage
+                    function dismiss() {
+                        exitAnim.start();
+                    }
 
-                            // use thumbnail if available for efficiency
-                            readonly property string thumbDir: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/quickshell/thumbs"
-                            readonly property string wallpaperFileName: {
-                                var path = Theme.wallpaper.replace("file://", "");
-                                return path.substring(path.lastIndexOf("/") + 1);
+                    SequentialAnimation {
+                        id: exitAnim
+
+                        ParallelAnimation {
+                            NumberAnimation {
+                                target: cardCenter
+                                property: "opacity"
+                                to: 0
+                                duration: 180
+                                easing.type: Easing.InCubic
                             }
-                            readonly property string thumbUrl: wallpaperFileName !== "" ? "file://" + thumbDir + "/" + encodeURIComponent(wallpaperFileName) + ".jpg" : ""
-
-                            anchors.fill: parent
-                            source: thumbUrl !== "" ? thumbUrl : Theme.wallpaper
-                            fillMode: Image.PreserveAspectCrop
-                            asynchronous: true
-
-                            onStatusChanged: {
-                                if (status === Image.Error && source !== Theme.wallpaper)
-                                    source = Theme.wallpaper;
+                            NumberAnimation {
+                                target: cardCenter
+                                property: "scale"
+                                to: 0.96
+                                duration: 180
+                                easing.type: Easing.InCubic
                             }
                         }
-
-                        Rectangle {
-                            anchors.fill: parent
-                            color: Theme.primary
-                            opacity: 0.15
+                        ScriptAction {
+                            // Surface is only torn down once the fade is done.
+                            script: launcherWindow.visible = false
                         }
+                    }
 
-                        Rectangle {
-                            anchors.bottom: parent.bottom
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            height: 80
-                            gradient: Gradient {
-                                GradientStop {
-                                    position: 0.0
-                                    color: "transparent"
-                                }
-                                GradientStop {
-                                    position: 1.0
-                                    color: "#40000000"
-                                }
-                            }
+                Rectangle {
+                    id: card
+
+                    anchors.fill: parent
+
+                    radius: 16
+                    // Material's surfaceBright rather than a container tone: on
+                    // a dark scheme it sits above every surface_container step,
+                    // which is what makes the card read as "above" the desktop.
+                    color: Theme.surface_bright
+                    border.width: 1
+                    border.color: Qt.rgba(Theme.outline_variant.r, Theme.outline_variant.g, Theme.outline_variant.b, 0.2)
+
+                    // No shadow: the previous rig (a MultiEffect reading an
+                    // invisible rounded rect) filled the whole card with a
+                    // translucent black box whenever its source failed to
+                    // resolve, which read as an opaque black background. A flat
+                    // hairline-bordered card is the safer modelling of the same
+                    // surface.
+
+                    // Enter: fade + scale up from 0.90 + rise, with the slight
+                    // overshoot of a spring rather than a flat tween.
+                    ParallelAnimation {
+                        id: enterAnim
+
+                        NumberAnimation {
+                            target: cardCenter
+                            property: "opacity"
+                            to: 1
+                            duration: 220
+                            easing.type: Easing.OutCubic
+                        }
+                        NumberAnimation {
+                            target: cardCenter
+                            property: "scale"
+                            to: 1
+                            duration: 340
+                            easing.type: Easing.OutBack
                         }
                     }
 
@@ -299,169 +342,197 @@ PanelWindow {
                         }
                     }
 
-                    Rectangle {
-                        id: searchArea
-                        height: 64
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.leftMargin: 32
-                        anchors.rightMargin: 32
+                    Column {
+                        id: cardColumn
+                        width: parent.width
 
-                        anchors.verticalCenter: edgeBanner.bottom
+                        // --- Search row ---
+                        Item {
+                            id: searchRow
+                            width: parent.width
+                            height: 56
 
-                        radius: height / 2
-                        color: Theme.surface_container_highest
-
-                        layer.enabled: true
-                        layer.effect: MultiEffect {
-                            shadowEnabled: true
-                            shadowBlur: 1.0
-                            shadowColor: "#40000000"
-                            shadowVerticalOffset: 4
-                        }
-
-                        TextField {
-                            id: searchField
-                            anchors.fill: parent
-                            leftPadding: 60
-                            rightPadding: 24
-
-                            font {
-                                family: "Google Sans"
-                                pixelSize: 22
-                                weight: Font.Medium
+                            Text {
+                                id: searchIcon
+                                anchors.left: parent.left
+                                anchors.leftMargin: 16
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "search"
+                                color: Theme.on_surface_variant
+                                opacity: 0.7
+                                font {
+                                    family: "Material Symbols Rounded"
+                                    pixelSize: 24
+                                }
                             }
-                            color: Theme.on_surface
-                            selectionColor: Theme.primary_container
-                            selectedTextColor: Theme.on_primary_container
 
-                            placeholderText: "Search apps..."
-                            placeholderTextColor: Theme.on_surface_variant
+                            TextField {
+                                id: searchField
+                                anchors.left: searchIcon.right
+                                anchors.leftMargin: 16
+                                anchors.right: clearButton.left
+                                anchors.rightMargin: 8
+                                anchors.verticalCenter: parent.verticalCenter
+                                height: 48
 
-                            background: Item {
+                                font {
+                                    family: "Google Sans"
+                                    pixelSize: 22
+                                    weight: Font.Normal
+                                }
+                                color: Theme.on_surface
+                                selectionColor: Theme.primary_container
+                                selectedTextColor: Theme.on_primary_container
+
+                                placeholderText: "Search apps..."
+                                placeholderTextColor: Qt.rgba(
+                                    Theme.on_surface_variant.r,
+                                    Theme.on_surface_variant.g,
+                                    Theme.on_surface_variant.b,
+                                    0.4 // Metrolist's placeholder sits back at 40%.
+                                )
+
+                                background: Item {}
+
+                                leftPadding: 0
+                                rightPadding: 8
+
+                                onTextChanged: {
+                                    ctrl.searchText = text;
+                                    listView.currentIndex = 0;
+                                    clearButton.visible = text.length > 0;
+                                }
+
+                                Keys.onPressed: event => {
+                                    if (event.key === Qt.Key_Escape) {
+                                        if (text.length > 0) {
+                                            text = "";
+                                        } else {
+                                            launcherWindow.closeMenu();
+                                        }
+                                        event.accepted = true;
+                                    } else if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
+                                        if (listView.currentItem)
+                                            listView.currentItem.launch();
+                                        event.accepted = true;
+                                    } else if (event.key === Qt.Key_Down) {
+                                        listView.incrementCurrentIndex();
+                                        event.accepted = true;
+                                    } else if (event.key === Qt.Key_Up) {
+                                        listView.decrementCurrentIndex();
+                                        event.accepted = true;
+                                    }
+                                }
+                            }
+
+                            // Clear button, only once there is something to clear.
+                            Rectangle {
+                                id: clearButton
+                                visible: false
+                                anchors.right: parent.right
+                                anchors.rightMargin: 12
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 40
+                                height: 40
+                                radius: 20
+                                color: clearMouse.containsMouse
+                                    ? Qt.rgba(Theme.on_surface.r, Theme.on_surface.g, Theme.on_surface.b, 0.08)
+                                    : "transparent"
+
                                 Text {
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: 20
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: "search"
+                                    anchors.centerIn: parent
+                                    text: "close"
+                                    color: Theme.on_surface_variant
+                                    opacity: 0.6
                                     font {
                                         family: "Material Symbols Rounded"
-                                        pixelSize: 28
-                                    }
-                                    color: searchField.activeFocus ? Theme.primary : Theme.on_surface_variant
-                                    Behavior on color {
-                                        ColorAnimation {
-                                            duration: 150
-                                        }
+                                        pixelSize: 18
                                     }
                                 }
-                            }
 
-                            onTextChanged: {
-                                ctrl.searchText = text;
-                                listView.currentIndex = 0;
-                            }
-
-                            Keys.onPressed: event => {
-                                if (event.key === Qt.Key_Escape) {
-                                    mainUi.forceActiveFocus();
-                                    event.accepted = true;
-                                } else if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
-                                    if (listView.currentItem)
-                                        listView.currentItem.launch();
-                                    event.accepted = true;
-                                } else if (event.key === Qt.Key_Down || (event.key === Qt.Key_J && (event.modifiers & Qt.ControlModifier))) {
-                                    listView.incrementCurrentIndex();
-                                    event.accepted = true;
-                                } else if (event.key === Qt.Key_Up || (event.key === Qt.Key_K && (event.modifiers & Qt.ControlModifier))) {
-                                    listView.decrementCurrentIndex();
-                                    event.accepted = true;
+                                MouseArea {
+                                    id: clearMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        searchField.text = "";
+                                        searchField.forceActiveFocus();
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    Item {
-                        id: listContainer
-                        anchors.top: searchArea.bottom
-                        anchors.topMargin: 16
-                        anchors.bottom: footer.top
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        clip: true
+                        // --- Divider ---
+                        Rectangle {
+                            width: parent.width
+                            height: 1
+                            color: Theme.outline_variant
+                            opacity: 0.2
+                            visible: listView.count > 0
+                        }
 
+                        // --- Results ---
                         ListView {
                             id: listView
-                            anchors.fill: parent
-                            topMargin: 12
-                            bottomMargin: 24
-                            spacing: 4
+                            width: parent.width
+                            // Caps the panel height; the card shrinks back down
+                            // when there are few or no results.
+                            height: Math.min(contentHeight, 300)
+                            visible: count > 0
+                            clip: true
+                            boundsBehavior: Flickable.StopAtBounds
 
-                            highlightMoveDuration: 120
-                            highlightFollowsCurrentItem: true
-                            delegate: LauncherDelegate {}
+                            topMargin: 6
+                            bottomMargin: 6
+                            leftMargin: 6
+                            rightMargin: 6
+
+                            spacing: 2
+                            highlightMoveDuration: 0
+                            currentIndex: 0
 
                             model: ScriptModel {
                                 values: launcherWindow.buildFilteredList()
                             }
-                        }
 
-                        Rectangle {
-                            anchors {
-                                bottom: parent.bottom
-                                left: parent.left
-                                right: parent.right
-                            }
-                            height: 48
-                            gradient: Gradient {
-                                GradientStop {
-                                    position: 0.0
-                                    color: "transparent"
-                                }
-                                GradientStop {
-                                    position: 1.0
-                                    color: Theme.surface_container_low
+                            delegate: LauncherDelegate {}
+
+                            displaced: Transition {
+                                NumberAnimation {
+                                    properties: "x,y"
+                                    duration: 180
+                                    easing.type: Easing.OutCubic
                                 }
                             }
+                            add: Transition {
+                                NumberAnimation {
+                                    property: "opacity"
+                                    from: 0
+                                    to: 1
+                                    duration: 140
+                                }
+                            }
                         }
-                    }
-
-                    Text {
-                        id: emptyMessage
-                        anchors.centerIn: listContainer
-                        text: "No matching applications"
-                        visible: listView.count === 0
-                        color: Theme.on_surface_variant
-                        font {
-                            family: "Google Sans Medium"
-                            pixelSize: 18
-                        }
-                    }
-
-                    Item {
-                        id: footer
-                        anchors {
-                            bottom: parent.bottom
-                            left: parent.left
-                            right: parent.right
-                        }
-                        height: 48
 
                         Text {
-                            anchors.centerIn: parent
-                            text: "[/] Search  •  [Enter] Launch  •  [J/K] Navigate  •  [Esc] Close"
+                            width: parent.width
+                            height: visible ? 72 : 0
+                            visible: listView.count === 0
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            text: "No matching applications"
                             color: Theme.on_surface_variant
-                            opacity: 0.7
+                            opacity: 0.6
                             font {
                                 family: "Google Sans"
-                                pixelSize: 12
-                                weight: Font.Medium
-                                letterSpacing: 0.5
+                                pixelSize: 15
                             }
                         }
                     }
                 }
             }
         }
+    }
     }
 }

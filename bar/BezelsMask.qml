@@ -30,7 +30,18 @@ Variants {
         readonly property HyprlandMonitor monitor: Hyprland.monitorFor(screen)
         visible: !FullscreenState.isFullscreen(monitor)
 
-        WlrLayershell.layer: WlrLayer.Overlay
+        // This surface is anchored to all four edges and paints an opaque frame
+        // everywhere EXCEPT a cutout that deliberately excludes the bar strips
+        // (topMargin/sideBarWidth/bottomBarHeight), so it covers the exact strip
+        // the top bar draws in.
+        //
+        // It therefore has to sit BELOW the bars. On the same layer the stacking
+        // order is just delegate creation order, which is not something to rely
+        // on - the bezel ended up mapped last and hid every bar's children.
+        // WlrLayer.Top is still above client windows but below the Overlay layer
+        // the bars use, so the bars are always drawn on top.
+
+        WlrLayershell.layer: WlrLayer.Top
         WlrLayershell.namespace: "quickshell-bezels"
         WlrLayershell.exclusiveZone: -1 // Passthrough; do not reserve space
 
@@ -60,7 +71,7 @@ Variants {
                 // Primary Drop Shadow for the bezel edges
                 layer.effect: MultiEffect {
                     shadowEnabled: true
-                    shadowColor: "#B0000000"
+                    shadowColor: Qt.rgba(Theme.shadow.r, Theme.shadow.g, Theme.shadow.b, 0.69)
                     shadowVerticalOffset: 0
                     shadowHorizontalOffset: 0
                     blurMax: 20

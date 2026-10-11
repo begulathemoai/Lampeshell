@@ -76,7 +76,7 @@ PanelWindow {
                     id: shadowCaster
                     anchors.fill: mainUi
                     radius: 28
-                    color: "black"
+                    color: Theme.shadow
                     visible: false
                 }
 
@@ -85,7 +85,7 @@ PanelWindow {
                     source: shadowCaster
                     shadowEnabled: true
                     shadowBlur: 1.0
-                    shadowColor: "#60000000"
+                    shadowColor: Qt.rgba(Theme.shadow.r, Theme.shadow.g, Theme.shadow.b, 0.38)
                     shadowVerticalOffset: 12
                 }
 
@@ -93,7 +93,7 @@ PanelWindow {
                     id: mainUiMask
                     anchors.fill: mainUi
                     radius: 28
-                    color: "black"
+                    color: Theme.shadow
                     visible: false
                     layer.enabled: true
                 }

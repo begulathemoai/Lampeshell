@@ -23,7 +23,10 @@ Variants {
         WlrLayershell.layer: WlrLayer.Overlay
 
         readonly property HyprlandMonitor monitor: Hyprland.monitorFor(screen)
-        visible: !FullscreenState.isFullscreen(monitor)
+        readonly property bool fullscreen: FullscreenState.isFullscreen(monitor)
+
+        // Collapse rather than destroy: see TopBar.qml for why toggling
+        // `visible` breaks the exclusive zone on the way back.
 
         // --- Geometry & Positioning ---
         anchors {
@@ -33,7 +36,16 @@ Variants {
         }
 
         // --- Visual Styling ---
-        implicitHeight: Layout.bottomBarHeight
         color: "transparent"
+
+        implicitHeight: fullscreen ? 0 : Layout.bottomBarHeight
+        WlrLayershell.exclusiveZone: fullscreen ? 0 : Layout.bottomBarHeight
+
+        Behavior on implicitHeight {
+            NumberAnimation {
+                duration: 180
+                easing.type: Easing.OutCubic
+            }
+        }
     }
 }

@@ -11,6 +11,11 @@ FileView {
 
     property string wallpaper: "file://" + colors.wallpaper_path
 
+    // The applied wallpaper's path, without the file:// prefix. Exposed as a
+    // real alias rather than parsed out of `wallpaper` so it can be bound to -
+    // ThemeService.currentWallpaper depends on this.
+    property alias wallpaperPath: colors.wallpaper_path
+
     // --- ALIASES ---
     property alias primary: colors.primary
     property alias on_primary: colors.on_primary
@@ -31,6 +36,13 @@ FileView {
     property alias on_background: colors.on_background
     property alias surface: colors.surface
     property alias on_surface: colors.on_surface
+
+    // Material's surfaceDim/surfaceBright pair. On a dark scheme surfaceBright
+    // is lighter than every surface_container tone, which makes it the correct
+    // token for a raised surface that has to read as "above" the desktop -
+    // floating panels and the launcher card.
+    property alias surface_dim: colors.surface_dim
+    property alias surface_bright: colors.surface_bright
 
     property alias surface_variant: colors.surface_variant
     property alias on_surface_variant: colors.on_surface_variant
@@ -56,43 +68,45 @@ FileView {
         id: colors
 
         property string wallpaper_path: ""
-        property string primary: "#6750a4"
-        property string on_primary: "#ffffff"
-        property string primary_container: "#eaddff"
-        property string on_primary_container: "#21005d"
+        property color primary: "#6750a4"
+        property color on_primary: "#ffffff"
+        property color primary_container: "#eaddff"
+        property color on_primary_container: "#21005d"
 
-        property string secondary: "#625b71"
-        property string on_secondary: "#ffffff"
-        property string secondary_container: "#e8def8"
-        property string on_secondary_container: "#1d192b"
+        property color secondary: "#625b71"
+        property color on_secondary: "#ffffff"
+        property color secondary_container: "#e8def8"
+        property color on_secondary_container: "#1d192b"
 
-        property string tertiary: "#7d5260"
-        property string on_tertiary: "#ffffff"
-        property string tertiary_container: "#ffd8e4"
-        property string on_tertiary_container: "#31111d"
+        property color tertiary: "#7d5260"
+        property color on_tertiary: "#ffffff"
+        property color tertiary_container: "#ffd8e4"
+        property color on_tertiary_container: "#31111d"
 
-        property string background: "#1c1b1f"
-        property string on_background: "#e6e1e5"
-        property string surface: "#1c1b1f"
-        property string on_surface: "#e6e1e5"
+        property color background: "#1c1b1f"
+        property color on_background: "#e6e1e5"
+        property color surface: "#1c1b1f"
+        property color on_surface: "#e6e1e5"
+        property color surface_dim: "#141218"
+        property color surface_bright: "#413738"
 
-        property string surface_variant: "#49454f"
-        property string on_surface_variant: "#cac4d0"
-        property string inverse_surface: "#e6e1e5"
-        property string inverse_on_surface: "#313033"
+        property color surface_variant: "#49454f"
+        property color on_surface_variant: "#cac4d0"
+        property color inverse_surface: "#e6e1e5"
+        property color inverse_on_surface: "#313033"
 
-        property string surface_container_lowest: "#0f0d13"
-        property string surface_container_low: "#1d1b20"
-        property string surface_container: "#211f26"
-        property string surface_container_high: "#2b2930"
-        property string surface_container_highest: "#36343b"
+        property color surface_container_lowest: "#0f0d13"
+        property color surface_container_low: "#1d1b20"
+        property color surface_container: "#211f26"
+        property color surface_container_high: "#2b2930"
+        property color surface_container_highest: "#36343b"
 
-        property string outline: "#938f99"
-        property string outline_variant: "#49454f"
-        property string shadow: "#000000"
-        property string scrim: "#000000"
+        property color outline: "#938f99"
+        property color outline_variant: "#49454f"
+        property color shadow: "#000000"
+        property color scrim: "#000000"
 
-        property string critical: "#b3261e"
-        property string on_critical: "#ffffff"
+        property color critical: "#b3261e"
+        property color on_critical: "#ffffff"
     }
 }

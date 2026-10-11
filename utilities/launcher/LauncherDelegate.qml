@@ -5,7 +5,7 @@ import "../../theme"
 Item {
     id: delegateRoot
     width: ListView.view.width
-    height: 72
+    height: 56
 
     property bool isSelected: ListView.isCurrentItem
     property bool isHovered: itemMouseArea.containsMouse
@@ -19,45 +19,27 @@ Item {
     Rectangle {
         id: itemBox
         anchors.centerIn: parent
-        width: parent.width - 32
-        height: parent.height - 4
-        radius: 16
+        width: parent.width - 12
+        height: parent.height - 2
+        radius: 8
 
-        scale: itemMouseArea.pressed ? 0.98 : (delegateRoot.isSelected || delegateRoot.isHovered ? 1.015 : 1.0)
-        Behavior on scale {
-            NumberAnimation {
-                duration: 200
-                easing.type: Easing.OutBack
-            }
-        }
+        // Metrolist's selection is a translucent primaryContainer wash rather
+        // than a solid fill or an indicator bar, which keeps the row quiet.
+        readonly property color selectionColour: Qt.rgba(
+            Theme.primary_container.r,
+            Theme.primary_container.g,
+            Theme.primary_container.b,
+            0.6
+        )
 
-        color: delegateRoot.isSelected ? Theme.secondary_container : (delegateRoot.isHovered ? Qt.lighter(Theme.surface_container_low, 1.08) : "transparent")
+        color: delegateRoot.isSelected
+            ? itemBox.selectionColour
+            : (delegateRoot.isHovered
+                ? Qt.rgba(Theme.on_surface.r, Theme.on_surface.g, Theme.on_surface.b, 0.06)
+                : "transparent")
         Behavior on color {
             ColorAnimation {
-                duration: 150
-            }
-        }
-
-        Rectangle {
-            id: activeIndicator
-            width: 4
-            height: delegateRoot.isSelected ? parent.height * 0.5 : 0
-            opacity: delegateRoot.isSelected ? 1.0 : 0.0
-            anchors.left: parent.left
-            anchors.leftMargin: 4
-            anchors.verticalCenter: parent.verticalCenter
-            radius: 2
-            color: Theme.primary
-            Behavior on height {
-                NumberAnimation {
-                    duration: 150
-                    easing.type: Easing.OutQuart
-                }
-            }
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: 150
-                }
+                duration: 120
             }
         }
 
@@ -97,7 +79,7 @@ Item {
             Text {
                 width: parent.width
                 text: modelData.name
-                color: delegateRoot.isSelected ? Theme.on_secondary_container : Theme.on_surface
+                color: delegateRoot.isSelected ? Theme.on_primary_container : Theme.on_surface
                 elide: Text.ElideRight
                 font {
                     family: "Google Sans"
@@ -110,7 +92,7 @@ Item {
                 width: parent.width
                 text: delegateRoot.descriptionText
                 visible: delegateRoot.descriptionText !== ""
-                color: delegateRoot.isSelected ? Theme.on_secondary_container : Theme.on_surface_variant
+                color: delegateRoot.isSelected ? Theme.on_primary_container : Theme.on_surface_variant
                 opacity: delegateRoot.isSelected ? 0.8 : 1.0
                 elide: Text.ElideRight
                 font {

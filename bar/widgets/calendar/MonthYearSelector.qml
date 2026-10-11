@@ -179,7 +179,7 @@ Item {
                 layer.effect: MultiEffect {
                     shadowEnabled: true
                     shadowBlur: 0.6
-                    shadowColor: "#40000000"
+                    shadowColor: Qt.rgba(Theme.shadow.r, Theme.shadow.g, Theme.shadow.b, 0.25)
                     shadowVerticalOffset: 3
                 }
 
