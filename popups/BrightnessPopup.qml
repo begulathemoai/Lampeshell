@@ -1,9 +1,10 @@
 import Quickshell
 import Quickshell.Wayland
-import Quickshell.Io
+import Quickshell.Hyprland
 import QtQuick
 import QtQuick.Effects
-import "../theme"
+import qs.theme
+import qs.services
 
 Variants {
     id: root
@@ -21,49 +22,21 @@ Variants {
         color: "transparent"
         visible: showOsd
 
-        anchors {
-            bottom: true
-        }
-
-        margins {
-            bottom: 70
-        }
+        anchors { bottom: true }
+        margins { bottom: 70 }
 
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "brightness_osd"
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
-        property real brightnessLevel: 0.0
+        readonly property real brightnessLevel: DdcBrightness.available
+            ? DdcBrightness.level
+            : (quickSettingsBackend?.brightnessLevel ?? 0.0)
 
-        Process {
-            command: ["sh", "-c", "udevadm monitor --subsystem-match=backlight --udev"]
-            running: true
-            stdout: SplitParser {
-                onRead: updateBrightness.running = true
-            }
-        }
+        onBrightnessLevelChanged: triggerOsd();
 
-        Process {
-            id: updateBrightness
-            command: ["sh", "-c", "brightnessctl -m --class=backlight 2>/dev/null || true"]
-            running: true
-            stdout: StdioCollector {
-                onStreamFinished: {
-                    const fields = this.text.trim().split(",");
-                    if (fields.length < 4)
-                        return; // no backlight device (DDC-only monitor)
-                    let val = parseInt(fields[3].replace("%", ""));
-                    if (!isNaN(val)) {
-                        brightnessOsdPopup.brightnessLevel = val / 100.0;
-                    }
-                }
-            }
-        }
-
-        onBrightnessLevelChanged: {
-            triggerOsd();
-        }
+        readonly property var quickSettingsBackend: QuickSettingsBackend  // for fallback only
 
         property bool isInitialized: false
         property bool showOsd: false
@@ -72,25 +45,17 @@ Variants {
             id: initTimer
             interval: 1000
             running: true
-
-            onTriggered: {
-                brightnessOsdPopup.isInitialized = true;
-            }
+            onTriggered: brightnessOsdPopup.isInitialized = true;
         }
 
         Timer {
             id: hideTimer
             interval: 2000
-
-            onTriggered: {
-                brightnessOsdPopup.showOsd = false;
-            }
+            onTriggered: brightnessOsdPopup.showOsd = false;
         }
 
         function triggerOsd() {
-            if (!isInitialized)
-                return;
-
+            if (!isInitialized) return;
             showOsd = true;
             hideTimer.restart();
         }

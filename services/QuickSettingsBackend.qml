@@ -230,9 +230,13 @@ Item {
     }
 
     function setBrightness(fraction) {
-        const pct = Math.round(Math.max(0, Math.min(1, fraction)) * 100);
-        brightnessSet.command = ["sh", "-c", "brightnessctl --class=backlight set " + pct + "% 2>/dev/null || true"];
-        brightnessSet.running = true;
+        if (DdcBrightness.available) {
+            DdcBrightness.setLevel(fraction);
+        } else {
+            const pct = Math.round(Math.max(0, Math.min(1, fraction)) * 100);
+            brightnessSet.command = ["sh", "-c", "brightnessctl --class=backlight set " + pct + "% 2>/dev/null || true"];
+            brightnessSet.running = true;
+        }
     }
 
     function toggleNetwork(net) {

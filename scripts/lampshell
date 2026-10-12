@@ -144,6 +144,22 @@ case "${1:-help}" in
         call hypr "$@"
         ;;
 
+    brightness)
+        require_running || exit 1
+        case "${2:-}" in
+            get)        call brightness get ;;
+            up)         call brightness up ;;
+            down)       call brightness down ;;
+            set)        [ -n "${3:-}" ] || { err "brightness set needs a value 0-100"; exit 1; }
+                       call brightness set "$3" ;;
+            status)     call brightness get ;;
+            *)
+                err "brightness needs: get | up | down | set <0-100> | status"
+                exit 1
+                ;;
+        esac
+        ;;
+
     media)
         require_running || exit 1
         case "${2:-}" in
