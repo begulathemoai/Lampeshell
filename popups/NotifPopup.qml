@@ -47,11 +47,14 @@ Variants {
 
         visible: true
         property bool hasNotifications: notifModel.count > 0
+        onHasNotificationsChanged: {
+            if (!hasNotifications)
+                exitTimer.restart();
+        }
 
         Timer {
             id: exitTimer
             interval: 350
-            running: !hasNotifications
         }
 
         readonly property bool surfaceMapped: hasNotifications || exitTimer.running
