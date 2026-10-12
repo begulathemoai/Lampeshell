@@ -1,0 +1,181 @@
+#!/bin/bash
+
+
+QS="${QS:-qs}"
+CONFIG="${LAMPSHELL_CONFIG:-lampshell}"
+
+err() {
+    echo "lampshell: $*" >&2
+}
+
+usage() {
+    cat <<EOF
+usage: lampshell <command> [args]
+
+Shell
+  start                 Launch the shell detached
+  stop                  Stop the shell
+  restart               Stop the shell, then start it again
+  status                Report whether the shell is running
+  logs                  Follow the shell log
+
+Interface
+  launcher              Toggle the app launcher
+  session               Toggle the session menu (lock / logout / power)
+  quick-settings        Toggle quick settings
+  settings              Toggle the shell settings panel
+  clipboard             Toggle the clipboard history
+  emoji                 Toggle the emoji picker
+  hypr                  Raw Hyprland target (hypr focus_workspace 2)
+
+Wallpaper
+  wallpaper             Toggle the wallpaper panel
+  wallpaper get         Print the current wallpaper path
+  wallpaper list        List available wallpapers
+  wallpaper set <path>  Set the wallpaper
+
+Misc
+  ipc <target> <fn> [args...]   Call any IPC handler directly
+  help                   Show this message
+
+The shell config is "\$LAMPSHELL_CONFIG" (currently "$CONFIG").
+EOF
+}
+
+is_running() {
+    "$QS" list --all 2>/dev/null | grep -q "Config path: .*/${CONFIG}/shell\.qml$"
+}
+
+require_running() {
+    if ! is_running; then
+        err "the '$CONFIG' shell is not running. Start it with: lampshell start"
+        return 1
+    fi
+}
+
+call() {
+    "$QS" -c "$CONFIG" ipc call "$@"
+}
+
+case "${1:-help}" in
+    start)
+        if is_running; then
+            echo "lampshell: already running"
+            exit 0
+        fi
+        setsid "$QS" -c "$CONFIG" -n -d >/dev/null 2>&1 &
+        sleep 0.5
+        if is_running; then
+            echo "lampshell: started"
+        else
+            err "failed to start, check the log with: lampshell logs"
+            exit 1
+        fi
+        ;;
+
+    stop | kill)
+        require_running || exit 1
+        "$QS" -c "$CONFIG" kill
+        echo "lampshell: stopped"
+        ;;
+
+    restart)
+        is_running && "$QS" -c "$CONFIG" kill
+        sleep 0.3
+        exec "$0" start
+        ;;
+
+    status)
+        if is_running; then
+            echo "lampshell: running ($CONFIG)"
+            "$QS" list --all 2>/dev/null |
+                grep -B4 "Config path: .*/${CONFIG}/shell\.qml$" | sed 's/^/  /'
+        else
+            echo "lampshell: not running ($CONFIG)"
+            exit 1
+        fi
+        ;;
+
+    logs)
+        exec "$QS" -c "$CONFIG" log -f
+        ;;
+
+    launcher)
+        require_running || exit 1
+        call appLauncher toggle
+        ;;
+
+    session)
+        require_running || exit 1
+        call session toggle
+        ;;
+
+    quick-settings | quicksettings)
+        require_running || exit 1
+        call quickSettings toggle
+        ;;
+
+    settings)
+        require_running || exit 1
+        call shellSettings toggle
+        ;;
+
+    clipboard)
+        require_running || exit 1
+        call clipMenu toggle
+        ;;
+
+    emoji)
+        require_running || exit 1
+        call emojiMenu toggle
+        ;;
+
+    hypr)
+        require_running || exit 1
+        shift
+        call hypr "$@"
+        ;;
+
+    wallpaper)
+        require_running || exit 1
+        case "${2:-}" in
+            get)
+                call wallpaper get
+                ;;
+            list)
+                call wallpaper list
+                ;;
+            set)
+                if [ -z "${3:-}" ]; then
+                    err "wallpaper set needs a path"
+                    exit 1
+                fi
+                call wallpaper set "$3"
+                ;;
+            *)
+                call wallpaper get
+                ;;
+        esac
+        ;;
+
+    ipc)
+        require_running || exit 1
+        shift
+        if [ $# -lt 2 ]; then
+            err "ipc needs a target and a function"
+            exit 1
+        fi
+        call "$@"
+        ;;
+
+    help | -h | --help)
+        usage
+        ;;
+
+    *)
+        err "unknown command: $1"
+        echo
+        usage
+        exit 1
+        ;;
+esac
