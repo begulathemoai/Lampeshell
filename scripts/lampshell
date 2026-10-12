@@ -322,6 +322,56 @@ case "${1:-help}" in
         esac
         ;;
 
+    screenshot)
+        dir="${HOME}/Pictures/Screenshots"
+        mkdir -p "$dir"
+        mode="full"; output=""; use_swappy=0; use_clipboard=0; use_freeze=0
+        shift
+        while [ $# -gt 0 ]; do
+            case "$1" in
+                --full)      mode="full" ;;
+                --region)    mode="region" ;;
+                --output)    output="$2"; shift ;;
+                --swappy)    use_swappy=1 ;;
+                --clipboard) use_clipboard=1 ;;
+                --freeze)    use_freeze=1 ;;
+                *) err "unknown flag: $1"; exit 1 ;;
+            esac
+            shift
+        done
+
+        if [ -z "$output" ]; then
+            output=$(hyprctl monitors -j 2>/dev/null | jq -r '.[] | select(.focused==true) | .name' 2>/dev/null | head -1)
+        fi
+        if [ -z "$output" ]; then
+            err "no focused monitor and no --output given"
+            exit 1
+        fi
+
+        outfile="${dir}/screenshot-$(date +%Y%m%d_%H-%M-%S).png"
+
+        case "$mode" in
+            full)
+                grim -o "$output" "$outfile" || { err "grim failed"; exit 1; }
+                ;;
+            region)
+                geom=$(slurp -f "%x %y %w %h" 2>/dev/null) || { err "region selection cancelled"; exit 1; }
+                read -r x y w h <<<"$geom"
+                grim -g "${x},${y} ${w}x${h}" "$outfile" \
+                    || { err "grim failed"; exit 1; }
+                ;;
+        esac
+
+        if [ "$use_swappy" = 1 ] && command -v swappy >/dev/null; then
+            swappy -f "$outfile" -o "$outfile" || true
+        fi
+        if [ "$use_clipboard" = 1 ] && command -v wl-copy >/dev/null; then
+            wl-copy --type image/png < "$outfile" 2>/dev/null
+        fi
+        ls -la "$outfile"
+        notify-send "Screenshot saved" "$outfile" 2>/dev/null || true
+        ;;
+
     ipc)
         require_running || exit 1
         shift
