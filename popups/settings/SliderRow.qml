@@ -22,6 +22,7 @@ Item {
     property bool dragging: false
 
     // --- Settings group chrome ---
+    // Connected corners when placed inside a SettingsGroup (assigned by the
     // group), matching Metrolist's connectedShape.
     property bool isFirst: true
     property bool isLast: true
@@ -78,6 +79,7 @@ Item {
             }
         }
 
+        // Track
         Rectangle {
             id: track
             anchors.verticalCenter: parent.verticalCenter
@@ -137,6 +139,7 @@ Item {
                 const ratio = Math.max(0, Math.min(1, px / Math.max(1, track.width)));
                 const v = root.from + ratio * (root.to - root.from);
                 // Echo locally so the handle tracks the pointer immediately
+                // instead of waiting for a backend round-trip.
                 root.dragging = true;
                 root.moved(v);
             }

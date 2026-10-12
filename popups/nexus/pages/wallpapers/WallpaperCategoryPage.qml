@@ -35,7 +35,9 @@ PageBase {
         ScrollBar.vertical: ScrollBar {}
 
         delegate: WallpaperTile {
+            // modelData, not `entry`: declaring a property named `entry` here
             // would shadow WallpaperTile's own required property and turn
+            // `entry: entry` into a self-assignment.
             required property var modelData
             width: root.cellWidth
             entry: modelData

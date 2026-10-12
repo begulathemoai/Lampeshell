@@ -13,6 +13,7 @@ import Quickshell.Services.UPower
  * values. The pill (CommandCenter.qml) mirrors these properties for display
  * only - all mutations go through here.
  */
+// Root is an Item (not QtObject): Process/PwObjectTracker are Items and cannot
 // be attached to a QtObject, which has no default property. This Item is never
 // parented into a scene; it only exists to host the child objects and state.
 Item {
@@ -56,7 +57,9 @@ Item {
     }
 
     readonly property bool ethernetConnected: networkDevices.some(dev => dev.networks === undefined && dev.connected)
+    // Coerced to a real bool. The previous `(a || b) !== null` was always true:
     // `false !== null` is true, so the Wi-Fi tile read as connected even with
+    // nothing up.
     readonly property bool anyNetworkUp: !!(connectedWifiNetwork || ethernetConnected)
 
     readonly property string wifiDeviceName: wifiDevice?.name ?? ""
@@ -89,6 +92,7 @@ Item {
         wifiRefreshTimer.running = true;
     }
 
+    // --- Bluetooth ---
     readonly property var btAdapter: Bluetooth.defaultAdapter ?? (Bluetooth.adapters?.values?.[0] ?? null)
     readonly property bool btPowered: btAdapter?.enabled ?? false
     readonly property var btDevices: btAdapter?.devices?.values ?? []
@@ -120,8 +124,10 @@ Item {
     }
 
     // Address of the device whose request is still in flight, used to show a
+    // spinner and block double-taps. Cleared by btBusyTimer.
     property string btBusyAddress: ""
 
+    // --- Bluetooth actions ---
     // Every action re-asserts the authoritative state afterwards: BlueZ can
     // silently refuse a request (the adapter was off, the device went out of
     // range), and without this the switch would keep showing what was asked
@@ -239,6 +245,7 @@ Item {
             enabled = !btPowered;
         if (!btAdapter)
             return;
+        // Set the requested state rather than flipping the current one, matching
         // Caelestia: the toggle's `checked` is the source of truth, so a failed
         // or ignored write re-asserts the same value instead of walking the
         // adapter into the opposite state from what the user asked for.
@@ -304,6 +311,7 @@ Item {
         }
     }
 
+    // The wifi radio itself is not exposed as a writable property in the
     // Quickshell Networking API (only per-network connect/disconnect is),
     // so the radio is read and toggled through nmcli.
     Process {
@@ -311,6 +319,7 @@ Item {
     }
 
     // Reads the radio state so the tiles reflect the radio rather than
+    // "is something connected". Retriggered like brightnessQuery, since
     // `running` alone will not restart a finished one-shot process.
     Process {
         id: wifiRadioQuery
@@ -332,7 +341,9 @@ Item {
         onTriggered: root.btBusyAddress = ""
     }
 
+    // nmcli state is external, so nothing pushes changes into QML. Poll slowly
     // to pick up changes made outside the shell (rfkill, NetworkManager,
+    // blueman) and to re-sync after a write that the radio refused.
     Timer {
         id: wifiRefreshTimer
         interval: 4000

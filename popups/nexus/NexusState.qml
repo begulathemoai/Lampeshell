@@ -13,6 +13,7 @@ QtObject {
 
     required property var host // the Settings window
 
+    // Shared services, reached through here because page files are separate
     // components and cannot see the window's ids.
     property var accentPalette
     property var quickSettingsBackend
@@ -22,6 +23,7 @@ QtObject {
     readonly property var subPageIdxStack: []
 
     // Whatever the detail view is currently working on. Caelestia stores the
+    // selected device/entry here so it survives navigating away and back.
     property var selectedBtDevice: null
     property var selectedNetwork: null
     property string selectedWallpaperCategory: ""
@@ -46,5 +48,6 @@ QtObject {
     }
 
     // Changing section starts a fresh navigation stack, otherwise a detail view
+    // from the previous section would still be showing.
     onCurrentPageIdxChanged: subPageIdxStack.length = 0
 }

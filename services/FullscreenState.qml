@@ -5,11 +5,17 @@ import Quickshell.Hyprland
 import QtQml
 
 Singleton {
+    // Fullscreen state is polled rather than bound.
     //
+    // In Quickshell 0.3.1 none of the obvious properties notify when they change:
     //   - HyprlandWorkspace.hasFullscreen never emits notify, so a binding that
+    //     reads it is evaluated once and frozen. That left the bar stuck in its
     //     fullscreen state after leaving fullscreen: the surface came back but
+    //     its children stayed hidden, which is the "children detach / bar comes
     //     back blank" symptom.
+    //   - HyprlandToplevel.lastIpcObject is a one-time snapshot here, so the
     //     `toplevels.values.some(t => t.lastIpcObject.fullscreen > 1)` check that
+    //     Caelestia uses never sees a change either.
     //
     // Reading the values on a timer sidesteps both: the underlying values are
     // kept current by Hyprland's IPC, they just do not announce it. Re-assigning
@@ -31,9 +37,13 @@ Singleton {
         }
         workspaceStates = next;
 
+        // Which special workspace is actually DISPLAYED per monitor.
         //
+        // A monitor can have several special workspaces lingering (Discord keeps
         // special:communication around), so picking any workspace with a negative
+        // id is wrong - the bar would then never hide. lastIpcObject is the raw
         // monitor payload and is the only place that says which special
+        // workspace is currently shown; polling picks up Hyprland's updates.
         const monitors = Hyprland.monitors.values;
         const mons = [];
         for (let i = 0; i < monitors.length; i++) {
@@ -70,6 +80,7 @@ Singleton {
             return false;
 
         // A special workspace is displayed over the normal one, so
+        // activeWorkspace says nothing about what is actually on screen.
         if (state.specialId !== 0) {
             for (let i = 0; i < workspaceStates.length; i++) {
                 if (workspaceStates[i].id === state.specialId)

@@ -24,6 +24,7 @@ Item {
     readonly property string path: entry ? entry.path : ""
     readonly property bool isCurrent: path.length > 0 && path === currentPath
 
+    // Decode budget per tile. Wide enough to stay sharp on a hidpi output.
     readonly property int decodeWidth: 420
 
     implicitWidth: 180
@@ -72,6 +73,7 @@ Item {
         }
 
         // Placeholder while decoding, and a broken-image mark if the file is
+        // unreadable - otherwise a missing file just looks like a slow load.
         Rectangle {
             anchors.fill: parent
             color: Theme.surface_container_highest

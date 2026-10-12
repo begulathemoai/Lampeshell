@@ -5,6 +5,7 @@ import qs.popups.nexus
 import qs.popups.nexus.pages
 import qs.popups.nexus.pages.wallpapers
 
+/**
  * The component behind each PageRegistry entry, at the same index.
  *
  * A section is wrapped in a StackPage so it can push detail views; the index a
@@ -14,6 +15,7 @@ import qs.popups.nexus.pages.wallpapers
 QtObject {
     readonly property list<Component> pageComps: [
         // 0 - Appearance
+        // Sub-pages: 1 wallpaper grid, 2 one wallpaper category.
         Component {
             StackPage {
                 Component {

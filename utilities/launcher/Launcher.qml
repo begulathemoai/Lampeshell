@@ -286,14 +286,19 @@ PanelWindow {
                     radius: 16
                     // Material's surfaceBright rather than a container tone: on
                     // a dark scheme it sits above every surface_container step,
+                    // which is what makes the card read as "above" the desktop.
                     color: Theme.surface_bright
                     border.width: 1
                     border.color: Qt.rgba(Theme.outline_variant.r, Theme.outline_variant.g, Theme.outline_variant.b, 0.2)
 
+                    // No shadow: the previous rig (a MultiEffect reading an
                     // invisible rounded rect) filled the whole card with a
+                    // translucent black box whenever its source failed to
                     // resolve, which read as an opaque black background. A flat
                     // hairline-bordered card is the safer modelling of the same
+                    // surface.
 
+                    // Enter: fade + scale up from 0.90 + rise, with the slight
                     // overshoot of a spring rather than a flat tween.
                     ParallelAnimation {
                         id: enterAnim
@@ -467,10 +472,12 @@ PanelWindow {
                             visible: listView.count > 0
                         }
 
+                        // --- Results ---
                         ListView {
                             id: listView
                             width: parent.width
                             // Caps the panel height; the card shrinks back down
+                            // when there are few or no results.
                             height: Math.min(contentHeight, 300)
                             visible: count > 0
                             clip: true

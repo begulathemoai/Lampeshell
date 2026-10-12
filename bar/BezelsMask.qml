@@ -31,10 +31,15 @@ Variants {
         visible: !FullscreenState.isFullscreen(monitor)
 
         // This surface is anchored to all four edges and paints an opaque frame
+        // everywhere EXCEPT a cutout that deliberately excludes the bar strips
         // (topMargin/sideBarWidth/bottomBarHeight), so it covers the exact strip
+        // the top bar draws in.
         //
+        // It therefore has to sit BELOW the bars. On the same layer the stacking
         // order is just delegate creation order, which is not something to rely
+        // on - the bezel ended up mapped last and hid every bar's children.
         // WlrLayer.Top is still above client windows but below the Overlay layer
+        // the bars use, so the bars are always drawn on top.
 
         WlrLayershell.layer: WlrLayer.Top
         WlrLayershell.namespace: "quickshell-bezels"

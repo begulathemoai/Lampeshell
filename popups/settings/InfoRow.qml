@@ -10,7 +10,9 @@ Item {
     property string label: ""
     property string value: ""
 
+    // --- Settings group chrome ---
     // Connected corners when placed inside a SettingsGroup (assigned by the
+    // group), matching Metrolist's connectedShape.
     property bool isFirst: true
     property bool isLast: true
 

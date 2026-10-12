@@ -1,6 +1,7 @@
 import QtQuick
 import qs.popups.nexus
 
+/**
  * Hosts exactly one section at a time.
  *
  * The previous page is destroyed rather than hidden. Six always-live page trees
@@ -51,6 +52,7 @@ Item {
 
         function onCurrentPageIdxChanged() {
             // Fade out, swap, fade back in. The direction alternates so moving
+            // down the list feels like moving forward.
             root.animOff = root.nState.currentPageIdx > root.lastPageIdx ? 1 : -1;
             switchAnim.start();
             root.lastPageIdx = root.nState.currentPageIdx;

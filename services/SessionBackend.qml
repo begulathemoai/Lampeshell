@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
+/**
  * Session actions for the logout/power menu.
  *
  * Hyprland's own exit path on this version is hl.dsp.exit(), reached through
@@ -20,6 +21,7 @@ Item {
     implicitHeight: 0
 
     // Two-step confirmation state. Destructive actions must be pressed twice
+    // within confirmWindowMs; the first press arms, the second executes.
     property string pending: ""
     property int confirmWindowMs: 4000
 

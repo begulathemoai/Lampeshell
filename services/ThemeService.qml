@@ -128,8 +128,11 @@ find "$dir" -maxdepth 3 -type f \\
     }
 
     // The applied wallpaper, taken straight from colors.json.
+    //
     // This started as a separate wallpaper.txt state file read with `cat` at
+    // startup, but the read never populated: assigning a Process command during
     // component completion is unreliable in this Quickshell, and a reader
+    // FileView on the same path as the writer never saw the writer's changes.
     // colors.json already records wallpaper_path and Theme exposes it as a real
     // bindable property, so one file is both the theme and the wallpaper state.
     readonly property string currentWallpaper: Theme.wallpaperPath ?? ""
@@ -215,7 +218,9 @@ find "$dir" -maxdepth 3 -type f \\
         out.critical = hex("error") ?? out.critical ?? null;
         out.on_critical = hex("on_error") ?? out.on_critical ?? null;
 
+        // Fill any gaps from the tokens currently in effect so a partial matugen
         // response can never blank a colour. Theme's aliases are real
+        // properties, so they can be read back by name.
         for (const key of Object.keys(out)) {
             if (out[key] !== null)
                 continue;
@@ -233,6 +238,7 @@ find "$dir" -maxdepth 3 -type f \\
         root.backupColors();
         colorsOut.setText(JSON.stringify(out, null, 4) + "\n");
         // currentWallpaper follows colors.json through Theme, so writing it is
+        // all that is needed - no separate state file to keep in sync.
         root.busy = false;
     }
 

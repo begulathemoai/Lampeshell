@@ -83,9 +83,13 @@ Singleton {
         }
     }
 
+    // Keeps Hyprland's models in sync.
     //
+    // Several properties do not emit notify signals when they change, so anything
     // bound to them silently goes stale - HyprlandWorkspace.hasFullscreen is the
+    // worst offender and is why FullscreenState has to poll. Asking Hyprland to
     // re-read a model makes it re-emit, which is both cheaper and more accurate
+    // than polling. Components should not each wire this up themselves.
     Connections {
         target: Hyprland
 

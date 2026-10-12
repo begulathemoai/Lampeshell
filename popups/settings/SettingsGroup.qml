@@ -18,6 +18,7 @@ Item {
     property string description: ""
 
     // Rows land in the Column's data, so they become real visual children and
+    // the Column lays them out.
     default property alias rows: rowsColumn.data
 
     width: parent ? parent.width : 0
@@ -26,6 +27,7 @@ Item {
     readonly property int rowCount: rowsColumn.children.length
 
     // Pages declare their rows inline, so the connected-corner flags are
+    // assigned here rather than being repeated on every row by hand.
     function applyShape() {
         const kids = rowsColumn.children;
         for (let i = 0; i < kids.length; i++) {

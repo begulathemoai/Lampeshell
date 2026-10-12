@@ -24,9 +24,13 @@ Item {
 
     readonly property string colorsPath: Quickshell.shellPath("theme/colors.json")
 
+    // Material 3 source hues: a red, a blue, a violet, a green, an orange,
     // a cyan plus neutral grey and brown.
+    //
     // `on` is the colour drawn on top of `primary`. Every primary here is a
+    // light tone, so a dark on-colour is needed throughout; these are tuned
     // per hue rather than hardcoded, because a single fixed value loses the
+    // original per-theme token (blue's real on_primary is #1a2e60).
     readonly property var swatches: [
         { name: "Blue",   primary: "#b4c5ff", on: "#1a2e60", container: "#324478", onContainer: "#dbe1ff" },
         { name: "Red",    primary: "#ffb4ab", on: "#690005", container: "#93000a", onContainer: "#ffdad6" },

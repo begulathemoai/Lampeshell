@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 
+/**
  * Holds one section's pages as a stack, so a detail view (a network, a bluetooth
  * device) can be pushed on top of its list and popped back to.
  *
@@ -114,6 +115,7 @@ StackView {
 
         function onSubPageClosed() {
             // Guard against a pop arriving before its matching push, which would
+            // otherwise unwind the stack past the section root.
             if (root.depth <= 1)
                 return;
             root.pop();

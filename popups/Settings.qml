@@ -38,6 +38,7 @@ FloatingWindow {
 
     onClosed: settingsWindow.visible = false
 
+    // Resolved once when the window opens, not bound to the focused monitor.
     // A live binding makes the window follow focus, so focusing it moves it to
     // whichever monitor the focus came from - it would jump between outputs.
     property var targetScreen: Quickshell.screens[0]
@@ -142,6 +143,7 @@ FloatingWindow {
     }
 
     // Shared services. QuickSettingsBackend is instantiated here as well as in
+    // the quick settings panel; both talk to the same Quickshell services, so
     // the two panels stay in agreement.
     AccentPalette {
         id: accentPalette
@@ -156,7 +158,9 @@ FloatingWindow {
         id: rootSurface
         anchors.fill: parent
         // Matches Layout.cornerRadius, which is what the screen bezel and the
+        // other floating surfaces (QuickSettings, Session) use. This was a
         // hardcoded 28, so the corners sat visibly rounder than the border the
+        // window is drawn inside.
         radius: Layout.cornerRadius
         color: Theme.surface_container_low
         border.width: 1

@@ -13,6 +13,7 @@ PageBase {
     title: "Appearance"
     description: "Wallpaper and accent"
 
+    // --- Wallpaper ---
 
     SettingsCard {
         title: "Wallpaper"
@@ -25,6 +26,7 @@ PageBase {
             spacing: 12
 
             // Preview of what is actually applied, so this page is not just a
+            // button. Decoded small - it is a thumbnail, not the desktop.
             Rectangle {
                 width: parent.width
                 height: Math.round(width / 3.2)

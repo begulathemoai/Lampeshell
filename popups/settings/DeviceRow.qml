@@ -26,6 +26,7 @@ Item {
     signal forgotten()
 
     // --- Settings group chrome ---
+    // Connected corners when placed inside a SettingsGroup (assigned by the
     // group), matching Metrolist's connectedShape.
     property bool isFirst: true
     property bool isLast: true
@@ -126,6 +127,7 @@ Item {
         }
 
         // Connect / disconnect. For an unpaired device this pairs instead,
+        // which is the same single-tap flow Caelestia uses.
         Rectangle {
             id: connectBtn
             anchors.verticalCenter: parent.verticalCenter
@@ -164,6 +166,7 @@ Item {
             HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
 
             // One tap does the sensible thing: toggle a known device, pair an
+            // unknown one. The page decides which.
             TapHandler {
                 enabled: !root.busy && root.device !== null
                 onTapped: root.action()
