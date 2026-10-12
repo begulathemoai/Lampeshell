@@ -26,7 +26,15 @@ Interface
   settings              Toggle the shell settings panel
   clipboard             Toggle the clipboard history
   emoji                 Toggle the emoji picker
+  media <verb>          MPRIS: play | pause | toggle | next | prev | stop | status | list
   hypr                  Raw Hyprland target (hypr focus_workspace 2)
+
+Record
+  record toggle         Toggle recording on/off (saves to ~/Videos/Screencasts)
+  record start [-s] [-r WxH+X+Y]   Start a recording; -s audio, -r region
+  record stop           Stop and save the current recording
+  record pause          Toggle pause via SIGUSR2
+  record status         Show current state
 
 Wallpaper
   wallpaper             Toggle the wallpaper panel
@@ -151,10 +159,10 @@ case "${1:-help}" in
             album)       call mpris getActive album ;;
             is-playing)  call mpris getActive isPlaying ;;
             status)
-                local id; id=$(call mpris getActive identity)
-                local ti; ti=$(call mpris getActive title)
-                local ar; ar=$(call mpris getActive artist)
-                local pl; pl=$(call mpris getActive isPlaying)
+                id=$(call mpris getActive identity)
+                ti=$(call mpris getActive title)
+                ar=$(call mpris getActive artist)
+                pl=$(call mpris getActive isPlaying)
                 if [ -z "$id" ]; then
                     echo "no active player"
                 else
@@ -163,6 +171,114 @@ case "${1:-help}" in
                 ;;
             *)
                 err "media needs a subcommand: play | pause | toggle | next | prev | stop | status | list | title | artist | album | is-playing"
+                exit 1
+                ;;
+        esac
+        ;;
+
+    record)
+        mkdir -p "${HOME}/Videos/Screencasts"
+        REC_DIR="${HOME}/Videos/Screencasts"
+        STATE="/tmp/lampshell-recording.pid"
+        OUT_TMP="/tmp/lampshell-recording.mp4"
+
+        _is_recording() { [ -f "$STATE" ] && kill -0 "$(cat "$STATE")" 2>/dev/null; }
+
+        _focused_monitor() {
+            hyprctl monitors -j 2>/dev/null | jq -r '.[] | select(.focused==true) | .name' 2>/dev/null | head -1
+        }
+
+        _max_refresh() {
+            local mon="$1"
+            hyprctl monitors -j 2>/dev/null \
+                | jq -r --arg n "$mon" '.[] | select(.name==$n) | .modes[]? | select(.refresh>0) | .refresh' 2>/dev/null \
+                | sort -nr | head -1
+        }
+
+        case "${2:-toggle}" in
+            toggle)
+                if _is_recording; then exec "$0" record stop; else exec "$0" record start; fi
+                ;;
+            start)
+                if _is_recording; then
+                    err "already recording (pid $(cat "$STATE"))"
+                    exit 1
+                fi
+                sound=0; region=""
+                shift 2
+                while [ $# -gt 0 ]; do
+                    case "$1" in
+                        -s|--sound) sound=1 ;;
+                        -r|--region) region="$2"; shift ;;
+                        *) err "unknown flag: $1"; exit 1 ;;
+                    esac
+                    shift
+                done
+
+                args=(gpu-screen-recorder)
+                if [ -n "$region" ]; then
+                    if [ "$region" = "portal" ]; then
+                        args+=(-w portal)
+                    else
+                        args+=(-w region -region "$region")
+                    fi
+                else
+                    mon=$(_focused_monitor)
+                    if [ -z "$mon" ]; then
+                        err "no focused monitor found via hyprctl"
+                        exit 1
+                    fi
+                    args+=(-w "$mon")
+                    rate=$(_max_refresh "$mon")
+                    [ -n "$rate" ] && args+=(-f "$rate")
+                fi
+                [ "$sound" -eq 1 ] && args+=(-a default_output)
+                args+=(-o "$OUT_TMP")
+
+                setsid "${args[@]}" >/dev/null 2>&1 &
+                echo $! > "$STATE"
+                echo "recording $([ -n "$region" ] && echo "region $region" || echo "whole screen")$([ "$sound" -eq 1 ] && echo " + audio" || echo "") (pid $(cat "$STATE"))"
+                ;;
+            stop)
+                if ! _is_recording; then
+                    err "no recording in progress"
+                    exit 1
+                fi
+                kill "$(cat "$STATE")" 2>/dev/null
+                for i in 1 2 3 4 5 6 7 8 9 10; do
+                    if ! _is_recording; then break; fi
+                    sleep 0.5
+                done
+                rm -f "$STATE"
+                if [ -f "$OUT_TMP" ]; then
+                    dest="${REC_DIR}/recording_$(date +%Y%m%d_%H-%M-%S).mp4"
+                    mv "$OUT_TMP" "$dest"
+                    echo "saved to $dest"
+                    if command -v wl-copy >/dev/null; then
+                        wl-copy < "$dest" 2>/dev/null && echo "file:// URI copied to clipboard"
+                    fi
+                else
+                    err "no output file found at $OUT_TMP"
+                    exit 1
+                fi
+                ;;
+            pause)
+                if ! _is_recording; then
+                    err "no recording in progress"
+                    exit 1
+                fi
+                pkill -USR2 -f gpu-screen-recorder
+                echo "toggled pause"
+                ;;
+            status)
+                if _is_recording; then
+                    echo "recording (pid $(cat "$STATE")) -> $OUT_TMP"
+                else
+                    echo "not recording"
+                fi
+                ;;
+            *)
+                err "record needs: toggle | start [-s] [-r WxH+X+Y] | stop | pause | status"
                 exit 1
                 ;;
         esac
