@@ -205,7 +205,7 @@ Item {
     Process {
         id: clearHistoryProcess
         property string unpinnedList: ""
-        command: ["bash", "-c", 'echo "$1" | while IFS= read -r line; do if [ -n "$line" ]; then printf "%s\n" "$line" | cliphist delete; id=$(printf "%s" "$line" | cut -d\'\t\' -f1); rm -f "/tmp/cliphist/${id}.*"; fi; done', "_", unpinnedList]
+        command: ["bash", "-c", 'echo "$1" | while IFS= read -r line; do if [ -n "$line" ]; then id=$(printf "%s" "$line" | cut -f1); printf "%s\n" "$line" | cliphist delete; [ -n "$id" ] && rm -f /tmp/cliphist/"$id".*; fi; done', "_", unpinnedList]
         onRunningChanged: {
             if (!running && unpinnedList !== "") {
                 unpinnedList = "";

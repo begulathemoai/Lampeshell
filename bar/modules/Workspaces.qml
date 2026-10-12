@@ -40,7 +40,7 @@ Rectangle {
 
             if (!desktopEntry) {
                 for (var i = 0; i < apps.length; i++) {
-                    if ((apps[i].startupWmClass || "").toLowerCase() === lowerClass) {
+                    if ((apps[i].startupClass || "").toLowerCase() === lowerClass) {
                         desktopEntry = apps[i];
                         break;
                     }
