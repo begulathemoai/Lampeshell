@@ -16,6 +16,7 @@ Variants {
         screen: modelData
 
         WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.namespace: "quickshell-leftbar"
         readonly property HyprlandMonitor monitor: Hyprland.monitorFor(screen)
         readonly property bool fullscreen: FullscreenState.isFullscreen(monitor)
 
