@@ -134,6 +134,7 @@ find "$dir" -maxdepth 3 -type f \\
     }
 
     property string pendingWallpaper: ""
+    property string pendingColorsJson: ""
 
     function writeColors(colorsJson) {
         const src = colorsJson.colors ?? colorsJson;
@@ -193,10 +194,8 @@ find "$dir" -maxdepth 3 -type f \\
             return;
         }
 
+        root.pendingColorsJson = JSON.stringify(out, null, 4) + "\n";
         root.backupColors();
-        colorsOut.setText(JSON.stringify(out, null, 4) + "\n");
-
-        root.busy = false;
     }
 
     function backupColors() {
@@ -243,6 +242,18 @@ find "$dir" -maxdepth 3 -type f \\
                 }
             }
         }
+
+        onExited: (exitCode, exitStatus) => {
+            if (exitCode !== 0) {
+                root.lastError = "matugen exited with code " + exitCode + (collector.text.length > 0 ? "" : " and produced no output");
+                root.busy = false;
+            }
+        }
+
+        onErrorOccurred: error => {
+            root.lastError = "matugen failed to run (is it installed?)";
+            root.busy = false;
+        }
     }
 
     Process {
@@ -256,6 +267,15 @@ find "$dir" -maxdepth 3 -type f \\
     Process {
         id: backupProc
         stdout: StdioCollector {}
+
+        // Best-effort backup: write the new palette even if the copy failed,
+        // otherwise the revert snapshot would race the write (async cp) and
+        // often capture the *new* colors instead of the old ones.
+        onExited: {
+            colorsOut.setText(root.pendingColorsJson);
+            root.pendingColorsJson = "";
+            root.busy = false;
+        }
     }
 
     Process {
