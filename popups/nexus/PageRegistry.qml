@@ -49,6 +49,12 @@ QtObject {
             category: "system"
         },
         {
+            label: "Notifications",
+            icon: "notifications",
+            description: "History, do-not-disturb and timeouts",
+            category: "system"
+        },
+        {
             label: "Language & region",
             icon: "globe",
             description: "Locale, formats and timezone",

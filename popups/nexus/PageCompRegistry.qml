@@ -73,6 +73,14 @@ QtObject {
         Component {
             StackPage {
                 Component {
+                    NotificationsPage {}
+                }
+            }
+        },
+
+        Component {
+            StackPage {
+                Component {
                     LanguageAndRegionPage {}
                 }
             }
