@@ -61,6 +61,7 @@ ShellRoot {
     QuickSettings {
         id: quickSettingsWindow
         settingsHandler: settingsWindow.open
+        sessionHandler: sessionWindow.open
     }
 
     Settings {

@@ -43,7 +43,6 @@ FloatingWindow {
     function open() {
         settingsWindow.targetScreen = settingsWindow.screenForFocus();
         settingsWindow.visible = true;
-        settingsWindow.grabFocus();
         Qt.callLater(function() { rootSurface.forceActiveFocus(); });
     }
 
