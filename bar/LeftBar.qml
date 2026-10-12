@@ -17,8 +17,11 @@ Variants {
 
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "quickshell-leftbar"
+        WlrLayershell.exclusionMode: ExclusionMode.Ignore
         readonly property HyprlandMonitor monitor: Hyprland.monitorFor(screen)
         readonly property bool fullscreen: FullscreenState.isFullscreen(monitor)
+        readonly property bool isFocused: Hyprland.focusedMonitor
+            && (Hyprland.focusedMonitor.name === modelData.name)
 
         anchors {
             top: true
@@ -28,6 +31,7 @@ Variants {
 
         color: "transparent"
 
+        visible: !fullscreen
         implicitWidth: fullscreen ? 0 : Layout.sideBarWidth
         WlrLayershell.exclusiveZone: fullscreen ? 0 : Layout.sideBarWidth
 
@@ -35,6 +39,33 @@ Variants {
             NumberAnimation {
                 duration: 180
                 easing.type: Easing.OutCubic
+            }
+        }
+
+        Component.onCompleted: {
+            if (isFocused)
+                Layout.targetMonitor = modelData.name;
+        }
+        Connections {
+            target: Hyprland
+            function onFocusedMonitorChanged() {
+                if (modelData.name === Hyprland.focusedMonitor.name)
+                    Layout.targetMonitor = modelData.name;
+            }
+        }
+
+        SidebarContent {
+            id: sidebar
+            anchors {
+                fill: parent
+                margins: 8
+            }
+            visible: sideBarWindow.isFocused
+            onLauncherRequested: {
+                const qs = Quickshell;
+                qs.execDetached({
+                    command: ["qs", "-c", "lampshell", "ipc", "call", "appLauncher", "toggle"]
+                });
             }
         }
     }
