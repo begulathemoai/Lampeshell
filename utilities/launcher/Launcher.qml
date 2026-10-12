@@ -246,7 +246,7 @@ PanelWindow {
 
                     radius: 16
 
-                    color: Theme.surface_bright
+                    color: Theme.surface_container_low
                     border.width: 1
                     border.color: Qt.rgba(Theme.outline_variant.r, Theme.outline_variant.g, Theme.outline_variant.b, 0.2)
 
