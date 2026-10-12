@@ -14,7 +14,7 @@ PageBase {
     description: "Locale, formats and timezone"
 
     readonly property string locale: Qt.locale().name
-    readonly property string timeZone: TimeZone.systemTimeZone().toString()
+    readonly property string timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone ?? ""
 
     SettingsGroup {
         title: "Current"

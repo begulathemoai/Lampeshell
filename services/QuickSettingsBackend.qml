@@ -190,7 +190,7 @@ Item {
     }
 
     function toggleWifi() {
-        wifiRadioToggle.running = true;
+        setWifi(!wifiEnabled);
     }
 
     function toggleBluetooth() {
@@ -231,7 +231,7 @@ Item {
 
     function setBrightness(fraction) {
         const pct = Math.round(Math.max(0, Math.min(1, fraction)) * 100);
-        brightnessSet.command = ["brightnessctl", "set", pct + "%"];
+        brightnessSet.command = ["sh", "-c", "brightnessctl --class=backlight set " + pct + "% 2>/dev/null || true"];
         brightnessSet.running = true;
     }
 
@@ -246,10 +246,16 @@ Item {
 
     Process {
         id: brightnessQuery
-        command: ["sh", "-c", "brightnessctl -m"]
+        // --class=backlight stops brightnessctl from falling back to the first
+        // device of any class (e.g. a NIC LED on desktop machines), which would
+        // report 0% forever and redirect writes to the wrong device.
+        command: ["sh", "-c", "brightnessctl -m --class=backlight 2>/dev/null || true"]
         stdout: StdioCollector {
             onStreamFinished: {
-                const val = parseInt(this.text.split(",")[3].replace("%", ""));
+                const fields = this.text.trim().split(",");
+                if (fields.length < 4)
+                    return; // no backlight device (DDC-only monitor)
+                const val = parseInt(fields[3].replace("%", ""));
                 if (!isNaN(val))
                     root.brightnessLevel = val / 100.0;
             }
