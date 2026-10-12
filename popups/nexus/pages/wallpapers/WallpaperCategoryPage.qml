@@ -6,7 +6,6 @@ import qs.popups.nexus
 import qs.popups.nexus.common
 import qs.popups.nexus.pages.wallpapers
 
-/** The wallpapers inside one subdirectory of ~/Pictures/walls. */
 PageBase {
     id: root
 
@@ -35,9 +34,7 @@ PageBase {
         ScrollBar.vertical: ScrollBar {}
 
         delegate: WallpaperTile {
-            // modelData, not `entry`: declaring a property named `entry` here
-            // would shadow WallpaperTile's own required property and turn
-            // `entry: entry` into a self-assignment.
+
             required property var modelData
             width: root.cellWidth
             entry: modelData

@@ -2,7 +2,6 @@ import QtQuick
 import qs.theme
 import qs.popups.nexus
 
-/** Shown for sections that have no implementation yet, so the nav stays honest. */
 Item {
     id: root
 

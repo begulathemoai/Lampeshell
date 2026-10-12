@@ -134,7 +134,7 @@ Variants {
                 for (let i = 0; i < cardHeights.length; i++) {
                     if (cardHeights[i].notifId === id) {
                         if (cardHeights[i].h === h)
-                            return;  // no-op
+                            return;
                         cardHeights[i].h = h;
                         cardHeightsChanged();
                         return;

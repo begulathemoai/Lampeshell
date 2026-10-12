@@ -8,10 +8,6 @@ import qs.popups.nexus
 import qs.popups.nexus.common
 import qs.popups.nexus.pages.wallpapers
 
-/**
- * The wallpaper grid: every wallpaper in ~/Pictures/walls, plus one tile per
- * subdirectory that opens that category.
- */
 PageBase {
     id: root
 
@@ -22,7 +18,6 @@ PageBase {
     readonly property int columns: Math.max(2, Math.floor(width / 190))
     readonly property int cellWidth: Math.floor((width - (columns - 1) * 12) / columns)
 
-    // Refreshed on open so images added since the shell started show up.
     Component.onCompleted: ThemeService.refresh()
 
     SettingsCard {
@@ -76,16 +71,13 @@ PageBase {
         ScrollBar.vertical: ScrollBar {}
 
         delegate: WallpaperTile {
-            // modelData, not `entry`: declaring a property named `entry` here
-            // would shadow WallpaperTile's own required property and turn
-            // `entry: entry` into a self-assignment.
+
             required property var modelData
             width: root.cellWidth
             entry: modelData
             currentPath: ThemeService.currentWallpaper
             onClicked: {
-                // A subdirectory tile opens that category as a detail view;
-                // a plain image applies immediately.
+
                 if (modelData.category.length > 0) {
                     root.nState.selectedWallpaperCategory = modelData.category;
                     root.nState.openSubPage(2);

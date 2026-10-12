@@ -29,10 +29,10 @@ PanelWindow {
             if (clipboardWindow.visible) {
                 closeMenu();
             } else {
-                ctrl.resetSelectionPending = true; // Force selection back to the first item
+                ctrl.resetSelectionPending = true;
                 ctrl.triggerRefresh();
                 ctrl.searchText = "";
-                ctrl.currentTab = 0; // Reset to All Clips on open
+                ctrl.currentTab = 0;
                 clipboardWindow.visible = true;
             }
         }
@@ -55,7 +55,6 @@ PanelWindow {
             Item {
                 id: delegateContainer
 
-                // Explicitly attach to the Window's visual root
                 parent: clipboardWindow.contentItem
                 anchors.fill: parent
                 anchors.margins: 30
@@ -66,7 +65,6 @@ PanelWindow {
                     onCleared: clipboardWindow.closeMenu()
                 }
 
-                // Wait until the UI is built to grab focus
                 Component.onCompleted: {
                     focusGrab.active = true;
                     mainUi.forceActiveFocus();
@@ -111,15 +109,13 @@ PanelWindow {
                         maskSource: mainUiMask
                     }
 
-                    // Ramps nav speed up the longer j/k or an arrow key is held
                     property int navRepeatCount: 0
 
                     function navigate(direction, isAutoRepeat) {
                         navRepeatCount = isAutoRepeat ? navRepeatCount + 1 : 0;
                         let step = navRepeatCount > 12 ? 4 : (navRepeatCount > 6 ? 3 : (navRepeatCount > 2 ? 2 : 1));
                         listView.cancelFlick();
-                        // Scrolling can shift a different row under a stationary cursor,
-                        // whose hover would otherwise steal the selection back
+
                         listView.suppressHoverSelect = true;
                         hoverSuppressTimer.restart();
                         listView.currentIndex = Math.max(0, Math.min(listView.currentIndex + direction * step, listView.count - 1));
@@ -151,7 +147,6 @@ PanelWindow {
                         event.accepted = true;
                     }
 
-                    // Header Area
                     Item {
                         id: headerArea
                         width: parent.width
@@ -211,7 +206,6 @@ PanelWindow {
                         }
                     }
 
-                    // Search Bar
                     Item {
                         id: searchArea
                         width: parent.width
@@ -282,7 +276,6 @@ PanelWindow {
                         }
                     }
 
-                    // Tab Controls
                     Item {
                         id: tabArea
                         width: parent.width
@@ -347,7 +340,6 @@ PanelWindow {
                         }
                     }
 
-                    // Clip List
                     Item {
                         id: listContainer
                         anchors.top: tabArea.bottom
@@ -374,13 +366,8 @@ PanelWindow {
                                 values: ctrl.filteredItems
                             }
 
-                            // Raw of the item to select once the next refresh lands (set by a
-                            // delegate before it removes/unpins itself). Empty means top.
                             property string pendingSelectKey: ""
 
-                            // Hover re-fires onEntered when a row moves under a stationary
-                            // cursor, not just on real mouse movement. Suppressed briefly
-                            // after any refresh or nav so it can't steal selection back.
                             property bool suppressHoverSelect: false
 
                             Timer {
@@ -395,8 +382,6 @@ PanelWindow {
                                     listView.suppressHoverSelect = true;
                                     hoverSuppressTimer.restart();
 
-                                    // Consume unconditionally (even on an empty refresh) so it
-                                    // can't stay stuck true and reset scroll on a later refresh
                                     let openedFresh = ctrl.resetSelectionPending;
                                     ctrl.resetSelectionPending = false;
 
@@ -416,19 +401,16 @@ PanelWindow {
                                         }
                                     }
 
-                                    // duration 0: apply instantly, no visible sweep
                                     let prevDuration = listView.highlightMoveDuration;
                                     listView.highlightMoveDuration = 0;
                                     listView.currentIndex = targetIndex;
-                                    // Contain only scrolls if the target isn't already visible.
-                                    // A delete/unpin removes one row locally, so this is usually a no-op.
+
                                     listView.positionViewAtIndex(targetIndex, restoredNeighbor ? ListView.Contain : ListView.Beginning);
                                     listView.highlightMoveDuration = prevDuration;
                                 }
                             }
                         }
 
-                        // Default Flickable wheel scrolling is too fine-grained; scroll manually
                         MouseArea {
                             anchors.fill: listView
                             acceptedButtons: Qt.NoButton
@@ -442,7 +424,6 @@ PanelWindow {
                             }
                         }
 
-                        // Fade Gradient
                         Rectangle {
                             anchors {
                                 bottom: parent.bottom
@@ -475,7 +456,6 @@ PanelWindow {
                         }
                     }
 
-                    // Footer
                     Item {
                         id: footer
                         anchors {

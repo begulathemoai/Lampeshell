@@ -23,8 +23,6 @@ Item {
         height: parent.height - 2
         radius: 8
 
-        // Metrolist's selection is a translucent primaryContainer wash rather
-        // than a solid fill or an indicator bar, which keeps the row quiet.
         readonly property color selectionColour: Qt.rgba(
             Theme.primary_container.r,
             Theme.primary_container.g,

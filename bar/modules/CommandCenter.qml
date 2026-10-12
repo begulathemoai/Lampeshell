@@ -10,15 +10,11 @@ import qs.theme
 Item {
     id: root
 
-    // The pill emits `clicked`; TopBar forwards it to QuickSettings.toggle().
-    // Nothing handled this signal in the upstream config, which is why the
-    // status pill looked inert.
     signal clicked
 
     implicitWidth: visualPill.implicitWidth
     implicitHeight: visualPill.implicitHeight
 
-    // --- Network ---
     readonly property var networkDevices: Networking.devices?.values ?? []
     readonly property var connectedWifiNetwork: {
         for (const dev of networkDevices) {
@@ -45,7 +41,6 @@ Item {
         return "signal_wifi_off";
     }
 
-    // --- Bluetooth ---
     readonly property var btAdapter: Bluetooth.defaultAdapter ?? (Bluetooth.adapters?.values?.[0] ?? null)
     readonly property bool btPowered: btAdapter?.enabled ?? false
     readonly property int btConnectedCount: (btAdapter?.devices?.values ?? []).filter(d => d.connected).length
@@ -56,7 +51,6 @@ Item {
         return btConnectedCount > 0 ? "bluetooth_connected" : "bluetooth";
     }
 
-    // --- Volume ---
     readonly property var activeSink: Pipewire.defaultAudioSink
     readonly property bool isMuted: activeSink?.audio?.muted ?? true
     readonly property real volumeLevel: activeSink?.audio?.volume ?? 0.0
@@ -73,14 +67,12 @@ Item {
         return "volume_mute";
     }
 
-    // --- Battery ---
     readonly property var battery: UPower.displayDevice
     readonly property bool batteryPresent: battery?.isLaptopBattery ?? false
     readonly property real batteryPct: (battery?.percentage ?? 0) * 100
     readonly property bool batteryCharging: battery?.state === UPowerDeviceState.Charging || battery?.state === UPowerDeviceState.PendingCharge
 
     readonly property color batteryColor: (batteryPct < 20 && !batteryCharging) ? Theme.critical : Theme.on_surface
-
 
     Rectangle {
         id: visualPill
@@ -133,19 +125,16 @@ Item {
                 Behavior on color { ColorAnimation { duration: 150 } }
             }
 
-            // Custom Android/OneUI Style Battery Pill
             Row {
                 visible: root.batteryPresent
                 spacing: 2
                 anchors.verticalCenter: parent.verticalCenter
 
-                // The Main Battery Pill
                 Item {
                     width: 34
                     height: 18
                     anchors.verticalCenter: parent.verticalCenter
 
-                    // The background track
                     Rectangle {
                         anchors.fill: parent
                         radius: height / 2
@@ -154,13 +143,11 @@ Item {
                         Behavior on color { ColorAnimation { duration: 150 } }
                     }
 
-                    // The active charge fill (caps out at 98%)
                     Rectangle {
                         anchors.left: parent.left
                         anchors.top: parent.top
                         anchors.bottom: parent.bottom
 
-                        // Maps 0-98% to the full width of the main pill
                         width: Math.max(height, parent.width * Math.min(1.0, root.batteryPct / 98))
                         radius: height / 2
                         color: root.batteryColor
@@ -169,7 +156,6 @@ Item {
                         Behavior on color { ColorAnimation { duration: 150 } }
                     }
 
-                    // The Charging Bolt & Percentage Text
                     Row {
                         anchors.centerIn: parent
                         spacing: 0
@@ -197,13 +183,11 @@ Item {
                     }
                 }
 
-                // The battery terminal "nub" (Fills from 98% to 100%)
                 Item {
                     width: 3
                     height: 10
                     anchors.verticalCenter: parent.verticalCenter
 
-                    // Nub background track
                     Rectangle {
                         anchors.fill: parent
                         radius: 1.5
@@ -212,13 +196,11 @@ Item {
                         Behavior on color { ColorAnimation { duration: 150 } }
                     }
 
-                    // Nub active fill
                     Rectangle {
                         anchors.left: parent.left
                         anchors.top: parent.top
                         anchors.bottom: parent.bottom
 
-                        // Starts filling at 98%, reaches 50% at 99%, fully solid at 100%
                         width: parent.width * Math.max(0, Math.min(1.0, (root.batteryPct - 98) / 2))
                         radius: 1.5
                         color: root.batteryColor

@@ -3,19 +3,6 @@ import Quickshell
 import Quickshell.Io
 import qs.theme
 
-/**
- * Accent colour palette.
- *
- * Writes the chosen primary/secondary/tertiary tokens straight back into
- * theme/colors.json. Theme.qml uses FileView with watchChanges, so the whole
- * shell re-themes live without a reload.
- *
- * Derived tones are computed rather than hand-picked so every accent keeps a
- * usable container/on-container pair regardless of the hue chosen.
- *
- * Root is an Item, not a QtObject: quickshell 0.3.1 has no default property on
- * QtObject, so the Process children could not be attached.
- */
 Item {
     id: root
 
@@ -24,13 +11,6 @@ Item {
 
     readonly property string colorsPath: Quickshell.shellPath("theme/colors.json")
 
-    // Material 3 source hues: a red, a blue, a violet, a green, an orange,
-    // a cyan plus neutral grey and brown.
-    //
-    // `on` is the colour drawn on top of `primary`. Every primary here is a
-    // light tone, so a dark on-colour is needed throughout; these are tuned
-    // per hue rather than hardcoded, because a single fixed value loses the
-    // original per-theme token (blue's real on_primary is #1a2e60).
     readonly property var swatches: [
         { name: "Blue",   primary: "#b4c5ff", on: "#1a2e60", container: "#324478", onContainer: "#dbe1ff" },
         { name: "Red",    primary: "#ffb4ab", on: "#690005", container: "#93000a", onContainer: "#ffdad6" },
@@ -44,7 +24,6 @@ Item {
 
     readonly property string currentPrimary: Theme.primary.toString().toLowerCase()
 
-    // True when the saved primary matches one of the swatches.
     readonly property int activeIndex: {
         for (let i = 0; i < swatches.length; i++) {
             if (swatches[i].primary.toLowerCase() === currentPrimary)

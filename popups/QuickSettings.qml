@@ -8,14 +8,6 @@ import Quickshell.Io
 import qs.theme
 import qs.services
 
-/**
- * Quick settings menu - the octashell counterpart to caelestia's command
- * center. Opened by tapping the status pill in the top bar, or via the
- * "quickSettings" IPC target.
- *
- * Anchored under the top bar on whichever monitor the pointer invoked it
- * from, matching how the pill sits at the top-right of every screen.
- */
 PanelWindow {
     id: quickSettingsWindow
 
@@ -39,8 +31,6 @@ PanelWindow {
         right: 15
     }
 
-    // Screen to anchor against; defaults to the focused output so the menu
-    // opens under the bar the user actually clicked.
     property var targetScreen: {
         const active = Hyprland.focusedMonitor ?? null;
         return active && active.name ? Quickshell.screens.find(s => s.name === active.name) : Quickshell.screens[0];
@@ -52,29 +42,20 @@ PanelWindow {
         quickSettingsWindow.openedAt = Date.now();
         quickSettingsWindow.grabRetries = 0;
         quickSettingsWindow.visible = true;
-        // Wait for the surface to exist before grabbing focus.
+
         Qt.callLater(function() {
             focusGrab.active = true;
             panelBg.forceActiveFocus();
         });
     }
 
-    // Set by shell.qml to the settings panel's open function. Declared as a
-    // property because QML ids are file-scoped, so QuickSettings.qml cannot
-    // reach into Settings.qml directly - the shell wires the two together the
-    // same way it passes statusPillHandler to the bar.
     property var settingsHandler: null
 
-    // Set by shell.qml to the session menu's toggle function.
     property var sessionHandler: null
 
-    // See Settings.qml: a focus grab can lose the race with surface mapping and
-    // clear immediately, which must not be mistaken for the user clicking away.
     property double openedAt: 0
     property int grabRetries: 0
 
-    // Opening settings closes this menu first: both are Overlay-layer panels
-    // anchored to the same corner, so stacking them hides one behind the other.
     function openSettings() {
         quickSettingsWindow.close();
         if (settingsHandler)
@@ -117,30 +98,20 @@ PanelWindow {
             quickSettingsWindow.close();
         }
 
-        // Opens the settings panel, closing this menu first. Exposed so the
-        // gear button's handler can be exercised over IPC instead of only
-        // through a mouse click.
         function settings() {
             quickSettingsWindow.openSettings();
         }
 
-        // Opens the session/power menu, closing this menu first.
         function session() {
             quickSettingsWindow.openSession();
         }
     }
 
-    // Dismiss on click outside the panel, mirroring the launcher/clipboard
-    // behaviour. Declared first so it sits below the panel and its blocker.
     MouseArea {
         anchors.fill: parent
         onClicked: quickSettingsWindow.close()
     }
 
-    // Clicking anywhere outside the window never reaches this surface, so the
-    // MouseArea above only handles clicks on the window's own bounds. Losing
-    // keyboard focus is what actually signals "clicked away" - grab focus on
-    // open and close when the grab is cleared. Same approach as Clipboard.qml.
     HyprlandFocusGrab {
         id: focusGrab
         windows: [quickSettingsWindow]
@@ -154,10 +125,6 @@ PanelWindow {
         }
     }
 
-    // Escape closes, matching the other popups.
-
-    // Panel chrome: rounded surface with an outline and drop shadow. The
-    // window itself is transparent, so this supplies the menu's background.
     Rectangle {
         id: panelBg
         anchors.centerIn: content
@@ -169,9 +136,6 @@ PanelWindow {
         border.color: Theme.outline_variant
         focus: true
 
-        // Escape closes. Must live on the focused item rather than the window:
-        // a PanelWindow cannot hold active focus, so window-level Keys handlers
-        // never fire.
         Keys.onEscapePressed: function(event) {
             quickSettingsWindow.close();
             event.accepted = true;
@@ -186,8 +150,6 @@ PanelWindow {
         }
     }
 
-    // Swallow clicks landing on the panel so they do not reach the dismiss
-    // area behind it.
     MouseArea {
         anchors.fill: panelBg
     }
@@ -198,7 +160,6 @@ PanelWindow {
         width: parent.width - 72
         spacing: 14
 
-        // --- Header: connectivity summary ---
         Row {
             width: parent.width
             spacing: 18
@@ -226,7 +187,6 @@ PanelWindow {
             }
         }
 
-        // --- Quick toggles ---
         Row {
             width: parent.width
             spacing: 12
@@ -242,7 +202,7 @@ PanelWindow {
 
                     readonly property bool toggleOn: {
                         if (index === 0)
-                            // Radio state, not "is a network connected".
+
                             return quickSettingsBackend.wifiEnabled;
                         if (index === 1)
                             return quickSettingsBackend.btPowered;
@@ -333,7 +293,6 @@ PanelWindow {
             }
         }
 
-        // --- Volume slider ---
         Rectangle {
             width: parent.width
             height: 64
@@ -367,11 +326,9 @@ PanelWindow {
                     onClicked: quickSettingsBackend.toggleMute()
                 }
 
-                // Slider track + fill
                 Rectangle {
                     id: volumeTrack
-                    // Row has three children (icon, track, label) and two gaps,
-                    // so subtract the icon AND label widths plus both spacings.
+
                     width: parent.width - muteButton.width - volumePercentLabel.width - parent.spacing * 2
                     height: 6
                     radius: 3
@@ -426,7 +383,6 @@ PanelWindow {
             }
         }
 
-        // --- Brightness slider ---
         Rectangle {
             width: parent.width
             height: 64
@@ -510,7 +466,6 @@ PanelWindow {
             }
         }
 
-        // --- Network list ---
         Rectangle {
             width: parent.width
             height: Math.max(64, netColumn.implicitHeight + 28)
@@ -537,9 +492,6 @@ PanelWindow {
                         width: netColumn.width
                         height: 44
 
-                        // Referenced through netRow rather than parent chains:
-                        // inside the nested Row/Column, parent.parent resolves to
-                        // the Row, not the delegate.
                         readonly property bool isConnected: modelData.connected === true
                         readonly property string netName: {
                             if (!modelData)
@@ -621,7 +573,6 @@ PanelWindow {
             }
         }
 
-        // --- Footer: settings + session entries ---
         Row {
             width: parent.width
             spacing: 10

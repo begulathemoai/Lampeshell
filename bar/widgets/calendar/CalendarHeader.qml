@@ -98,7 +98,6 @@ Item {
             }
         }
 
-        // Today Button
         Rectangle {
             id: todayButton
             width: 72
@@ -168,7 +167,6 @@ Item {
             }
         }
 
-        // Prev Button
         Rectangle {
             id: prevButton
             width: 36
@@ -234,7 +232,6 @@ Item {
             }
         }
 
-        // Next Button
         Rectangle {
             id: nextButton
             width: 36

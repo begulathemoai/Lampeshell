@@ -9,22 +9,6 @@ import qs.theme
 import qs.services
 import qs.popups.nexus
 
-/**
- * Shell settings - a real toplevel window, modelled on Caelestia's "nexus".
- *
- * The interface itself lives in popups/nexus: a nav pane grouped by category, a
- * page host that instantiates one section at a time, and a per-section page stack
- * so a detail view can be pushed and popped. This file is only the window
- * surface, the shared services and the IPC entry points.
- *
- * Uses Quickshell._Window.FloatingWindow, so this is a compositor-managed
- * xdg_toplevel: it floats, can be moved and resized, and appears in
- * hyprctl clients like any other window. The interface exposes no x/y, so
- * placement comes from the windowrule in hyprland/rules.lua.
- *
- * The window is destroyed when hidden rather than kept around: a hidden
- * toplevel still costs a surface, and there is nothing to preserve in state.
- */
 FloatingWindow {
     id: settingsWindow
 
@@ -38,9 +22,6 @@ FloatingWindow {
 
     onClosed: settingsWindow.visible = false
 
-    // Resolved once when the window opens, not bound to the focused monitor.
-    // A live binding makes the window follow focus, so focusing it moves it to
-    // whichever monitor the focus came from - it would jump between outputs.
     property var targetScreen: Quickshell.screens[0]
 
     function screenForFocus() {
@@ -77,8 +58,6 @@ FloatingWindow {
             open();
     }
 
-    // Jump straight to a section by registry index. The IPC surface takes a
-    // label instead, because indices shift whenever a section is added.
     function goTo(label) {
         const idx = PageRegistry.pages.findIndex(p => p.label === label);
         if (idx >= 0)
@@ -86,15 +65,6 @@ FloatingWindow {
         return idx;
     }
 
-    /**
-     * Opens a sub-page inside a section.
-     *
-     * The push has to be deferred: changing currentPageIdx clears the sub-page
-     * stack, and the section's StackPage may not have been constructed yet when
-     * the change happens. StackPage replays subPageIdxStack in its
-     * Component.onCompleted, so pushing after the clear is enough - the page
-     * picks the request up whenever it finishes loading.
-     */
     function goToSubPage(sectionLabel, subPageIdx) {
         if (goTo(sectionLabel) < 0)
             return false;
@@ -119,7 +89,6 @@ FloatingWindow {
             settingsWindow.close();
         }
 
-        // shellSettings page network
         function page(label: string) {
             if (settingsWindow.goTo(label) < 0)
                 console.warn("shellSettings: unknown page", label);
@@ -130,8 +99,6 @@ FloatingWindow {
             accentPalette.applyAccent(name);
         }
 
-        // Opens Settings straight to the wallpaper grid. Sub-page 1 of the
-        // Appearance section.
         function wallpapers() {
             settingsWindow.goToSubPage("Appearance", 1);
             settingsWindow.open();
@@ -142,9 +109,6 @@ FloatingWindow {
         }
     }
 
-    // Shared services. QuickSettingsBackend is instantiated here as well as in
-    // the quick settings panel; both talk to the same Quickshell services, so
-    // the two panels stay in agreement.
     AccentPalette {
         id: accentPalette
     }
@@ -153,14 +117,10 @@ FloatingWindow {
         id: quickSettingsBackend
     }
 
-    // --- Window surface ------------------------------------------------------
     Rectangle {
         id: rootSurface
         anchors.fill: parent
-        // Matches Layout.cornerRadius, which is what the screen bezel and the
-        // other floating surfaces (QuickSettings, Session) use. This was a
-        // hardcoded 28, so the corners sat visibly rounder than the border the
-        // window is drawn inside.
+
         radius: Layout.cornerRadius
         color: Theme.surface_container_low
         border.width: 1
@@ -168,7 +128,7 @@ FloatingWindow {
         focus: true
 
         Keys.onEscapePressed: function(event) {
-            // A pushed detail view goes back before the window closes.
+
             if (nexusState.subPageIdxStack.length > 0) {
                 nexusState.closeSubPage();
             } else {
@@ -185,7 +145,6 @@ FloatingWindow {
             shadowVerticalOffset: 12
         }
 
-        // Swallow clicks so they do not reach the window behind.
         MouseArea {
             anchors.fill: parent
         }

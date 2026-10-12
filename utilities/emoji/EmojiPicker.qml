@@ -9,13 +9,11 @@ import "../../theme"
 PanelWindow {
     id: emojiWindow
 
-    // Geometry
     implicitWidth: 550
     implicitHeight: 640
     color: "transparent"
     visible: false
 
-    // Window Management Layout
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "emoji_overlay"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
@@ -23,7 +21,6 @@ PanelWindow {
     anchors.bottom: true
     margins.bottom: 150
 
-    // Instantiate the Separated Backend Controller
     EmojiBackend {
         id: ctrl
 
@@ -50,7 +47,6 @@ PanelWindow {
         ctrl.commitRecents();
     }
 
-    // Proxy function to safely handle EmojiDelegate's onClicked signals
     function processSelection(emojiChar, isShift) {
         ctrl.processSelection(emojiChar, isShift);
     }
@@ -64,7 +60,6 @@ PanelWindow {
             Item {
                 id: delegateContainer
 
-                // Explicitly attach to the Window's visual root
                 parent: emojiWindow.contentItem
                 anchors.fill: parent
                 anchors.margins: 30
@@ -73,7 +68,6 @@ PanelWindow {
                     ctrl.currentEmojiName = gridView.currentItem ? gridView.currentItem.emojiName : "";
                 }
 
-                // Shared grid navigation, used by both the panel-level and search-field key handlers
                 function navigateDown() {
                     gridView.moveCurrentIndexDown();
                     updateEmojiLabel();
@@ -102,7 +96,6 @@ PanelWindow {
                     onCleared: emojiWindow.closeMenu()
                 }
 
-                // Wait until the UI is built to grab focus
                 Component.onCompleted: {
                     focusGrab.active = true;
                     mainUi.forceActiveFocus();
@@ -176,7 +169,6 @@ PanelWindow {
                         }
                     }
 
-                    // Header Area
                     Item {
                         id: headerArea
                         width: parent.width
@@ -239,7 +231,6 @@ PanelWindow {
                         }
                     }
 
-                    // Search Box
                     TextField {
                         id: searchField
                         anchors {
@@ -293,7 +284,6 @@ PanelWindow {
                             }
                         }
 
-                        // Pipe visual typing up into controller layer
                         onTextChanged: ctrl.searchText = text
 
                         Keys.onPressed: event => {
@@ -331,8 +321,6 @@ PanelWindow {
                         }
                     }
 
-                    // Categories
-                    // Fixed set of tabs ("All", "Recents") — always fits, so no scrolling needed.
                     Item {
                         id: categoryTabsContainer
                         anchors {
@@ -400,7 +388,6 @@ PanelWindow {
                         }
                     }
 
-                    // Grid Layout View
                     Item {
                         id: listContainer
                         anchors {
@@ -457,7 +444,6 @@ PanelWindow {
                         }
                     }
 
-                    // Footer Toolbar Panel
                     Item {
                         id: footer
                         anchors {
@@ -545,7 +531,6 @@ PanelWindow {
                         }
                     }
 
-                    // Outer Profile Trim
                     Rectangle {
                         anchors.fill: parent
                         color: "transparent"

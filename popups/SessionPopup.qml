@@ -8,17 +8,6 @@ import Quickshell.Io
 import qs.theme
 import qs.services
 
-/**
- * Session / power menu.
- *
- * Caelestia exposed these as a single keybound overlay; here it is an
- * overlay-layer panel sharing the quick settings and settings chrome, bound to
- * CTRL+ALT+Delete via vars.kbSession.
- *
- * Destructive rows use a two-press confirm: the first press arms the row and
- * shows a countdown, the second runs it. wlogout is not installed on this
- * system, so the menu is built in-shell rather than delegating to it.
- */
 PanelWindow {
     id: sessionWindow
 
@@ -48,8 +37,6 @@ PanelWindow {
     }
     screen: targetScreen
 
-    // See Settings.qml: a focus grab can lose the race with surface mapping and
-    // clear immediately, which must not be read as the user clicking away.
     property double openedAt: 0
     property int grabRetries: 0
 
@@ -109,8 +96,6 @@ PanelWindow {
         }
     }
 
-    // Only covers this window's own bounds; real click-away is handled by the
-    // focus grab above.
     MouseArea {
         anchors.fill: parent
         onClicked: sessionWindow.close()
@@ -223,8 +208,6 @@ PanelWindow {
                             }
                         }
 
-                        // Armed state explains itself instead of relying on the
-                        // user remembering they pressed something.
                         Text {
                             visible: sessionRow.armed
                             text: "Press again to confirm"
@@ -237,8 +220,6 @@ PanelWindow {
                     }
                 }
 
-                // Armed rows show a progress sweep over the 4s window, so the
-                // confirm affordance is visible rather than implicit.
                 Rectangle {
                     anchors {
                         left: parent.left

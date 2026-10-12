@@ -9,15 +9,13 @@ Item {
 
     property bool isSelected: ListView.isCurrentItem
     property bool isHovered: itemMouseArea.containsMouse
-    // Read live from the backend so toggling a pin never touches the list model
+
     property bool isPinned: ctrl.pinnedRaws.includes(ctrl.pinKey(modelData.raw))
 
     function select() {
         ctrl.selectItem(modelData.raw);
     }
 
-    // Raw of the neighbor to select once this item is removed (index isn't
-    // reliable since removal is async)
     function neighborKey() {
         let list = ctrl.filteredItems;
         let next = list[index + 1];
@@ -36,7 +34,7 @@ Item {
     }
 
     function togglePinState() {
-        // Unpinning from the Pinned tab removes this item from view
+
         if (ctrl.currentTab === 1) {
             markPendingRestore();
         }

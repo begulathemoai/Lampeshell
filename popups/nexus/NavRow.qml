@@ -1,22 +1,10 @@
 import QtQuick
 import qs.theme
 
-/**
- * One entry in the settings navigation pane, matching Metrolist's
- * NavigationPaneItem.
- *
- * Connected corners (20dp on the group's outer ends, 5dp on shared edges) so a
- * run of entries reads as one block, min 64dp tall, filling
- * surfaceContainer and turning secondaryContainer when selected.
- *
- * The icon is a plain 24dp glyph in a 32dp box tinted onSurfaceVariant - no
- * circular container, which is what the desktop overlay uses (it passes
- * showIconContainers = false).
- */
 Item {
     id: root
 
-    required property var page // { label, icon, description }
+    required property var page
     required property bool selected
     property bool isFirst: true
     property bool isLast: true
@@ -94,7 +82,7 @@ Item {
                 font {
                     family: "Google Sans"
                     pixelSize: 15
-                    // Semibold when selected, regular otherwise.
+
                     weight: root.selected ? Font.DemiBold : Font.Normal
                 }
             }

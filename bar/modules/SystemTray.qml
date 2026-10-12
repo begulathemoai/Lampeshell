@@ -6,16 +6,12 @@ import Quickshell.Widgets
 import qs.theme
 import qs.bar.widgets
 
-// Floating system tray icons (no pill background).
 Item {
     id: root
     required property var windowHandle
 
-    // Apps hidden from the tray entirely.
     readonly property var hiddenApps: ["nm-applet", "blueman"]
 
-    // Apps whose default icon is replaced with a themed one. Matched as a
-    // substring of id/title (e.g. "spotify" matches "spotify-client").
     readonly property var customIconApps: ["spotify", "steam"]
 
     function matchedCustomIcon(rawId, rawTitle) {
@@ -75,8 +71,6 @@ Item {
                     }
                 }
 
-                // State layer: no static pill, just a soft circle that fades in on
-                // hover/press so the tray stays visually quiet at rest.
                 Rectangle {
                     id: stateLayer
                     anchors.centerIn: parent
@@ -111,7 +105,6 @@ Item {
                     }
                 }
 
-                // Attention badge, per the SNI status contract.
                 Rectangle {
                     anchors.top: trayIcon.top
                     anchors.right: trayIcon.right

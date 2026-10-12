@@ -5,19 +5,16 @@ import Quickshell.Io
 Item {
     id: backend
 
-    // UI Orchestration Signals
     signal openMenuRequested
     signal closeMenuRequested
 
     property string searchText: ""
 
-    // Respects $TERMINAL if set, falls back to a common default otherwise
     property string myTerminal: Quickshell.env("TERMINAL") || "xterm"
 
     function launchApp(desktopEntry) {
         var finalCommand = [];
 
-        // Wrap the launch in UWSM so systemd tracks the app properly
         finalCommand.push("uwsm");
         finalCommand.push("app");
         finalCommand.push("--");

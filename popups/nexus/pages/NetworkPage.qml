@@ -22,8 +22,7 @@ PageBase {
         ToggleRow {
             icon: "wifi"
             label: "Wi-Fi"
-            // Radio state, not "is a network connected", otherwise the switch
-            // and the radio disagree.
+
             checked: backend.wifiEnabled
             enabled: backend.wifiDevice !== null
             onToggled: checked => backend.setWifi(checked)

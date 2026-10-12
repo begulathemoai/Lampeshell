@@ -1,18 +1,9 @@
 import QtQuick
 import qs.theme
 
-/**
- * One Bluetooth device row.
- *
- * Mirrors Caelestia's popout row: name, optional battery, a connect/disconnect
- * toggle, and a forget button for bonded devices. `paired` switches the row
- * between "known device" (connect / forget) and "available device" (pair).
- */
 Item {
     id: root
 
-    // The Quickshell BluetoothDevice. Typed loosely because the page passes
-    // values straight out of `adapter.devices`.
     property var device: null
     property bool busy: false
 
@@ -25,9 +16,6 @@ Item {
     signal action()
     signal forgotten()
 
-    // --- Settings group chrome ---
-    // Connected corners when placed inside a SettingsGroup (assigned by the
-    // group), matching Metrolist's connectedShape.
     property bool isFirst: true
     property bool isLast: true
 
@@ -60,7 +48,6 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         spacing: 12
 
-        // Status dot: filled when connected, hollow when not.
         Rectangle {
             id: dot
             anchors.verticalCenter: parent.verticalCenter
@@ -126,8 +113,6 @@ Item {
             }
         }
 
-        // Connect / disconnect. For an unpaired device this pairs instead,
-        // which is the same single-tap flow Caelestia uses.
         Rectangle {
             id: connectBtn
             anchors.verticalCenter: parent.verticalCenter
@@ -165,15 +150,12 @@ Item {
 
             HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
 
-            // One tap does the sensible thing: toggle a known device, pair an
-            // unknown one. The page decides which.
             TapHandler {
                 enabled: !root.busy && root.device !== null
                 onTapped: root.action()
             }
         }
 
-        // Forget, only for devices already paired.
         Rectangle {
             id: forgetBtn
             anchors.verticalCenter: parent.verticalCenter
@@ -201,7 +183,6 @@ Item {
         }
     }
 
-    // Hairline between rows, matching the card dividers used elsewhere.
     Rectangle {
         anchors.bottom: parent.bottom
         anchors.left: parent.left

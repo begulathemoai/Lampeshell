@@ -3,16 +3,6 @@ import QtQuick.Controls
 import qs.theme
 import qs.services
 
-/**
- * One wallpaper preview in the picker grid.
- *
- * The image is decoded at roughly the size it is drawn rather than at its full
- * resolution: a folder of 1440p/4k PNGs would otherwise decode tens of
- * megabytes per tile while scrolling. Decoding down to the tile size is what
- * keeps the grid responsive, and is why no separate thumbnail cache is needed -
- * the previous picker shelled out to a generate-thumbs.sh that does not exist on
- * this machine, which is why every preview came up blank.
- */
 Item {
     id: root
 
@@ -24,7 +14,6 @@ Item {
     readonly property string path: entry ? entry.path : ""
     readonly property bool isCurrent: path.length > 0 && path === currentPath
 
-    // Decode budget per tile. Wide enough to stay sharp on a hidpi output.
     readonly property int decodeWidth: 420
 
     implicitWidth: 180
@@ -72,8 +61,6 @@ Item {
             }
         }
 
-        // Placeholder while decoding, and a broken-image mark if the file is
-        // unreadable - otherwise a missing file just looks like a slow load.
         Rectangle {
             anchors.fill: parent
             color: Theme.surface_container_highest
@@ -91,7 +78,6 @@ Item {
             }
         }
 
-        // "Current" badge, so it is obvious which wallpaper is applied.
         Rectangle {
             visible: root.isCurrent
             anchors.right: parent.right

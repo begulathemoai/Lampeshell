@@ -9,11 +9,8 @@ import "../../theme"
 PanelWindow {
     id: launcherWindow
 
-    // Add any apps you want to hide to this list
     property var hiddenKeywords: ["avahi", "uuctl", "bssh", "bvnc"]
 
-    // Full-screen so the launcher can dim the desktop behind it, the way a
-    // Spotlight-style overlay does. The card is centred inside this surface.
     color: "transparent"
     visible: false
 
@@ -35,22 +32,18 @@ PanelWindow {
         var textLower = text.toString().toLowerCase();
         var queryLower = query.toLowerCase();
 
-        // Exact match
         if (textLower === queryLower)
             return 1000;
 
-        // Full string starts with query
         if (textLower.startsWith(queryLower))
             return 800;
 
-        // Any word in the string starts with query
         var words = textLower.split(/[\s\-_]+/);
         for (var i = 0; i < words.length; i++) {
             if (words[i].startsWith(queryLower))
                 return 600;
         }
 
-        // single/double letter matches polluting short queries
         if (query.length >= 3 && textLower.indexOf(queryLower) !== -1)
             return 200;
 
@@ -70,48 +63,42 @@ PanelWindow {
         var queryLower = query.toLowerCase();
 
         if (query === "") {
-            // No query: show all apps, but completely hide any app matching hiddenKeywords
+
             return allApps.filter(app => !launcherWindow.isHiddenApp(app.name)).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
         }
 
-        // Check if the user's search explicitly contains any of the hidden keywords
         var isSearchingHidden = hiddenKeywords.some(keyword => queryLower.includes(keyword));
         var scored = [];
 
         for (var i = 0; i < allApps.length; i++) {
             var entry = allApps[i];
 
-            // Hide apps matching hiddenKeywords unless explicitly searched for
             if (launcherWindow.isHiddenApp(entry.name) && !isSearchingHidden) {
                 continue;
             }
 
             var best = scoreMatch(entry.name, query);
 
-            // Check generic name (e.g., "Web Browser")
             if (entry.genericName) {
                 var s = scoreMatch(entry.genericName, query);
                 if (s >= 200)
                     best = Math.max(best, s - 50);
             }
 
-            // Check comments
             if (entry.comment) {
                 var s = scoreMatch(entry.comment, query);
                 if (s >= 200)
                     best = Math.max(best, s - 100);
             }
 
-            // Check keywords
             if (entry.keywords) {
                 for (var j = 0; j < entry.keywords.length; j++) {
                     var s = scoreMatch(entry.keywords[j], query);
                     if (s >= 200)
-                        best = Math.max(best, s - 20); // High weight for exact alias hits
+                        best = Math.max(best, s - 20);
                 }
             }
 
-            // Check the executable command
             if (entry.execString && entry.execString.toLowerCase().includes(queryLower)) {
                 best = Math.max(best, 180);
             }
@@ -147,15 +134,12 @@ PanelWindow {
         onCloseMenuRequested: closeMenu()
     }
 
-    // Metrolist does not tear the overlay down instantly: it fades the card out
-    // over ~180ms and only then drops the surface, which stops the dismissal
-    // reading as a snap.
     property bool closing: false
 
     function openMenu() {
         ctrl.searchText = "";
         closing = false;
-        launcherWindow.visible = true; // Triggers UI build
+        launcherWindow.visible = true;
     }
 
     function closeMenu() {
@@ -165,17 +149,6 @@ PanelWindow {
         contentLoader.exit();
     }
 
-    /**
-     * Floating search, modelled on Metrolist's desktop FloatingSearchOverlay.
-     *
-     * The shape of it: a dimmed scrim across the whole screen, one centred card
-     * (max 640 wide, 16 radius, surfaceContainerHigh, hairline border, deep
-     * shadow), a search row at the top, a hairline divider, then results that
-     * cap at a fixed height and the card grows and shrinks with them.
-     *
-     * There is no banner and no footer - the field is the hero and the results
-     * are the only other thing in the panel.
-     */
     LazyLoader {
         id: contentLoader
 
@@ -199,7 +172,6 @@ PanelWindow {
                     onCleared: launcherWindow.closeMenu()
                 }
 
-                // Launched through the loader, which only knows about this item.
                 function dismiss() {
                     cardCenter.dismiss();
                 }
@@ -210,28 +182,19 @@ PanelWindow {
                     enterAnim.start();
                 }
 
-                // Click-catcher only. Metrolist dims the desktop behind its
-                // overlay; this shell does not, but clicks outside the card
-                // still dismiss, so something has to own that area.
                 MouseArea {
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
                     onClicked: launcherWindow.closeMenu()
                 }
 
-                // --- Card ---
                 Item {
                     id: cardCenter
 
                     readonly property real maxWidth: 640
 
                     width: Math.min(maxWidth, lazyContentRoot.width - 48)
-                    // Height follows the column's implicit height, and animates
-                    // as results come and go - Metrolist's animateContentSize.
-                    //
-                    // Deliberately not `card.height`: the card is anchored to
-                    // fill this item, so binding the other way round is a
-                    // circular binding and the whole panel collapses to zero.
+
                     height: cardColumn.implicitHeight
                     x: (lazyContentRoot.width - width) / 2
                     y: (lazyContentRoot.height - height) / 2
@@ -243,8 +206,6 @@ PanelWindow {
                         }
                     }
 
-                    // Enter and exit transform, so the card itself stays a plain
-                    // centred rectangle.
                     opacity: 0
                     scale: 0.90
                     transformOrigin: Item.Center
@@ -273,7 +234,7 @@ PanelWindow {
                             }
                         }
                         ScriptAction {
-                            // Surface is only torn down once the fade is done.
+
                             script: launcherWindow.visible = false
                         }
                     }
@@ -284,22 +245,11 @@ PanelWindow {
                     anchors.fill: parent
 
                     radius: 16
-                    // Material's surfaceBright rather than a container tone: on
-                    // a dark scheme it sits above every surface_container step,
-                    // which is what makes the card read as "above" the desktop.
+
                     color: Theme.surface_bright
                     border.width: 1
                     border.color: Qt.rgba(Theme.outline_variant.r, Theme.outline_variant.g, Theme.outline_variant.b, 0.2)
 
-                    // No shadow: the previous rig (a MultiEffect reading an
-                    // invisible rounded rect) filled the whole card with a
-                    // translucent black box whenever its source failed to
-                    // resolve, which read as an opaque black background. A flat
-                    // hairline-bordered card is the safer modelling of the same
-                    // surface.
-
-                    // Enter: fade + scale up from 0.90 + rise, with the slight
-                    // overshoot of a spring rather than a flat tween.
                     ParallelAnimation {
                         id: enterAnim
 
@@ -346,7 +296,6 @@ PanelWindow {
                         id: cardColumn
                         width: parent.width
 
-                        // --- Search row ---
                         Item {
                             id: searchRow
                             width: parent.width
@@ -389,7 +338,7 @@ PanelWindow {
                                     Theme.on_surface_variant.r,
                                     Theme.on_surface_variant.g,
                                     Theme.on_surface_variant.b,
-                                    0.4 // Metrolist's placeholder sits back at 40%.
+                                    0.4
                                 )
 
                                 background: Item {}
@@ -425,7 +374,6 @@ PanelWindow {
                                 }
                             }
 
-                            // Clear button, only once there is something to clear.
                             Rectangle {
                                 id: clearButton
                                 visible: false
@@ -463,7 +411,6 @@ PanelWindow {
                             }
                         }
 
-                        // --- Divider ---
                         Rectangle {
                             width: parent.width
                             height: 1
@@ -472,12 +419,10 @@ PanelWindow {
                             visible: listView.count > 0
                         }
 
-                        // --- Results ---
                         ListView {
                             id: listView
                             width: parent.width
-                            // Caps the panel height; the card shrinks back down
-                            // when there are few or no results.
+
                             height: Math.min(contentHeight, 300)
                             visible: count > 0
                             clip: true

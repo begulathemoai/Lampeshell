@@ -1,7 +1,6 @@
 import QtQuick
 import qs.theme
 
-/** Small heading used to break a page body into labelled groups. */
 Item {
     id: root
 

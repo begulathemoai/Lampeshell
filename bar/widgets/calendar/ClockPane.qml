@@ -19,7 +19,6 @@ Rectangle {
     Item {
         anchors.fill: parent
 
-        // Animated Background Blobs
         Item {
             anchors.centerIn: parent
             anchors.verticalCenterOffset: -40
@@ -36,7 +35,7 @@ Rectangle {
 
                 SequentialAnimation on x {
                     loops: Animation.Infinite
-                    paused: !root.isWindowVisible // Stops when hidden
+                    paused: !root.isWindowVisible
                     NumberAnimation {
                         to: -30
                         duration: 8000
@@ -164,7 +163,6 @@ Rectangle {
             }
         }
 
-        // Small highlight shape layered on top for tonal depth
         Item {
             anchors.centerIn: parent
             anchors.horizontalCenterOffset: 55

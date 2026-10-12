@@ -10,10 +10,6 @@ Variants {
     id: root
     model: Quickshell.screens
 
-    // Set by shell.qml. QML ids do not cross file boundaries, so the status
-    // pill cannot reach QuickSettings directly - it calls this.
-    // Deliberately not named on* : QML would treat the shell.qml assignment as
-    // a signal handler and build a binding loop.
     property var statusPillHandler: function() {}
 
     delegate: PanelWindow {
@@ -21,15 +17,12 @@ Variants {
         required property var modelData
         screen: modelData
 
-        // --- Layer Shell Configuration ---
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "quickshell-topbar"
 
-        // --- Fullscreen Detection Logic ---
         readonly property HyprlandMonitor monitor: Hyprland.monitorFor(screen)
         readonly property bool fullscreen: FullscreenState.isFullscreen(monitor)
 
-        // --- Geometry & Positioning ---
         anchors {
             top: true
             left: true
@@ -37,23 +30,11 @@ Variants {
         }
         color: "transparent"
 
-        // The layer surface geometry never changes. Resizing it (or letting the
-        // exclusive zone drive its layout) makes Hyprland re-lay the bar out, and
-        // the remapped buffer comes back empty. A fullscreen window covers the
-        // whole output regardless of exclusive zones, so holding the reservation
-        // is harmless and keeps the surface valid.
         implicitHeight: Layout.topBarHeight
         WlrLayershell.exclusiveZone: Layout.topBarHeight
 
-        // Hidden by unmapping the window rather than by fading or resizing a
-        // child: leaving the surface mapped with an empty buffer is what made the
-        // bar come back blank after a fullscreen cycle.
         visible: !mainBar.fullscreen
 
-        // The modules are permanent children anchored to the window's
-        // contentItem, which tracks the window continuously, so they stay
-        // attached across every transition. Nothing is clip: a clipped item
-        // fails to repaint when it goes from zero-sized back to full size.
         Workspaces {
             id: workspaceModule
             targetMonitor: mainBar.modelData.name

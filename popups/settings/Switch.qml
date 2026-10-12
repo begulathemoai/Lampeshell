@@ -1,16 +1,6 @@
 import QtQuick
 import qs.theme
 
-/**
- * Material 3 Expressive switch, matching Metrolist's ExpressiveSwitch.
- *
- * Track is 52x32 with a 2dp border. The thumb grows from 16dp to 24dp as it
- * travels, which is the expressive part - a plain M3 switch keeps the thumb the
- * same size. The thumb also carries an icon: a check when on, a close when off.
- *
- * Colours follow ExpressiveSwitch rather than stock M3: on-primary thumb on a
- * primary track when checked, outline thumb on a surface-variant track when not.
- */
 Item {
     id: root
 
@@ -30,7 +20,6 @@ Item {
         }
     }
 
-    // --- Track ---
     Rectangle {
         id: track
 
@@ -55,12 +44,9 @@ Item {
         }
     }
 
-    // --- Thumb ---
     Rectangle {
         id: thumb
 
-        // Unchecked: 16dp sitting 4dp in. Checked: 24dp sitting 4dp from the
-        // trailing edge. Both stay vertically centred.
         width: root.checked ? 24 : 16
         height: width
         radius: width / 2
@@ -69,8 +55,6 @@ Item {
 
         color: root.checked ? Theme.on_primary : Theme.outline
 
-        // The icon sits inside the thumb; the smallest thumb is 16dp, so the
-        // icon is drawn at 12dp there and 16dp on the larger one.
         Text {
             anchors.centerIn: parent
             text: root.checked ? "check" : "close"

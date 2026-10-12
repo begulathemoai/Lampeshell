@@ -1,18 +1,12 @@
 import QtQuick
 import qs.theme
 
-/**
- * Read-only label/value pair for the About and system pages.
- */
 Item {
     id: root
 
     property string label: ""
     property string value: ""
 
-    // --- Settings group chrome ---
-    // Connected corners when placed inside a SettingsGroup (assigned by the
-    // group), matching Metrolist's connectedShape.
     property bool isFirst: true
     property bool isLast: true
 

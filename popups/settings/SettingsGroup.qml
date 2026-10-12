@@ -1,24 +1,12 @@
 import QtQuick
 import qs.theme
 
-/**
- * A titled run of settings rows, matching Metrolist's Material3SettingsGroup.
- *
- * The title is titleSmall/Medium in the primary colour, inset 16dp from the
- * start. Rows are separated by 4dp and share their corners, so the group reads
- * as one rounded block rather than a stack of separate cards.
- *
- * The default property targets the inner Column's data, so pages declare rows
- * inline and the Column still positions them.
- */
 Item {
     id: root
 
     property string title: ""
     property string description: ""
 
-    // Rows land in the Column's data, so they become real visual children and
-    // the Column lays them out.
     default property alias rows: rowsColumn.data
 
     width: parent ? parent.width : 0
@@ -26,8 +14,6 @@ Item {
 
     readonly property int rowCount: rowsColumn.children.length
 
-    // Pages declare their rows inline, so the connected-corner flags are
-    // assigned here rather than being repeated on every row by hand.
     function applyShape() {
         const kids = rowsColumn.children;
         for (let i = 0; i < kids.length; i++) {

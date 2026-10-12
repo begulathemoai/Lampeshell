@@ -2,13 +2,6 @@ pragma Singleton
 
 import QtQuick
 
-/**
- * The ordered list of settings sections.
- *
- * PageCompRegistry holds a component at the same index for every entry here, and
- * the nav pane groups rows by `category`, so the three must be kept in step. A
- * `description` is optional; the nav row just omits it.
- */
 QtObject {
     readonly property list<var> pages: [
         {

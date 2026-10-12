@@ -12,7 +12,6 @@ Rectangle {
 
     property string targetMonitor: ""
 
-    // Animation state.
     property bool windowVisible: true
     property bool isLoaded: false
     readonly property bool allowAnimations: isLoaded && windowVisible
@@ -21,7 +20,6 @@ Rectangle {
     readonly property int dotHeight: 28
     readonly property int spacingAmount: 8
 
-    // Icon cache.
     property var iconCache: ({})
 
     function resolveIconSource(appClass, appTitle) {
@@ -35,12 +33,11 @@ Rectangle {
         var desktopEntry = null;
 
         if (lowerClass !== "") {
-            // Exact lookup.
+
             desktopEntry = DesktopEntries.byId(appClass) || DesktopEntries.byId(lowerClass) || DesktopEntries.byId(lowerClass.replace(/_/g, "-"));
 
             var apps = DesktopEntries.applications.values;
 
-            // WMClass lookup.
             if (!desktopEntry) {
                 for (var i = 0; i < apps.length; i++) {
                     if ((apps[i].startupWmClass || "").toLowerCase() === lowerClass) {
@@ -50,7 +47,6 @@ Rectangle {
                 }
             }
 
-            // Steam AppID lookup.
             if (!desktopEntry) {
                 var uniqueIdMatch = lowerClass.match(/\d{4,}/);
                 if (uniqueIdMatch) {
@@ -64,7 +60,6 @@ Rectangle {
                 }
             }
 
-            // Title lookup.
             if (!desktopEntry && exactTitle !== "") {
                 for (var j = 0; j < apps.length; j++) {
                     var appName = (apps[j].name || "").toLowerCase();
@@ -89,11 +84,9 @@ Rectangle {
             guesses.push(lowerClass);
             guesses.push(lowerClass.replace(/_/g, "-"));
 
-            // Steam icon fallback.
             if (lowerClass.includes("app"))
                 guesses.push(lowerClass.replace("app", "icon"));
 
-            // Filter generic tokens.
             var ignoreList = ["app", "desktop", "com", "org", "net", "io", "www", "bin"];
             var tokens = lowerClass.split(/[^a-z0-9]/).filter(t => t.length > 2 && !ignoreList.includes(t));
 
@@ -128,22 +121,8 @@ Rectangle {
         return ws.filter(w => w.id >= 1 && w.monitor?.name === root.targetMonitor).sort((a, b) => a.id - b.id);
     }
 
-    /**
-     * How many workspace slots to render.
-     *
-     * Hyprland only reports workspaces that currently *exist*; an unvisited
-     * workspace is absent from the list entirely. Building the bar straight
-     * from that list (as sortedWorkspaces did) means the bar can only ever
-     * show - and therefore only ever let you switch to - workspaces that
-     * already exist, so 3,4,5,7..10 were simply unreachable. Caelestia avoids
-     * this by always rendering a fixed 1..shown range and letting Hyprland
-     * create a workspace on first visit; same approach here.
-     */
     property int workspaceCount: 10
 
-    // Slots mimic the HyprlandWorkspace shape (including activate()) so the
-    // existing delegate works unchanged for both live and not-yet-created
-    // workspaces.
     readonly property var workspaceSlots: {
         const existing = {};
         const live = Hyprland.workspaces.values;
@@ -162,9 +141,7 @@ Rectangle {
                 id: n,
                 focused: ws ? ws.focused === true : n === focusId,
                 active: ws ? ws.active === true : false,
-                // A workspace that does not exist yet has no monitor object.
-                // Claiming it for this bar's monitor keeps the delegate's
-                // per-monitor visibility check working for empty slots too.
+
                 monitor: ws?.monitor ?? { name: root.targetMonitor },
                 toplevels: ws ? ws.toplevels : { values: [] },
                 activate: function() {
@@ -172,7 +149,7 @@ Rectangle {
                         ws.activate();
                         return;
                     }
-                    // Not created yet: switching to it makes Hyprland create it.
+
                     Hypr.focusWorkspace(n);
                 }
             });
@@ -181,8 +158,6 @@ Rectangle {
         return slots;
     }
 
-    // The monitor object for this bar instance — the authoritative source for
-    // "what workspace is current here", rather than scanning workspace flags.
     readonly property var currentMonitor: {
         var mons = Hyprland.monitors.values;
         for (var m = 0; m < mons.length; m++) {
@@ -192,10 +167,8 @@ Rectangle {
         return null;
     }
 
-    // Active workspace on this monitor, read directly from the monitor object.
     readonly property var focusedWorkspace: currentMonitor ? currentMonitor.activeWorkspace : null
 
-    // Active workspace item.
     readonly property Item currentActiveDot: {
         if (!root.focusedWorkspace)
             return null;
@@ -213,17 +186,13 @@ Rectangle {
     radius: height / 2
 
     Component.onCompleted: {
-        // Also forces the Hypr singleton to instantiate, which is what registers
-        // its IPC target.
+
         Hypr.refreshAll();
         Qt.callLater(() => {
             root.isLoaded = true;
         });
     }
 
-    // Model refresh on Hyprland events is handled centrally by services/Hypr.qml.
-
-    // Active highlight.
     Rectangle {
         id: slidingHighlight
 
@@ -248,7 +217,6 @@ Rectangle {
         width: currentActiveDot ? currentActiveDot.targetWidth : 0
         height: root.dotHeight
 
-        // Active pill shape.
         topLeftRadius: height * 0.15
         topRightRadius: height * 0.9
         bottomRightRadius: height * 0.15
@@ -422,7 +390,6 @@ Rectangle {
                                 return name.length > 0 ? name.charAt(0).toUpperCase() : "?";
                             }
 
-                            // Rounded icon mask.
                             Rectangle {
                                 id: roundMask
                                 anchors.centerIn: parent
@@ -434,7 +401,6 @@ Rectangle {
                                 layer.enabled: true
                             }
 
-                            // Icon separator.
                             Rectangle {
                                 anchors.centerIn: parent
                                 width: 19
@@ -484,7 +450,7 @@ Rectangle {
                                 anchors.fill: parent
                                 source: iconSlot.iconSource
                                 smooth: true
-                                visible: false // Visibility delegated to MultiEffect
+                                visible: false
                             }
 
                             MultiEffect {

@@ -166,7 +166,6 @@ Item {
             height: monthGrid.implicitHeight
             anchors.horizontalCenter: parent.horizontalCenter
 
-            // Sliding Pill
             Rectangle {
                 width: 76
                 height: 48

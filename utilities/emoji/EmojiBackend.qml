@@ -6,24 +6,20 @@ import "EmojiLogic.js" as Logic
 Item {
     id: backend
 
-    // Configuration
     property string emojiListPath: "~/.cache/quickshell/emojis.json"
     property string recentsCachePath: "~/.local/state/quickshell/recent_emojis.json"
 
-    // Data State
     property var allItems: []
     property var filteredItems: []
     property var recentItems: []
     property var pendingRecents: []
     property string selectionBuffer: ""
 
-    // UI-Facing State
     property var categories: ["All", "Recents"]
     property string currentCategory: "Recents"
     property string currentEmojiName: ""
     property string searchText: ""
 
-    // Signals to notify UI of state disruptions
     signal openMenuRequested
     signal closeMenuRequested
 
@@ -72,7 +68,7 @@ Item {
 
         backend.recentItems = updatedList;
         backend.saveRecentsToDisk();
-        backend.pendingRecents = []; // Clear the buffer
+        backend.pendingRecents = [];
 
         if (backend.currentCategory === "Recents" && backend.searchText.trim() === "") {
             backend.filteredItems = backend.recentItems;
@@ -92,7 +88,6 @@ Item {
         backend.currentCategory = backend.categories[(idx + 1) % backend.categories.length];
     }
 
-    // Processes
     Process {
         id: updateEmojisProcess
         command: ["bash", Quickshell.shellPath("scripts/download_emojis.sh")]

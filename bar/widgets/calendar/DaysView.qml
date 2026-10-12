@@ -22,7 +22,6 @@ Item {
         spacing: 12
         anchors.centerIn: parent
 
-        // Days of week header
         Grid {
             columns: 7
             spacing: 8
@@ -47,7 +46,6 @@ Item {
             width: daysGrid.implicitWidth
             height: daysGrid.implicitHeight
 
-            // Soft glow echoing the ClockPane's blob motif, tied to the selection
             Rectangle {
                 width: 62
                 height: 62
@@ -94,7 +92,6 @@ Item {
                 }
             }
 
-            // Sliding Selection Circle
             Rectangle {
                 id: selectionCircle
                 width: 46
@@ -174,7 +171,6 @@ Item {
                             }
                         }
 
-                        // State layer: fractional-opacity overlay per M3 spec (8% hover, 10% pressed)
                         Rectangle {
                             anchors.fill: parent
                             radius: parent.radius

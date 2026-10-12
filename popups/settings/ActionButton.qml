@@ -1,19 +1,13 @@
 import QtQuick
 import qs.theme
 
-/**
- * Pill button used for page actions. `primary` picks the filled variant.
- */
 Rectangle {
     id: root
 
     property string text: ""
     property string icon: ""
     property bool primary: false
-    // Real signal, not `property var onTriggered`. With a var property,
-    // `onTriggered: doSomething()` is a *binding*, so QML ran it once at
-    // construction - which launched blueman-manager and opened the wallpaper
-    // picker on every shell start. As a signal it only fires when emitted.
+
     signal triggered()
 
     implicitWidth: label.implicitWidth + (iconText.visible ? iconText.implicitWidth + 8 : 0) + 34

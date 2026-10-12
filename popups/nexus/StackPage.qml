@@ -1,15 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 
-/**
- * Holds one section's pages as a stack, so a detail view (a network, a bluetooth
- * device) can be pushed on top of its list and popped back to.
- *
- * The stack is driven entirely by NexusState.subPageIdxStack: index 0 is always
- * the section root, and anything above it was pushed through
- * nState.openSubPage(). That keeps the visual stack and the logical stack from
- * drifting apart, which is what makes restoring state after a nav switch work.
- */
 StackView {
     id: root
 
@@ -114,8 +105,7 @@ StackView {
         }
 
         function onSubPageClosed() {
-            // Guard against a pop arriving before its matching push, which would
-            // otherwise unwind the stack past the section root.
+
             if (root.depth <= 1)
                 return;
             root.pop();

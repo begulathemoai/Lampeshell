@@ -18,7 +18,6 @@ Item {
     Rectangle {
         anchors.centerIn: parent
 
-        // Dynamic dimension scaling
         width: 52
         height: 52
         radius: 16

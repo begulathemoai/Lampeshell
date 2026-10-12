@@ -6,23 +6,12 @@ import Quickshell.Bluetooth
 import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
 
-/**
- * State and command layer for the quick settings menu.
- *
- * Split from the UI so the menu and the status pill read the exact same
- * values. The pill (CommandCenter.qml) mirrors these properties for display
- * only - all mutations go through here.
- */
-// Root is an Item (not QtObject): Process/PwObjectTracker are Items and cannot
-// be attached to a QtObject, which has no default property. This Item is never
-// parented into a scene; it only exists to host the child objects and state.
 Item {
     id: root
     visible: false
     width: 0
     height: 0
 
-    // --- Network ---
     readonly property var networkDevices: Networking.devices?.values ?? []
 
     readonly property var wifiDevice: {
@@ -35,7 +24,6 @@ Item {
 
     readonly property var allNetworks: wifiDevice?.networks?.values ?? []
 
-    // Visible list: known networks, connected one first, then the rest by name.
     readonly property var visibleNetworks: {
         const known = allNetworks.filter(n => n.known !== false);
         const sorted = known.slice().sort((a, b) => {
@@ -57,19 +45,11 @@ Item {
     }
 
     readonly property bool ethernetConnected: networkDevices.some(dev => dev.networks === undefined && dev.connected)
-    // Coerced to a real bool. The previous `(a || b) !== null` was always true:
-    // `false !== null` is true, so the Wi-Fi tile read as connected even with
-    // nothing up.
+
     readonly property bool anyNetworkUp: !!(connectedWifiNetwork || ethernetConnected)
 
     readonly property string wifiDeviceName: wifiDevice?.name ?? ""
 
-    // True radio state, straight from nmcli ("enabled" / "disabled" / "missing").
-    //
-    // Deliberately NOT anyNetworkUp: that means "a network is connected", which
-    // is a different question from "the Wi-Fi radio is on". Toggling a tile
-    // bound to anyNetworkUp desynced from the radio, so pressing "on" while the
-    // radio was up but unconnected switched it OFF.
     property string wifiRadio: "enabled"
     readonly property bool wifiEnabled: wifiRadio === "enabled"
 
@@ -78,11 +58,8 @@ Item {
         wifiRadioQuery.running = true;
     }
 
-    // Explicit target state, like Caelestia's `adapter.enabled = checked`
-    // instead of `adapter.enabled = !adapter.enabled`. Setting the desired state
-    // is idempotent and cannot be desynced by a stale read.
     function setWifi(enabled) {
-        // No argument means the caller just wanted a flip.
+
         if (enabled === undefined)
             enabled = !wifiEnabled;
         wifiRadioToggle.command = ["sh", "-c", "nmcli radio wifi " + (enabled ? "on" : "off") + " && nmcli device wifi rescan"];
@@ -92,15 +69,11 @@ Item {
         wifiRefreshTimer.running = true;
     }
 
-    // --- Bluetooth ---
     readonly property var btAdapter: Bluetooth.defaultAdapter ?? (Bluetooth.adapters?.values?.[0] ?? null)
     readonly property bool btPowered: btAdapter?.enabled ?? false
     readonly property var btDevices: btAdapter?.devices?.values ?? []
     readonly property var btConnectedDevices: btDevices.filter(d => d.connected)
 
-    // Paired/bonded first, then anything else the adapter is currently
-    // reporting. Quickshell does not separate the two lists, so bonded and
-    // paired devices are treated as "known" and split here.
     function deviceName(dev) {
         return dev?.name || dev?.deviceName || dev?.address || "Unknown device";
     }
@@ -123,15 +96,8 @@ Item {
         return rest.slice().sort((a, b) => deviceName(a).localeCompare(deviceName(b)));
     }
 
-    // Address of the device whose request is still in flight, used to show a
-    // spinner and block double-taps. Cleared by btBusyTimer.
     property string btBusyAddress: ""
 
-    // --- Bluetooth actions ---
-    // Every action re-asserts the authoritative state afterwards: BlueZ can
-    // silently refuse a request (the adapter was off, the device went out of
-    // range), and without this the switch would keep showing what was asked
-    // for rather than what actually happened.
     function setDeviceConnected(dev, wantConnected) {
         if (!dev)
             return;
@@ -171,7 +137,6 @@ Item {
         btAdapter.discovering = on;
     }
 
-    // --- Audio ---
     readonly property var activeSink: Pipewire.defaultAudioSink
     readonly property bool isMuted: activeSink?.audio?.muted ?? true
     readonly property real volumeLevel: activeSink?.audio?.volume ?? 0.0
@@ -193,15 +158,10 @@ Item {
             activeSource.audio.muted = !activeSource.audio.muted;
     }
 
-    // --- Brightness ---
-    // Backlight is polled rather than event-driven: the OSD popups already
-    // watch udevadm, this stays independent so opening the menu always shows
-    // a current value.
     property real brightnessLevel: 0.0
 
     readonly property real volumePercent: Math.round(volumeLevel * 100)
 
-    // --- Battery ---
     readonly property var battery: UPower.displayDevice
     readonly property bool batteryPresent: battery?.isLaptopBattery ?? false
     readonly property real batteryPct: (battery?.percentage ?? 0) * 100
@@ -224,13 +184,10 @@ Item {
     }
 
     function refreshBrightness() {
-        // Toggle rather than just setting true: assigning an already-true
-        // `running` would not restart a finished one-shot process.
+
         brightnessQuery.running = false;
         brightnessQuery.running = true;
     }
-
-    // --- Commands ---
 
     function toggleWifi() {
         wifiRadioToggle.running = true;
@@ -245,17 +202,14 @@ Item {
             enabled = !btPowered;
         if (!btAdapter)
             return;
-        // Set the requested state rather than flipping the current one, matching
-        // Caelestia: the toggle's `checked` is the source of truth, so a failed
-        // or ignored write re-asserts the same value instead of walking the
-        // adapter into the opposite state from what the user asked for.
+
         btAdapter.enabled = enabled;
     }
 
     function toggleMute() {
         if (!activeSink?.audio)
             return;
-        // Unmute restores a sane level; a 0% unmute is silent and looks broken.
+
         activeSink.audio.muted = !activeSink.audio.muted;
         if (!activeSink.audio.muted && activeSink.audio.volume <= 0.001)
             activeSink.audio.volume = 0.4;
@@ -266,7 +220,7 @@ Item {
             return;
         const clamped = Math.max(0, Math.min(1, fraction));
         activeSink.audio.volume = clamped;
-        // Dragging a slider up from a muted sink should unmute it.
+
         if (clamped > 0 && activeSink.audio.muted)
             activeSink.audio.muted = false;
     }
@@ -290,7 +244,6 @@ Item {
             net.connect();
     }
 
-    // Query current backlight level.
     Process {
         id: brightnessQuery
         command: ["sh", "-c", "brightnessctl -m"]
@@ -311,16 +264,10 @@ Item {
         }
     }
 
-    // The wifi radio itself is not exposed as a writable property in the
-    // Quickshell Networking API (only per-network connect/disconnect is),
-    // so the radio is read and toggled through nmcli.
     Process {
         id: wifiRadioToggle
     }
 
-    // Reads the radio state so the tiles reflect the radio rather than
-    // "is something connected". Retriggered like brightnessQuery, since
-    // `running` alone will not restart a finished one-shot process.
     Process {
         id: wifiRadioQuery
         command: ["sh", "-c", "nmcli -t -f WIFI radio wifi | head -1"]
@@ -334,16 +281,12 @@ Item {
         }
     }
 
-    // Clears the in-flight marker once BlueZ has had time to report back.
     Timer {
         id: btBusyTimer
         interval: 2500
         onTriggered: root.btBusyAddress = ""
     }
 
-    // nmcli state is external, so nothing pushes changes into QML. Poll slowly
-    // to pick up changes made outside the shell (rfkill, NetworkManager,
-    // blueman) and to re-sync after a write that the radio refused.
     Timer {
         id: wifiRefreshTimer
         interval: 4000

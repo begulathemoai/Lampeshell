@@ -34,7 +34,6 @@ Item {
 
     signal requestClose
 
-    // Wheel/Scroll Logic
     WheelHandler {
         id: swipeHandler
         target: null
@@ -83,7 +82,6 @@ Item {
 
     focus: true
 
-    // Timers & Init
     Timer {
         interval: 1000
         running: root.isWindowVisible
@@ -109,7 +107,6 @@ Item {
         }
     }
 
-    // Core Logic Functions
     function generateCalendar() {
         calendarModel.clear();
         let firstDay = new Date(displayYear, displayMonth, 1).getDay();
@@ -193,7 +190,6 @@ Item {
         }
     }
 
-    // Keyboard Logic
     Keys.onPressed: event => {
         let isShift = event.modifiers & Qt.ShiftModifier;
         if (isMonthYearView) {
@@ -269,7 +265,6 @@ Item {
         }
     }
 
-    // Animations
     SequentialAnimation {
         id: swipeAnim
         property int direction: 1
@@ -316,12 +311,10 @@ Item {
         easing.overshoot: 1.05
     }
 
-    // Data Models
     ListModel {
         id: calendarModel
     }
 
-    // Layout
     Row {
         anchors.fill: parent
         anchors.margins: 28

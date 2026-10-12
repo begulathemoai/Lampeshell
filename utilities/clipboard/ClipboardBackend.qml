@@ -15,7 +15,6 @@ Item {
     property int currentTab: 0
     property bool resetSelectionPending: false
 
-    // Set by selectItem() when re-copying a pinned entry; consumed in fetchHistory
     property bool repinTopOnRefresh: false
     property string repinDisplayHint: ""
 
@@ -27,14 +26,11 @@ Item {
     onSearchTextChanged: updateSearch()
     onCurrentTabChanged: updateSearch()
 
-    // Keyed by cliphist's id, not the display preview. Previews are
-    // truncated to 100 chars and collide often (e.g. Google Image copies).
     function pinKey(rawString) {
         let tabIndex = rawString.indexOf('\t');
         return tabIndex > -1 ? rawString.substring(0, tabIndex) : rawString;
     }
 
-    // filteredItems has no pin state; pin icons read pinnedRaws directly
     function updateSearch() {
         let baseList = backend.currentTab === 0 ? backend.allItems : backend.allItems.filter(item => backend.pinnedRaws.includes(backend.pinKey(item.raw)));
 
@@ -69,14 +65,13 @@ Item {
         savePinnedProcess.jsonString = JSON.stringify(backend.pinnedRaws);
         savePinnedProcess.running = true;
 
-        // Only the Pinned tab's membership depends on pin state
         if (backend.currentTab === 1) {
             updateSearch();
         }
     }
 
     function selectItem(rawString) {
-        // Re-copying gives this entry a new id and would drop its pin
+
         if (backend.pinnedRaws.includes(backend.pinKey(rawString))) {
             backend.repinTopOnRefresh = true;
             let tabIndex = rawString.indexOf('\t');
@@ -95,8 +90,6 @@ Item {
             savePinnedProcess.running = true;
         }
 
-        // Splice locally instead of a full cliphist-visual.sh rescan.
-        // Next menu open reconciles with the real state.
         backend.allItems = backend.allItems.filter(item => item.raw !== rawString);
         backend.updateSearch();
 
@@ -164,7 +157,7 @@ Item {
 
                 if (backend.repinTopOnRefresh) {
                     let top = backend.allItems[0];
-                    // Confirm it's actually the entry we copied, not something else
+
                     if (top && top.display === backend.repinDisplayHint) {
                         let topKey = backend.pinKey(top.raw);
                         if (!backend.pinnedRaws.includes(topKey))

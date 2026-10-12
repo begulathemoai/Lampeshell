@@ -1,17 +1,6 @@
 import QtQuick
 import qs.theme
 
-/**
- * One row in a settings group, matching Metrolist's Material3SettingsItemRow.
- *
- * 16dp vertical padding, a 32dp circular icon container tinted with primary at
- * 10% holding a 24dp icon, then a title/description pair and an optional
- * trailing control. Pressing tints the row surfaceContainerHigh.
- *
- * Rows inside a group get connected corners - 20dp on the outer ends, 5dp on the
- * shared edges - so a run of rows reads as one block. SettingsGroup assigns
- * those flags; standalone rows default to fully rounded.
- */
 Item {
     id: root
 
@@ -21,7 +10,6 @@ Item {
     property bool enabled: true
     property bool showIcon: true
 
-    // Assigned by SettingsGroup.
     property bool isFirst: true
     property bool isLast: true
 
@@ -54,7 +42,6 @@ Item {
         }
     }
 
-    // Connected-corner surface behind the row content.
     Rectangle {
         anchors.fill: parent
         color: rowMouse.pressed ? Theme.surface_container_high : Theme.surface_container
@@ -79,7 +66,6 @@ Item {
         onClicked: root.clicked()
     }
 
-    // --- Leading icon ---
     Rectangle {
         id: iconContainer
         visible: root.showIcon && root.icon.length > 0
@@ -103,7 +89,6 @@ Item {
         }
     }
 
-    // --- Title / description ---
     Column {
         anchors.left: iconContainer.visible ? iconContainer.right : parent.left
         anchors.leftMargin: iconContainer.visible ? 16 : 16

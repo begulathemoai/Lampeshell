@@ -1,8 +1,6 @@
 import QtQuick
 import QtQuick.Effects
 
-// M3-style state-layer ripple. Drop inside any rounded container and call
-// trigger(x, y) with the press coordinates (from a MouseArea's onPressed).
 Item {
     id: root
     anchors.fill: parent
