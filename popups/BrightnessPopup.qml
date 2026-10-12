@@ -46,11 +46,14 @@ Variants {
 
         Process {
             id: updateBrightness
-            command: ["sh", "-c", "brightnessctl -m"]
+            command: ["sh", "-c", "brightnessctl -m --class=backlight 2>/dev/null || true"]
             running: true
             stdout: StdioCollector {
                 onStreamFinished: {
-                    let val = parseInt(this.text.split(",")[3].replace("%", ""));
+                    const fields = this.text.trim().split(",");
+                    if (fields.length < 4)
+                        return; // no backlight device (DDC-only monitor)
+                    let val = parseInt(fields[3].replace("%", ""));
                     if (!isNaN(val)) {
                         brightnessOsdPopup.brightnessLevel = val / 100.0;
                     }
