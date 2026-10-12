@@ -29,7 +29,10 @@ Item {
     x: cardWidth
     opacity: 0
     Behavior on opacity { NumberAnimation { duration: 250 } }
-    Component.onCompleted: slideIn.start()
+    Component.onCompleted: {
+        slideIn.start();
+        card.notif.lock(card);
+    }
 
     ParallelAnimation {
         id: slideIn
@@ -79,7 +82,6 @@ Item {
         slideOut.start();
     }
 
-    Component.onCompleted: card.notif.lock(card)
     Component.onDestruction: card.notif.unlock(card)
 
     Rectangle {

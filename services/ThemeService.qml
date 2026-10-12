@@ -249,11 +249,6 @@ find "$dir" -maxdepth 3 -type f \\
                 root.busy = false;
             }
         }
-
-        onErrorOccurred: error => {
-            root.lastError = "matugen failed to run (is it installed?)";
-            root.busy = false;
-        }
     }
 
     Process {

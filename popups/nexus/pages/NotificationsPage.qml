@@ -17,8 +17,8 @@ PageBase {
 
         ToggleRow {
             label: "Enable DND"
-            toggled: Notifs.dnd
-            onToggled: notif => Notifs.toggleDnd()
+            checked: Notifs.dnd
+            onToggled: Notifs.toggleDnd()
         }
     }
 

@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import QtQuick
 import Quickshell
 import Quickshell.Services.Notifications
 import qs.services
@@ -77,7 +78,7 @@ QtObject {
         }
     }
 
-    Connections {
+    readonly property Connections conn: Connections {
         target: notif.notification
         ignoreUnknownSignals: true
 
