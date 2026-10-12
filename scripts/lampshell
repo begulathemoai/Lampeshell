@@ -136,6 +136,38 @@ case "${1:-help}" in
         call hypr "$@"
         ;;
 
+    media)
+        require_running || exit 1
+        case "${2:-}" in
+            play)        call mpris play ;;
+            pause)       call mpris pause ;;
+            toggle)      call mpris toggle ;;
+            next)        call mpris next ;;
+            prev)        call mpris previous ;;
+            stop)        call mpris stop ;;
+            list)        call mpris list ;;
+            title)       call mpris getActive title ;;
+            artist)      call mpris getActive artist ;;
+            album)       call mpris getActive album ;;
+            is-playing)  call mpris getActive isPlaying ;;
+            status)
+                local id; id=$(call mpris getActive identity)
+                local ti; ti=$(call mpris getActive title)
+                local ar; ar=$(call mpris getActive artist)
+                local pl; pl=$(call mpris getActive isPlaying)
+                if [ -z "$id" ]; then
+                    echo "no active player"
+                else
+                    echo "$pl  $ar - $ti  ($id)"
+                fi
+                ;;
+            *)
+                err "media needs a subcommand: play | pause | toggle | next | prev | stop | status | list | title | artist | album | is-playing"
+                exit 1
+                ;;
+        esac
+        ;;
+
     wallpaper)
         require_running || exit 1
         case "${2:-}" in
