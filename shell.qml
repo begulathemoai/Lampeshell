@@ -123,4 +123,10 @@ ShellRoot {
         description: "Lock the session"
         onPressed: sessionWindow.lock()
     }
+
+    // Singletons are created on first use, so the night light service would
+    // not exist until someone opened the Display page - which is too late to
+    // replace the Hyprland autostart it takes over from. Touching it here
+    // creates it at startup and applies the stored state once.
+    Component.onCompleted: NightLight.apply()
 }

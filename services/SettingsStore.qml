@@ -18,6 +18,8 @@ Singleton {
         defaultExpireTimeout: 5000,
         fullscreenExpireTimeout: 2000,
         caffeine: false,
+        nightLightEnabled: false,
+        nightLightTemperature: 4500,
         lockAfterMin: 15,
         screenOffAfterMin: 10,
         suspendAfterMin: 0,
