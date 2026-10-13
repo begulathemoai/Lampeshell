@@ -13,6 +13,14 @@ Item {
     property string descriptionText: modelData.genericName ? modelData.genericName : (modelData.comment ? modelData.comment : "")
 
     function launch() {
+        if (modelData.__calc) {
+            ctrl.copyCalcResult(modelData);
+            return;
+        }
+        if (modelData.__action) {
+            ctrl.runAction(modelData.__action);
+            return;
+        }
         ctrl.launchApp(modelData);
     }
 
@@ -41,8 +49,24 @@ Item {
             }
         }
 
+        Text {
+            id: actionIcon
+            visible: !!(modelData.__action || modelData.__calc)
+            width: 42
+            height: 42
+            anchors.left: parent.left
+            anchors.leftMargin: 20
+            anchors.verticalCenter: parent.verticalCenter
+            text: modelData.icon || "chevron_right"
+            color: delegateRoot.isSelected ? Theme.on_primary_container : Theme.primary
+            font { family: "Material Symbols Rounded"; pixelSize: 26 }
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+        }
+
         IconImage {
             id: appIcon
+            visible: !(modelData.__action || modelData.__calc)
             width: 42
             height: 42
             anchors.left: parent.left

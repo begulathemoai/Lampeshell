@@ -58,8 +58,41 @@ PanelWindow {
     }
 
     function buildFilteredList() {
-        var allApps = DesktopEntries.applications.values;
         var query = ctrl.searchText.trim();
+
+        if (query.startsWith(">calc ")) {
+            if (ctrl.calcPending)
+                return [{ name: "Calculating…", genericName: query.slice(6).trim(), icon: "calculate", __calc: false }];
+            if (ctrl.calcError !== "")
+                return [{ name: ctrl.calcError, genericName: "Not a valid expression", icon: "calculate", __calc: false }];
+            if (ctrl.calcResult !== "")
+                return [{ name: "= " + ctrl.calcResult, genericName: "Enter to copy", icon: "calculate", __calc: true }];
+            return [];
+        }
+
+        if (query.startsWith(">")) {
+            var actionQuery = query.replace(/^>\s*/, "").toLowerCase();
+            var actions = ctrl.actions;
+            if (actionQuery === "") {
+                return actions.map(function(a) {
+                    return { name: a.name, genericName: a.description, icon: a.icon, __action: a };
+                });
+            }
+            var scored = [];
+            for (var ai = 0; ai < actions.length; ai++) {
+                var act = actions[ai];
+                var s = Math.max(launcherWindow.scoreMatch(act.name, actionQuery),
+                                 launcherWindow.scoreMatch(act.description, actionQuery));
+                if (s >= 0)
+                    scored.push({ entry: act, score: s });
+            }
+            scored.sort(function(a, b) { return b.score - a.score; });
+            return scored.map(function(x) {
+                return { name: x.entry.name, genericName: x.entry.description, icon: x.entry.icon, __action: x.entry };
+            });
+        }
+
+        var allApps = DesktopEntries.applications.values;
         var queryLower = query.toLowerCase();
 
         if (query === "") {
