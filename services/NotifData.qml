@@ -168,7 +168,8 @@ QtObject {
             if (!Notifs.list.includes(notif))
                 return;
             Notifs.list = Notifs.list.filter(n => n !== notif);
-            if (notif.notification && typeof notif.notification.dismiss === "function")
+            if (notif.notification && !notif.notification.closed
+                    && typeof notif.notification.dismiss === "function")
                 notif.notification.dismiss();
             notif.destroy();
         }
