@@ -67,6 +67,11 @@ PanelWindow {
         id: sessionBackend
     }
 
+    function lock() {
+        sessionBackend.request("lock");
+        sessionWindow.close();
+    }
+
     IpcHandler {
         target: "session"
 
@@ -80,6 +85,10 @@ PanelWindow {
 
         function close() {
             sessionWindow.close();
+        }
+
+        function lock(): void {
+            sessionWindow.lock();
         }
     }
 
