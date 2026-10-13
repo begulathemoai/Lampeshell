@@ -25,7 +25,7 @@ PageBase {
         }
         InfoRow {
             label: "Shell"
-            value: "octashell on quickshell " + (Quickshell.version || "")
+            value: "lampshell on quickshell " + (Quickshell.version || "")
         }
         InfoRow {
             label: "Session"

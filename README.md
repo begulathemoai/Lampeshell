@@ -4,7 +4,7 @@
 | :---: | :---: |
 | ![Theme Variant 1](screenshots/preview1.jpeg) | ![Theme Variant 2](screenshots/preview2.jpeg) |
 
-this is a quickshell config I forked from [octashell](https://github.com/octagonemusic/octashell), for personal use
+this is a quickshell config I forked from [octashell](https://github.com/octagonemusic/octashell) (renamed to lampshell), for personal use
 
 very WIP, dont expect anything to work perfectly (yet)
 
