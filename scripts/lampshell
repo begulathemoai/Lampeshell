@@ -66,6 +66,19 @@ is_running() {
     "$QS" list --all 2>/dev/null | grep -q "Config path: .*/${CONFIG}/shell\.qml$"
 }
 
+wait_gone() {
+    local waited=0
+    while is_running && [ "$waited" -lt 40 ]; do
+        sleep 0.1
+        waited=$((waited + 1))
+    done
+    if is_running; then
+        err "warning: previous instance still alive after ${waited}00ms; forcing"
+        pkill -f "qs -c $CONFIG" 2>/dev/null
+        sleep 0.5
+    fi
+}
+
 require_running() {
     if ! is_running; then
         err "the '$CONFIG' shell is not running. Start it with: lampshell start"
@@ -99,12 +112,13 @@ case "${1:-help}" in
     stop | kill)
         require_running || exit 1
         "$QS" -c "$CONFIG" kill
+        wait_gone
         echo "lampshell: stopped"
         ;;
 
     restart)
         is_running && "$QS" -c "$CONFIG" kill
-        sleep 0.3
+        wait_gone
         exec "$0" start
         ;;
 

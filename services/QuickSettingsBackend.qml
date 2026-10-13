@@ -146,6 +146,19 @@ Item {
     readonly property real sourceVolumeLevel: activeSource?.audio?.volume ?? 0.0
     readonly property real microphonePercent: Math.round(sourceVolumeLevel * 100)
 
+    readonly property var sinkNodes: Audio.sinks
+    readonly property var sourceNodes: Audio.sources
+    readonly property var appStreams: Audio.streams
+    readonly property var audibleStreams: Audio.audibleStreams
+
+    function setSink(node) { Audio.setSink(node); }
+    function setSource(node) { Audio.setSource(node); }
+    function cycleSink() { Audio.cycleSink(); }
+    function setStreamVolume(node, fraction) { Audio.setStreamVolume(node, fraction); }
+    function toggleStreamMute(node) { Audio.toggleStreamMute(node); }
+    function iconForSink(node) { return Audio.iconForSink(node); }
+    function iconForStream(node) { return Audio.iconForStream(node); }
+
     function setMicrophone(fraction) {
         if (activeSource) {
             activeSource.audio.volume = fraction;
