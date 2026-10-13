@@ -45,9 +45,8 @@ property string lastMessage: ""
     readonly property real gammaMin: 1000
     readonly property real gammaMax: 6500
 
-    readonly property real overlayMin: 1000
     readonly property real minTemperature: resolvedBackend === "ddc" ? ddcMin
-        : (resolvedBackend === "overlay" ? overlayMin : gammaMin)
+        : gammaMin
     readonly property real maxTemperature: 6500
 
     readonly property bool available: resolvedBackend.length > 0
@@ -56,28 +55,130 @@ property string lastMessage: ""
         ? presetsUsable
         : (ddcControl === "0x0b" || ddcControl === "0x1a")
 
-    readonly property bool overlayActive: enabled && resolvedBackend === "overlay"
 
-    readonly property color overlayWashTarget: Qt.rgba(1, 0.84, 0.42, 1)
-    readonly property real overlayWash: 0.55
-    readonly property real overlayMaxAlpha: 0.22
+    property bool shaderSupported: false
+    property bool shaderActive: false
+    property string shaderSaved: ""
 
-    readonly property color overlayColor: washOut(kelvinColor(temperature), overlayWash)
+    property bool probeDdcDone: true
+    property bool probeGammaDone: true
+    readonly property bool probing: !probeDdcDone || !probeGammaDone
 
-    readonly property real overlayAlpha: {
-        if (!overlayActive)
-            return 0;
-        const strength = Math.max(0, Math.min(1, (maxTemperature - temperature) / 5500));
-        return strength * overlayMaxAlpha;
+    Timer {
+        id: startupProbe
+        interval: 2000
+        running: true
+        repeat: false
+        onTriggered: root.recheck()
     }
 
-    function washOut(c, amount) {
-        const t = overlayWashTarget;
-        return Qt.rgba(
-            c.r + (t.r - c.r) * amount,
-            c.g + (t.g - c.g) * amount,
-            c.b + (t.b - c.b) * amount,
-            1);
+    readonly property string shaderPath: {
+        const base = Quickshell.env("XDG_CACHE_HOME")
+            || (Quickshell.env("HOME") + "/.cache");
+        return base + "/lampshell/nightscreen-"
+            + Math.round(Math.max(1000, Math.min(6500, temperature))) + ".frag";
+    }
+
+    function shaderSource() {
+        const kelvin = Math.round(Math.max(1000, Math.min(6500, temperature)));
+        return "#version 300 es\n"
+            + "precision highp float;\n"
+            + "in vec2 v_texcoord;\n"
+            + "uniform sampler2D tex;\n"
+            + "out vec4 fragColor;\n"
+            + "const float Temperature = " + kelvin + ".0;\n"
+            + "vec3 colorTemperatureToRGB(const in float temperature) {\n"
+            + "    mat3 m = (temperature <= 6500.0)\n"
+            + "        ? mat3(vec3(0.0, -2902.1955373783176, -8257.7997278925690),\n"
+            + "               vec3(0.0, 1669.5803561666639, 2575.2827530017594),\n"
+            + "               vec3(1.0, 1.3302673723350029, 1.8993753891711275))\n"
+            + "        : mat3(vec3(1745.0425298314172, 1216.6168361476490, -8257.7997278925690),\n"
+            + "               vec3(-2666.3474220535695, -2173.1012343082230, 2575.2827530017594),\n"
+            + "               vec3(0.55995389139931482, 0.70381203140554553, 1.8993753891711275));\n"
+            + "    return mix(\n"
+            + "        clamp(m[0] / (vec3(clamp(temperature, 1000.0, 40000.0)) + m[1]) + m[2], 0.0, 1.0),\n"
+            + "        vec3(1.0),\n"
+            + "        smoothstep(1000.0, 0.0, temperature)\n"
+            + "    );\n"
+            + "}\n"
+            + "void main() {\n"
+            + "    vec4 pixColor = texture(tex, v_texcoord);\n"
+            + "    vec3 color = pixColor.rgb;\n"
+            + "    color = mix(color, color * colorTemperatureToRGB(Temperature), 1.0);\n"
+            + "    fragColor = vec4(color, pixColor.a);\n"
+            + "}\n";
+    }
+
+    FileView {
+        id: shaderFile
+        path: root.shaderPath
+        printErrors: false
+        watchChanges: false
+    }
+
+    function applyShader() {
+        if (!shaderSupported)
+            return;
+        if (temperature >= maxTemperature - 1) {
+            clearShader();
+            return;
+        }
+        const cmd = "hl.config({ decoration = { screen_shader = \""
+            + shaderPath + "\" } })";
+        shaderFile.setText(shaderSource());
+        shaderSet.command = ["hyprctl", "eval", cmd];
+        shaderActive = true;
+        shaderSet.running = false;
+        shaderSet.running = true;
+        shaderPrune.running = false;
+        shaderPrune.running = true;
+    }
+
+    Process {
+        id: shaderPrune
+        command: ["sh", "-c",
+            "find " + shaderPath.substring(0, shaderPath.lastIndexOf("/"))
+            + " -name 'nightscreen-*.frag' ! -name '"
+            + shaderPath.substring(shaderPath.lastIndexOf("/") + 1)
+            + "' -delete 2>/dev/null; true"]
+    }
+
+    function clearShader() {
+        if (!shaderActive)
+            return;
+        const cmd = "hl.config({ decoration = { screen_shader = \""
+            + shaderSaved + "\" } })";
+        shaderSet.command = ["hyprctl", "eval", cmd];
+        shaderSet.running = false;
+        shaderSet.running = true;
+        shaderActive = false;
+    }
+
+    Process {
+        id: shaderSet
+    }
+
+    Process {
+        id: shaderGet
+        command: ["hyprctl", "getoption", "decoration:screen_shader"]
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const t = String(this.text ?? "");
+                if (t.length === 0 || /no such option|unknown/i.test(t)) {
+                    root.shaderSupported = false;
+                    root.resolve();
+                    return;
+                }
+                root.shaderSupported = true;
+                const m = t.match(/str:\s*(.*)/);
+                if (root.shaderSaved === "" && m !== null) {
+                    const v = m[1].trim();
+                    root.shaderSaved = v === "[[EMPTY]]" ? "" : v;
+                }
+                root.resolve();
+            }
+        }
     }
 
     function kelvinColor(kelvin) {
@@ -106,7 +207,7 @@ property string lastMessage: ""
             return;
         enabled = on;
         SettingsStore.set("nightLightEnabled", on);
-        if (resolvedBackend === "overlay")
+        if (resolvedBackend === "shader")
             apply();
         else
             recheck();
@@ -130,29 +231,37 @@ property string lastMessage: ""
         backend = b;
         SettingsStore.set("nightLightBackend", b);
         resolve();
-        if (b !== "overlay")
+        if (b !== "shader")
             recheck();
     }
 
     function recheck() {
         lastMessage = "";
+        probeDdcDone = false;
+        probeGammaDone = false;
         probeDdc.running = false;
         probeDdc.running = true;
         probeGamma.running = false;
         probeGamma.running = true;
+        if ((backend === "auto" || backend === "shader") && !shaderSupported) {
+            shaderGet.running = false;
+            shaderGet.running = true;
+        }
     }
 
     function resolve() {
-        if (backend === "overlay") {
-            resolvedBackend = "overlay";
-        } else if (backend === "ddc" && ddcDisplays > 0 && ddcUsable) {
-            resolvedBackend = "ddc";
-        } else if (backend === "gamma" && gammaPresent && gammaSupported) {
-            resolvedBackend = "gamma";
+        if (backend === "shader") {
+            resolvedBackend = shaderSupported ? "shader" : "";
+        } else if (backend === "ddc") {
+            resolvedBackend = ddcDisplays > 0 && ddcUsable ? "ddc" : "";
+        } else if (backend === "gamma") {
+            resolvedBackend = gammaPresent && gammaSupported ? "gamma" : "";
         } else if (ddcDisplays > 0 && ddcUsable) {
             resolvedBackend = "ddc";
         } else if (gammaPresent && gammaSupported) {
             resolvedBackend = "gamma";
+        } else if (shaderSupported) {
+            resolvedBackend = "shader";
         } else {
             resolvedBackend = "";
         }
@@ -177,8 +286,10 @@ property string lastMessage: ""
             restore();
             return;
         }
-        if (resolvedBackend === "overlay")
+        if (resolvedBackend === "shader") {
+            applyShader();
             return;
+        }
         if (resolvedBackend === "ddc")
             writeDdc(stepFor(temperature));
         else
@@ -204,6 +315,8 @@ property string lastMessage: ""
             }
         } else if (resolvedBackend === "gamma") {
             resetGamma();
+        } else if (resolvedBackend === "shader") {
+            clearShader();
         }
     }
 
@@ -445,6 +558,8 @@ property string lastMessage: ""
     Process {
         id: probeDdc
 
+        onExited: root.probeDdcDone = true
+
         stdout: StdioCollector {
             onStreamFinished: {
                 const text = String(this.text ?? "");
@@ -474,6 +589,8 @@ property string lastMessage: ""
 
     Process {
         id: probeGamma
+
+        onExited: root.probeGammaDone = true
 
         stdout: StdioCollector {}
         stderr: StdioCollector {
@@ -700,9 +817,10 @@ property string lastMessage: ""
                 available: root.available,
                 backend: root.backend,
                 resolved: root.resolvedBackend,
-                overlayActive: root.overlayActive,
-                overlayAlpha: root.overlayAlpha,
                 ddcUsable: root.ddcUsable,
+                shaderSupported: root.shaderSupported,
+                shaderActive: root.shaderActive,
+                probing: root.probing,
                 ddcDisplays: root.ddcDisplays,
                 ddcControl: root.ddcControl,
                 achievedKelvin: root.achievedKelvin,

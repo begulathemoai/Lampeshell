@@ -34,10 +34,6 @@ ShellRoot {
         id: desktopBezels
     }
 
-    NightLightOverlay {
-        id: nightLightOverlay
-    }
-
     TopBar {
         id: topBar
         statusPillHandler: quickSettingsWindow.toggle

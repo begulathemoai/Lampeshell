@@ -61,7 +61,7 @@ PageBase {
                 { label: "Auto", value: "auto" },
                 { label: "Display", value: "ddc" },
                 { label: "Gamma", value: "gamma" },
-                { label: "Overlay", value: "overlay" }
+                { label: "Shader", value: "shader" }
             ]
             value: NightLight.backend
             onSelected: function(v) {
@@ -72,19 +72,26 @@ PageBase {
         InfoRow {
             label: "Status"
             value: {
+                if (NightLight.probing)
+                    return "checking…";
                 if (!NightLight.available) {
-                    if (!NightLight.ddcPresent && !NightLight.gammaPresent)
+                    if (!NightLight.ddcPresent && !NightLight.gammaPresent
+                        && !NightLight.shaderSupported)
                         return "install ddcutil or gammastep";
-                    if (NightLight.ddcDisplays > 0)
+                    if (NightLight.backend === "shader")
+                        return "this Hyprland has no screen shader";
+                    if (NightLight.backend === "ddc" && NightLight.ddcDisplays > 0)
                         return "this display accepts no colour setting";
-                    return "no gamma-capable output";
+                    if (NightLight.backend === "gamma")
+                        return "screen gamma unavailable";
+                    return "no method available";
                 }
                 if (NightLight.scanningPresets)
                     return "learning display presets…";
                 if (!NightLight.enabled)
                     return "off";
-                if (NightLight.resolvedBackend === "overlay")
-                    return "screen overlay toward "
+                if (NightLight.resolvedBackend === "shader")
+                    return "screen shader at "
                         + Math.round(NightLight.temperature) + " K";
                 if (NightLight.resolvedBackend === "gamma" && !NightLight.gammaSupported)
                     return "screen gamma unavailable";
