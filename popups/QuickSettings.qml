@@ -33,10 +33,11 @@ PanelWindow {
         right: 0
     }
 
-    property var targetScreen: {
+    function screenForFocus() {
         const active = Hyprland.focusedMonitor ?? null;
-        return active && active.name ? Quickshell.screens.find(s => s.name === active.name) : Quickshell.screens[0];
+        return active && active.name ? Quickshell.screens.find(s => s.name === active.name) ?? Quickshell.screens[0] : Quickshell.screens[0];
     }
+    property var targetScreen: screenForFocus()
     screen: targetScreen
 
     function publishGeometry() {
@@ -48,15 +49,18 @@ PanelWindow {
 
     onWidthChanged: publishGeometry()
 
-    // The panel follows the focused monitor, so the painted card has to
-    // follow it too - and moving between screens of different sizes does
-    // not change this window's width, so width alone would leave the
-    // card painted on the screen the panel just left.
+    // The panel is opened on whatever monitor has focus and stays there for
+    // the whole session. Pinning the screen at open (like Settings.qml)
+    // instead of live-following focus matters with several monitors: a live
+    // `screen` change remaps the layer surface, drops the focus grab and
+    // republishes the card geometry for a window that has moved, which
+    // strands the card painted on the monitor the panel just left.
     onTargetScreenChanged: publishGeometry()
 
     function open() {
         quickSettingsBackend.refreshBrightness();
         quickSettingsWindow.openedAt = Date.now();
+        quickSettingsWindow.targetScreen = quickSettingsWindow.screenForFocus();
         quickSettingsWindow.settling = true;
         settleTimer.restart();
         quickSettingsWindow.visible = true;
@@ -228,6 +232,10 @@ PanelWindow {
         anchors.fill: parent
     }
 
+    // Caelestia's sidebar, rebuilt for lampshell: notifications on top, then
+    // the keep-awake card, then the volume/brightness sliders (which caelestia
+    // keeps as an OSD hover control, but live in-line here), then the quick
+    // toggles. The sliders are caelestia's FilledSlider turned sideways.
     Column {
         id: content
         anchors.top: parent.top
@@ -247,436 +255,15 @@ PanelWindow {
 
         onImplicitHeightChanged: quickSettingsWindow.publishGeometry()
 
-        Row {
-            width: parent.width
-            spacing: 18
-            visible: quickSettingsBackend.batteryPresent
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: quickSettingsBackend.batteryIcon()
-                color: quickSettingsBackend.batteryPct < 20 && !quickSettingsBackend.batteryCharging ? Theme.critical : Theme.on_surface
-                font {
-                    family: "Material Symbols Rounded"
-                    pixelSize: 26
-                }
-            }
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: quickSettingsBackend.batteryLabel()
-                color: Theme.on_surface
-                font {
-                    family: "Google Sans"
-                    pixelSize: 14
-                    weight: Font.Medium
-                }
-            }
-        }
-
-        Row {
-            width: parent.width
-            spacing: 12
-
-            Repeater {
-                model: 4
-
-                delegate: Item {
-                    id: tile
-                    required property int index
-                    width: (content.width - 36) / 4
-                    height: Layout.s(76)
-
-                    readonly property bool toggleOn: {
-                        if (index === 0)
-
-                            return quickSettingsBackend.wifiEnabled;
-                        if (index === 1)
-                            return quickSettingsBackend.btPowered;
-                        if (index === 2)
-                            return !quickSettingsBackend.isMuted;
-                        return Idle.caffeine;
-                    }
-
-                    readonly property string iconName: {
-                        if (index === 0) {
-                            return quickSettingsBackend.wifiEnabled ? "wifi" : "wifi_off";
-                        }
-                        if (index === 1)
-                            return quickSettingsBackend.btPowered ? "bluetooth" : "bluetooth_disabled";
-                        if (index === 2)
-                            return quickSettingsBackend.isMuted ? "volume_off" : "volume_up";
-                        return Idle.caffeine ? "local_cafe" : "coffee";
-                    }
-
-                    readonly property string labelText: index === 0 ? "Wi-Fi"
-                        : (index === 1 ? "Bluetooth" : (index === 2 ? "Sound" : "Caffeine"))
-
-                    Rectangle {
-                        id: tileBg
-                        anchors.fill: parent
-                        radius: 22
-
-                        color: tile.toggleOn
-                            ? Theme.primary_container
-                            : (tileMouse.containsMouse
-                                ? Qt.tint(Theme.surface_container_high, Qt.rgba(Theme.on_surface.r, Theme.on_surface.g, Theme.on_surface.b, 0.08))
-                                : Theme.surface_container)
-
-                        scale: tileMouse.pressed ? 0.95 : 1.0
-                        transformOrigin: Item.Center
-
-                        Behavior on color {
-                            ColorAnimation {
-                                duration: 150
-                                easing.type: Easing.OutCubic
-                            }
-                        }
-                        Behavior on scale {
-                            NumberAnimation {
-                                duration: 150
-                                easing.type: Easing.OutCubic
-                            }
-                        }
-                    }
-
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: 8
-
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: tile.iconName
-                            color: tile.toggleOn ? Theme.on_primary_container : Theme.on_surface
-                            font {
-                                family: "Material Symbols Rounded"
-                                pixelSize: 24
-                            }
-                        }
-
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: tile.labelText
-                            color: tile.toggleOn ? Theme.on_primary_container : Theme.on_surface_variant
-                            font {
-                                family: "Google Sans"
-                                pixelSize: 12
-                                weight: Font.Medium
-                            }
-                        }
-                    }
-
-                    MouseArea {
-                        id: tileMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-
-                        onClicked: {
-                            if (tile.index === 0)
-                                quickSettingsBackend.toggleWifi();
-                            else if (tile.index === 1)
-                                quickSettingsBackend.toggleBluetooth();
-                            else if (tile.index === 2)
-                                quickSettingsBackend.toggleMute();
-                            else
-                                Idle.toggleCaffeine();
-                        }
-                    }
-                }
-            }
-        }
-
-        Rectangle {
-            width: parent.width
-            height: 64
-            radius: 22
-            color: Theme.surface_container_highest
-
-            Row {
-                id: volumeRow
-                anchors.fill: parent
-                anchors.leftMargin: 20
-                anchors.rightMargin: 20
-                spacing: 14
-
-                MouseArea {
-                    id: muteButton
-                    width: 32
-                    height: 32
-                    anchors.verticalCenter: parent.verticalCenter
-                    cursorShape: Qt.PointingHandCursor
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: quickSettingsBackend.isMuted ? "volume_off" : "volume_up"
-                        color: quickSettingsBackend.isMuted ? Theme.critical : Theme.on_surface
-                        font {
-                            family: "Material Symbols Rounded"
-                            pixelSize: 24
-                        }
-                    }
-
-                    onClicked: quickSettingsBackend.toggleMute()
-                }
-
-                Rectangle {
-                    id: volumeTrack
-
-                    width: parent.width - muteButton.width - volumePercentLabel.width - parent.spacing * 2
-                    height: 6
-                    radius: 3
-                    anchors.verticalCenter: parent.verticalCenter
-                    color: Theme.surface_container_high
-
-                    Rectangle {
-                        width: volumeTrack.width * quickSettingsBackend.volumeLevel
-                        height: parent.height
-                        radius: parent.radius
-                        color: quickSettingsBackend.isMuted ? Theme.outline : Theme.primary
-
-                        Behavior on width {
-                            NumberAnimation {
-                                duration: 120
-                                easing.type: Easing.OutCubic
-                            }
-                        }
-                    }
-
-                    MouseArea {
-                        id: volumeDrag
-                        anchors.fill: parent
-                        anchors.margins: -14
-                        cursorShape: Qt.PointingHandCursor
-
-                        function positionToFraction(mx) {
-                            return Math.max(0, Math.min(1, mx / volumeTrack.width));
-                        }
-
-                        onPressed: mouse => quickSettingsBackend.setVolume(positionToFraction(mouse.x))
-                        onPositionChanged: mouse => {
-                            if (pressed)
-                                quickSettingsBackend.setVolume(positionToFraction(mouse.x));
-                        }
-                    }
-                }
-
-                Text {
-                    id: volumePercentLabel
-                    width: 34
-                    anchors.verticalCenter: parent.verticalCenter
-                    horizontalAlignment: Text.AlignRight
-                    text: quickSettingsBackend.volumePercent + "%"
-                    color: Theme.on_surface_variant
-                    font {
-                        family: "Google Sans"
-                        pixelSize: 12
-                        weight: Font.Medium
-                    }
-                }
-            }
-        }
-
-        Rectangle {
-            width: parent.width
-            height: 64
-            radius: 22
-            color: Theme.surface_container_highest
-
-            Row {
-                anchors.fill: parent
-                anchors.leftMargin: 20
-                anchors.rightMargin: 20
-                spacing: 14
-
-                Text {
-                    id: brightnessIcon
-                    width: 32
-                    height: 32
-                    anchors.verticalCenter: parent.verticalCenter
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    text: quickSettingsBackend.brightnessLevel >= 0.7 ? "brightness_high" : (quickSettingsBackend.brightnessLevel >= 0.3 ? "brightness_medium" : "brightness_low")
-                    color: Theme.on_surface
-                    font {
-                        family: "Material Symbols Rounded"
-                        pixelSize: 24
-                    }
-                }
-
-                Rectangle {
-                    id: brightnessTrack
-                    width: parent.width - brightnessIcon.width - brightnessPercentLabel.width - parent.spacing * 2
-                    height: 6
-                    radius: 3
-                    anchors.verticalCenter: parent.verticalCenter
-                    color: Theme.surface_container_high
-
-                    Rectangle {
-                        width: brightnessTrack.width * quickSettingsBackend.brightnessLevel
-                        height: parent.height
-                        radius: parent.radius
-                        color: Theme.primary
-
-                        Behavior on width {
-                            NumberAnimation {
-                                duration: 120
-                                easing.type: Easing.OutCubic
-                            }
-                        }
-                    }
-
-                    MouseArea {
-                        id: brightnessDrag
-                        anchors.fill: parent
-                        anchors.margins: -14
-                        cursorShape: Qt.PointingHandCursor
-
-                        function positionToFraction(mx) {
-                            return Math.max(0, Math.min(1, mx / brightnessTrack.width));
-                        }
-
-                        onPressed: mouse => quickSettingsBackend.setBrightness(positionToFraction(mouse.x))
-                        onPositionChanged: mouse => {
-                            if (pressed)
-                                quickSettingsBackend.setBrightness(positionToFraction(mouse.x));
-                        }
-                    }
-                }
-
-                Text {
-                    id: brightnessPercentLabel
-                    width: 34
-                    anchors.verticalCenter: parent.verticalCenter
-                    horizontalAlignment: Text.AlignRight
-                    text: Math.round(quickSettingsBackend.brightnessLevel * 100) + "%"
-                    color: Theme.on_surface_variant
-                    font {
-                        family: "Google Sans"
-                        pixelSize: 12
-                        weight: Font.Medium
-                    }
-                }
-            }
-        }
-
-        Rectangle {
-            width: parent.width
-            height: Math.max(64, netColumn.implicitHeight + 28)
-            radius: 22
-            color: Theme.surface_container_highest
-            visible: quickSettingsBackend.visibleNetworks.length > 0
-
-            Column {
-                id: netColumn
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.margins: 14
-                spacing: 4
-
-                Repeater {
-                    id: netRepeater
-                    model: quickSettingsBackend.visibleNetworks
-
-                    delegate: Item {
-                        id: netRow
-                        required property var modelData
-
-                        width: netColumn.width
-                        height: 44
-
-                        readonly property bool isConnected: modelData.connected === true
-                        readonly property string netName: {
-                            if (!modelData)
-                                return "Unknown";
-                            return modelData.name ?? modelData.ssid ?? "Unknown";
-                        }
-
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: 14
-                            color: netMouse.containsMouse
-                                ? Qt.tint(Theme.surface_container_high, Qt.rgba(Theme.on_surface.r, Theme.on_surface.g, Theme.on_surface.b, 0.08))
-                                : "transparent"
-                        }
-
-                        Row {
-                            anchors.left: parent.left
-                            anchors.leftMargin: 12
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 14
-
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: netRow.isConnected ? "wifi" : "wifi_off"
-                                color: netRow.isConnected ? Theme.primary : Theme.on_surface_variant
-                                font {
-                                    family: "Material Symbols Rounded"
-                                    pixelSize: 20
-                                }
-                            }
-
-                            Column {
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: 1
-
-                                Text {
-                                    text: netRow.netName
-                                    color: Theme.on_surface
-                                    font {
-                                        family: "Google Sans"
-                                        pixelSize: 13
-                                        weight: Font.Medium
-                                    }
-                                }
-
-                                Text {
-                                    visible: netRow.isConnected
-                                    text: "Connected"
-                                    color: Theme.primary
-                                    font {
-                                        family: "Google Sans"
-                                        pixelSize: 11
-                                    }
-                                }
-                            }
-                        }
-
-                        Text {
-                            anchors.right: parent.right
-                            anchors.rightMargin: 14
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: netRow.isConnected ? "check" : "arrow_forward"
-                            color: Theme.on_surface_variant
-                            font {
-                                family: "Material Symbols Rounded"
-                                pixelSize: 18
-                            }
-                        }
-
-                        MouseArea {
-                            id: netMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: quickSettingsBackend.toggleNetwork(netRow.modelData)
-                        }
-                    }
-                }
-            }
-        }
-
+        // --- Notifications (top) -------------------------------------------
         Rectangle {
             id: notifCard
             width: parent.width
             readonly property int listHeight: Math.min(notifColumn.implicitHeight, Layout.s(210))
-            height: Notifs.notClosed.length > 0
-                ? notifHeader.height + Layout.s(20) + listHeight
-                : notifHeader.height + Layout.s(46)
+            readonly property int bodyHeight: Notifs.notClosed.length > 0 ? listHeight : Layout.s(88)
+            implicitHeight: 14 + notifHeader.height + Layout.s(16) + bodyHeight + 14
             radius: 22
-            color: Theme.surface_container_highest
-            visible: Notifs.notClosed.length > 0 || Notifs.dnd
+            color: Theme.surface_container_low
 
             Item {
                 id: notifHeader
@@ -689,21 +276,23 @@ PanelWindow {
                 Row {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
-                    spacing: 10
+                    spacing: 8
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "notifications"
-                        color: Theme.on_surface
+                        visible: Notifs.notClosed.length > 0
+                        text: Notifs.notClosed.length
+                        color: Theme.outline
                         font {
-                            family: "Material Symbols Rounded"
-                            pixelSize: 18
+                            family: "Google Sans"
+                            pixelSize: 12
+                            weight: Font.Medium
                         }
                     }
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: Notifs.notClosed.length > 0 ? Notifs.notClosed.length : "off"
+                        text: "Notifications"
                         color: Theme.on_surface_variant
                         font {
                             family: "Google Sans"
@@ -722,7 +311,6 @@ PanelWindow {
                         width: 28
                         height: 28
                         radius: 14
-                        visible: Notifs.notClosed.length > 0
                         color: dndMouse.containsMouse
                             ? Qt.rgba(Theme.on_surface.r, Theme.on_surface.g, Theme.on_surface.b, 0.10)
                             : "transparent"
@@ -777,39 +365,38 @@ PanelWindow {
             }
 
             Item {
+                id: emptyState
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                anchors.margins: 14
-                height: 24
+                anchors.top: notifHeader.bottom
+                anchors.topMargin: Layout.s(16)
+                height: Layout.s(88)
                 visible: Notifs.notClosed.length === 0
 
-                Text {
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: Notifs.dnd ? "Do not disturb is on" : "No notifications yet"
-                    color: Theme.on_surface_variant
-                    font {
-                        family: "Google Sans"
-                        pixelSize: 12
-                    }
-                }
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 6
 
-                Text {
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: Notifs.dnd ? "bell_off" : "bell"
-                    color: Theme.primary
-                    font {
-                        family: "Material Symbols Rounded"
-                        pixelSize: 18
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: Notifs.dnd ? "notifications_off" : "notifications_none"
+                        color: Theme.outline_variant
+                        font {
+                            family: "Material Symbols Rounded"
+                            pixelSize: 30
+                        }
                     }
-                }
 
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: Notifs.toggleDnd()
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: Notifs.dnd ? "Do not disturb is on" : "All up to date!"
+                        color: Theme.on_surface_variant
+                        font {
+                            family: "Google Sans"
+                            pixelSize: 13
+                            weight: Font.Medium
+                        }
+                    }
                 }
             }
 
@@ -818,7 +405,7 @@ PanelWindow {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: notifHeader.bottom
-                anchors.topMargin: Layout.s(6)
+                anchors.topMargin: Layout.s(16)
                 height: notifCard.listHeight
                 clip: true
                 contentWidth: width
@@ -893,93 +480,310 @@ PanelWindow {
             }
         }
 
-        Row {
+        // --- Keep awake -----------------------------------------------------
+        Rectangle {
+            id: keepAwakeCard
             width: parent.width
-            spacing: 10
+            implicitHeight: keepAwakeCol.implicitHeight + 28
+            radius: 22
+            color: Theme.surface_container
 
-            Rectangle {
-                id: sessionTile
-                width: 46
-                height: 46
-                radius: 22
-                color: sessionMouse.containsMouse
-                    ? Qt.tint(Theme.surface_container_highest, Qt.rgba(Theme.on_surface.r, Theme.on_surface.g, Theme.on_surface.b, 0.10))
-                    : Theme.surface_container_highest
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "power_settings_new"
-                    color: Theme.on_surface
-                    font {
-                        family: "Material Symbols Rounded"
-                        pixelSize: 20
-                    }
-                }
-
-                MouseArea {
-                    id: sessionMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: quickSettingsWindow.openSession()
-                }
-            }
-
-            Rectangle {
-                id: gearTile
-                width: parent.width - sessionTile.width - 10
-                height: 46
-                radius: 22
-                color: gearMouse.containsMouse
-                    ? Qt.tint(Theme.surface_container_highest, Qt.rgba(Theme.on_surface.r, Theme.on_surface.g, Theme.on_surface.b, 0.10))
-                    : Theme.surface_container_highest
+            Column {
+                id: keepAwakeCol
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 14
+                spacing: 12
 
                 Row {
-                    anchors.left: parent.left
-                    anchors.leftMargin: 18
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 12
+                    width: parent.width
+                    spacing: 14
 
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "settings"
-                        color: Theme.on_surface
-                        font {
-                            family: "Material Symbols Rounded"
-                            pixelSize: 20
+                    Rectangle {
+                        width: 44
+                        height: 44
+                        radius: 22
+                        color: Idle.caffeine ? Theme.secondary : Theme.secondary_container
+
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: 160
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "coffee"
+                            color: Idle.caffeine ? Theme.on_secondary : Theme.on_secondary_container
+                            font {
+                                family: "Material Symbols Rounded"
+                                pixelSize: 22
+                            }
                         }
                     }
 
-                    Text {
+                    Column {
+                        width: parent.width - 44 - keepAwakeSwitch.width - parent.spacing * 2
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "Shell settings"
-                        color: Theme.on_surface
+                        spacing: 2
+
+                        Text {
+                            text: "Keep awake"
+                            color: Theme.on_surface
+                            font {
+                                family: "Google Sans"
+                                pixelSize: 13
+                                weight: Font.Medium
+                            }
+                        }
+
+                        Text {
+                            width: parent.width
+                            text: Idle.caffeine ? "Preventing sleep mode" : "Normal power management"
+                            color: Theme.on_surface_variant
+                            elide: Text.ElideRight
+                            font {
+                                family: "Google Sans"
+                                pixelSize: 11
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        id: keepAwakeSwitch
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        readonly property bool checked: Idle.caffeine
+
+                        implicitWidth: 46
+                        implicitHeight: 28
+                        radius: height / 2
+                        color: checked ? Theme.primary : Theme.surface_container_high
+
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: 160
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+
+                        Rectangle {
+                            width: keepAwakeSwitch.checked ? 20 : 16
+                            height: width
+                            radius: width / 2
+                            y: (parent.height - height) / 2
+                            x: keepAwakeSwitch.checked ? parent.width - width - 4 : 4
+                            color: keepAwakeSwitch.checked ? Theme.on_primary : Theme.outline
+
+                            Behavior on width {
+                                NumberAnimation {
+                                    duration: 160
+                                }
+                            }
+                            Behavior on x {
+                                NumberAnimation {
+                                    duration: 200
+                                    easing.type: Easing.OutBack
+                                }
+                            }
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: 160
+                                }
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: Idle.setCaffeine(!Idle.caffeine)
+                        }
+                    }
+                }
+
+                Rectangle {
+                    visible: Idle.caffeine
+                    implicitWidth: activeSinceText.width + 24
+                    implicitHeight: 26
+                    radius: 13
+                    color: Theme.primary
+
+                    Text {
+                        id: activeSinceText
+                        anchors.centerIn: parent
+                        text: "Active since " + Idle.activeSince
+                        color: Theme.on_primary
                         font {
                             family: "Google Sans"
-                            pixelSize: 13
+                            pixelSize: 11
                             weight: Font.Medium
                         }
                     }
                 }
+            }
+        }
+
+        // --- Volume and brightness -----------------------------------------
+        Rectangle {
+            width: parent.width
+            implicitHeight: sliderCol.implicitHeight + 32
+            radius: 22
+            color: Theme.surface_container
+
+            Column {
+                id: sliderCol
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.margins: 16
+                spacing: 16
+
+                FilledSlider {
+                    width: parent.width
+                    icon: quickSettingsBackend.isMuted ? "volume_off"
+                        : (quickSettingsBackend.volumeLevel >= 0.5 ? "volume_up" : "volume_down")
+                    value: quickSettingsBackend.volumeLevel
+                    onMoved: value => quickSettingsBackend.setVolume(value)
+                }
+
+                FilledSlider {
+                    width: parent.width
+                    icon: quickSettingsBackend.brightnessLevel >= 0.7 ? "brightness_high"
+                        : (quickSettingsBackend.brightnessLevel >= 0.3 ? "brightness_medium" : "brightness_low")
+                    value: quickSettingsBackend.brightnessLevel
+                    onMoved: value => quickSettingsBackend.setBrightness(value)
+                }
+            }
+        }
+
+        // --- Controls (quick toggles) --------------------------------------
+        Rectangle {
+            id: controlsCard
+            width: parent.width
+            implicitHeight: controlsCol.implicitHeight + 28
+            radius: 22
+            color: Theme.surface_container
+
+            Column {
+                id: controlsCol
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 14
+                spacing: 12
 
                 Text {
-                    anchors.right: parent.right
-                    anchors.rightMargin: 18
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "chevron_right"
-                    color: Theme.on_surface_variant
+                    text: "Quick toggles"
+                    color: Theme.on_surface
                     font {
-                        family: "Material Symbols Rounded"
-                        pixelSize: 18
+                        family: "Google Sans"
+                        pixelSize: 13
+                        weight: Font.Medium
                     }
                 }
 
-                MouseArea {
-                    id: gearMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: quickSettingsWindow.openSettings()
+                Row {
+                    width: parent.width
+                    spacing: 8
+
+                    Repeater {
+                        model: 6
+
+                        delegate: Item {
+                            id: toggle
+                            required property int index
+                            width: (controlsCol.width - 5 * 8) / 6
+                            height: width
+
+                            readonly property bool toggleOn: {
+                                if (index === 0)
+                                    return quickSettingsBackend.wifiEnabled;
+                                if (index === 1)
+                                    return quickSettingsBackend.btPowered;
+                                if (index === 2)
+                                    return !quickSettingsBackend.isMutedSource;
+                                if (index === 3)
+                                    return GameMode.enabled;
+                                if (index === 4)
+                                    return Notifs.dnd;
+                                return false;
+                            }
+
+                            readonly property string iconName: {
+                                if (index === 0)
+                                    return quickSettingsBackend.wifiEnabled ? "wifi" : "wifi_off";
+                                if (index === 1)
+                                    return quickSettingsBackend.btPowered ? "bluetooth" : "bluetooth_disabled";
+                                if (index === 2)
+                                    return quickSettingsBackend.isMutedSource ? "mic_off" : "mic";
+                                if (index === 3)
+                                    return "sports_esports";
+                                if (index === 4)
+                                    return Notifs.dnd ? "notifications_off" : "notifications";
+                                return "settings";
+                            }
+
+                            Rectangle {
+                                anchors.fill: parent
+                                radius: Layout.s(16)
+
+                                color: toggle.toggleOn
+                                    ? Theme.primary
+                                    : (toggleMouse.containsMouse
+                                        ? Qt.tint(Theme.surface_container_high, Qt.rgba(Theme.on_surface.r, Theme.on_surface.g, Theme.on_surface.b, 0.08))
+                                        : Theme.surface_container_high)
+
+                                scale: toggleMouse.pressed ? 0.92 : 1.0
+
+                                Behavior on color {
+                                    ColorAnimation {
+                                        duration: 150
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
+                                Behavior on scale {
+                                    NumberAnimation {
+                                        duration: 150
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
+                            }
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: toggle.iconName
+                                color: toggle.toggleOn ? Theme.on_primary : Theme.on_surface_variant
+                                font {
+                                    family: "Material Symbols Rounded"
+                                    pixelSize: 20
+                                }
+                            }
+
+                            MouseArea {
+                                id: toggleMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (toggle.index === 0)
+                                        quickSettingsBackend.toggleWifi();
+                                    else if (toggle.index === 1)
+                                        quickSettingsBackend.toggleBluetooth();
+                                    else if (toggle.index === 2)
+                                        quickSettingsBackend.toggleMuteSource();
+                                    else if (toggle.index === 3)
+                                        GameMode.toggle();
+                                    else if (toggle.index === 4)
+                                        Notifs.toggleDnd();
+                                    else
+                                        quickSettingsWindow.openSettings();
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
