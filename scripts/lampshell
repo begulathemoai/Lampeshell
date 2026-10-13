@@ -37,6 +37,10 @@ Idle
   settings-get <key>         Read a persisted setting (lockAfterMin, ...)
   settings-set <key> <val>   Write one (e.g. lockAfterMin 30; 0 = never)
 
+Keyboard
+  kblayout                  Cycle to the next keyboard layout (us -> fr)
+  kblayout <n>              Switch to layout n (0-based)
+
 Record
   record toggle         Toggle recording on/off (saves to ~/Videos/Screencasts)
   record start [-s] [-r WxH+X+Y]   Start a recording; -s audio, -r region
@@ -166,6 +170,15 @@ case "${1:-help}" in
     lock)
         require_running || exit 1
         call session lock
+        ;;
+
+    kblayout)
+        require_running || exit 1
+        if [ -n "$2" ]; then
+            call kblayout set "$2"
+        else
+            call kblayout cycle
+        fi
         ;;
 
     settings-set)

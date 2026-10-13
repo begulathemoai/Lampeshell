@@ -6,6 +6,7 @@ import Quickshell.Bluetooth
 import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
 import qs.theme
+import qs.services
 
 Item {
     id: root
@@ -123,6 +124,26 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 font { family: "Material Symbols Rounded"; pixelSize: 20 }
                 Behavior on color { ColorAnimation { duration: 150 } }
+            }
+
+            Row {
+                visible: KbLayout.available
+                spacing: Layout.s(6)
+                anchors.verticalCenter: parent.verticalCenter
+
+                Text {
+                    text: KbLayout.activeLayout
+                    color: Theme.on_surface_variant
+                    anchors.verticalCenter: parent.verticalCenter
+                    font { family: Layout.fontSans; pixelSize: Layout.ts(12); weight: Font.Medium }
+                }
+
+                MouseArea {
+                    width: Layout.s(24)
+                    height: parent.height
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: KbLayout.cycle()
+                }
             }
 
             Row {
