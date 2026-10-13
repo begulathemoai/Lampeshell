@@ -114,6 +114,12 @@ property string lastMessage: ""
         path: root.shaderPath
         printErrors: false
         watchChanges: false
+        // The compositor is told to load this file immediately afterwards, and
+        // an async write loses that race often enough to be visible: it reads
+        // a path that does not exist yet, drops the filter for a frame, and
+        // logs a parser failure. setText() returns void rather than a promise,
+        // so this is the only way to order the two.
+        blockWrites: true
     }
 
     function applyShader() {
@@ -124,11 +130,8 @@ property string lastMessage: ""
             return;
         }
         shaderActive = true;
-        const written = shaderFile.setText(shaderSource());
-        if (written && typeof written.then === "function")
-            written.then(() => root.sendShader(root.shaderPath));
-        else
-            sendShader(shaderPath);
+        shaderFile.setText(shaderSource());
+        sendShader(shaderPath);
         shaderPrune.running = false;
         shaderPrune.running = true;
     }
@@ -151,8 +154,6 @@ property string lastMessage: ""
     }
 
     function clearShader() {
-        if (!shaderActive)
-            return;
         if (shaderSaved === "") {
             finishClear("");
             return;
@@ -194,7 +195,11 @@ property string lastMessage: ""
                 const m = t.match(/str:\s*(.*)/);
                 if (root.shaderSaved === "" && m !== null) {
                     const v = m[1].trim();
-                    root.shaderSaved = v === "[[EMPTY]]" ? "" : v;
+                    const clean = v === "[[EMPTY]]" ? "" : v;
+                    // One of our own files means the filter survived a restart.
+                    // Adopting it as "what was there before" would restore the
+                    // filter on disable instead of clearing it.
+                    root.shaderSaved = /nightscreen-[0-9]+\.frag$/.test(clean) ? "" : clean;
                 }
                 root.resolve();
             }
@@ -231,6 +236,17 @@ property string lastMessage: ""
             apply();
         else
             recheck();
+    }
+
+    Timer {
+        id: shaderDebounce
+        interval: 180
+        onTriggered: {
+            if (root.enabled)
+                root.applyShader();
+            else
+                root.clearShader();
+        }
     }
 
     function setTemperature(kelvin) {
@@ -307,7 +323,7 @@ property string lastMessage: ""
             return;
         }
         if (resolvedBackend === "shader") {
-            applyShader();
+            shaderDebounce.restart();
             return;
         }
         if (resolvedBackend === "ddc")
