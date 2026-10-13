@@ -172,6 +172,7 @@ PanelWindow {
     function openMenu() {
         ctrl.searchText = "";
         closing = false;
+        closeWatchdog.stop();
         launcherWindow.visible = true;
     }
 
@@ -179,7 +180,22 @@ PanelWindow {
         if (!launcherWindow.visible || launcherWindow.closing)
             return;
         launcherWindow.closing = true;
-        contentLoader.exit();
+        if (contentLoader.item)
+            contentLoader.item.dismiss();
+        else
+            launcherWindow.visible = false;
+        closeWatchdog.restart();
+    }
+
+    Timer {
+        id: closeWatchdog
+        interval: 800
+        onTriggered: {
+            if (launcherWindow.visible) {
+                launcherWindow.closing = false;
+                launcherWindow.visible = false;
+            }
+        }
     }
 
     LazyLoader {
@@ -190,6 +206,8 @@ PanelWindow {
         function exit() {
             if (item)
                 item.dismiss();
+            else
+                launcherWindow.visible = false;
         }
 
         component: Component {
