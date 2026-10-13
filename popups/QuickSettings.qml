@@ -155,7 +155,11 @@ PanelWindow {
         id: focusGrab
         windows: [quickSettingsWindow]
         onCleared: {
-            Qt.callLater(function() { focusGrab.active = true; });
+            if (quickSettingsWindow.settling) {
+                Qt.callLater(function() { focusGrab.active = true; });
+                return;
+            }
+            quickSettingsWindow.close();
         }
     }
 
@@ -167,10 +171,7 @@ PanelWindow {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
 
-        topLeftRadius: 0
-        topRightRadius: 0
-        bottomLeftRadius: Layout.cornerRadius
-        bottomRightRadius: Layout.cornerRadius
+        radius: Layout.cornerRadius
 
         color: Theme.surface_container_lowest
         focus: true
