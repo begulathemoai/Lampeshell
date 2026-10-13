@@ -23,16 +23,9 @@ Item {
         isLast = last;
     }
 
-    readonly property string iconUrl: {
-        if (!root.notif)
-            return "";
-        const icon = root.notif.appIcon;
-        if (!icon)
-            return "";
-        if (icon.startsWith("/") || icon.startsWith("file://") || icon.startsWith("http"))
-            return icon;
-        return Quickshell.iconPath(icon, true) || "";
-    }
+    readonly property string iconUrl: root.notif
+        ? AppIcons.iconFor(root.notif.appName, root.notif.appIcon)
+        : ""
 
     readonly property bool hasBody: root.notif !== null && root.notif.body.length > 0
 readonly property string summary: {
@@ -40,6 +33,8 @@ readonly property string summary: {
             return "";
         return root.notif.summary.length > 0 ? root.notif.summary : "(no summary)";
     }
+
+    readonly property string appLabel: root.notif && root.notif.appName.length > 0 ? root.notif.appName : ""
 
     readonly property real iconInset: Layout.s(18)
     readonly property real textInset: Layout.s(42)
@@ -84,11 +79,27 @@ readonly property string summary: {
         }
     }
 
+    Text {
+        id: appNameText
+        anchors.right: timeText.left
+        anchors.rightMargin: Layout.s(10)
+        anchors.top: parent.top
+        anchors.topMargin: Layout.s(11)
+        visible: root.appLabel.length > 0
+        text: root.appLabel
+        color: Theme.on_surface_variant
+        opacity: 0.75
+        font {
+            family: Layout.fontSans
+            pixelSize: Layout.ts(11)
+        }
+    }
+
     Item {
         id: headerRow
         anchors.left: parent.left
         anchors.leftMargin: Layout.s(14)
-        anchors.right: timeText.left
+        anchors.right: root.appLabel.length > 0 ? appNameText.left : timeText.left
         anchors.rightMargin: Layout.s(12)
         anchors.top: parent.top
         anchors.topMargin: Layout.s(9)
