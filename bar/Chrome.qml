@@ -83,12 +83,11 @@ Variants {
             readonly property string cutoutPath: {
                 const x0 = cutL, x1 = cutR, y0 = cutT, y1 = cutB;
                 const r = corner;
-                const cx = cardX, ch = Math.min(cardH, cutB - cutT - corner);
-                const cr = Math.min(cardR, cardW / 2, ch);
                 const f = fillet;
+                const ch = Math.min(cardH, cutB - cutT - corner - f);
+                const cx = cardX;
+                const cr = Math.min(cardR, cardW / 2, ch);
                 const open = ch > 0.5 && cardW > 1 && cx < x1 - 1;
-
-                const wall = 2;
 
                 let d = `M ${x0 + r},${y0}`
                     + ` L ${x0},${y0 + r}`
@@ -104,8 +103,8 @@ Variants {
                         + ` L ${x0 + r},${y0} Z`;
                 }
 
-                d += ` L ${x1},${y0 + ch - wall}`
-                    + ` Q ${x1},${y0 + ch} ${x1 - wall},${y0 + ch}`
+                d += ` L ${x1},${y0 + ch + f}`
+                    + ` Q ${x1},${y0 + ch} ${x1 - f},${y0 + ch}`
                     + ` L ${cx + cr},${y0 + ch}`
                     + ` Q ${cx},${y0 + ch} ${cx},${y0 + ch - cr}`
                     + ` L ${cx},${y0 + f}`;
