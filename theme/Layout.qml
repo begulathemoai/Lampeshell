@@ -4,8 +4,8 @@ import QtQuick
 
 QtObject {
     property int topBarHeight: 65         // 50 base * 1.3 uiScale
-    property int sideBarWidth: 78         // 10 base * 1.3 uiScale - 1.3 makes the sidebar a usable dock on 4K
-    property int rightBarWidth: 10        // the right bar stays a hairline bezel; only the left bar is a dock
+    property int sideBarWidth: 0
+    property int rightBarWidth: 10        // the right bar stays a hairline bezel
     property int bottomBarHeight: 13     // 10 base * 1.3 uiScale
 
     property int cornerRadius: 20
