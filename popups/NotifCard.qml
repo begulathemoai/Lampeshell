@@ -3,6 +3,7 @@ import QtQuick.Effects
 import Quickshell
 import Quickshell.Services.Notifications
 import qs.theme
+import qs.utilities
 
 Item {
     id: card
@@ -246,7 +247,9 @@ Item {
             }
             Text {
                 width: parent.width
-                text: card.notif.body
+                text: Markup.sanitize(card.notif.body)
+                textFormat: Text.RichText
+                linkColor: Theme.primary
                 color: Theme.on_surface_variant
                 font { family: "Google Sans"; pixelSize: 13 }
                 wrapMode: Text.WordWrap
