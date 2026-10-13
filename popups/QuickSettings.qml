@@ -41,7 +41,8 @@ PanelWindow {
     function open() {
         quickSettingsBackend.refreshBrightness();
         quickSettingsWindow.openedAt = Date.now();
-        quickSettingsWindow.grabRetries = 0;
+        quickSettingsWindow.settling = true;
+        settleTimer.restart();
         quickSettingsWindow.visible = true;
 
         Qt.callLater(function() {
@@ -60,7 +61,6 @@ PanelWindow {
     property var sessionHandler: null
 
     property double openedAt: 0
-    property int grabRetries: 0
 
     function openSettings() {
         quickSettingsWindow.close();
@@ -89,6 +89,14 @@ PanelWindow {
     }
 
     property bool shown: false
+
+    property bool settling: false
+
+    Timer {
+        id: settleTimer
+        interval: 700
+        onTriggered: quickSettingsWindow.settling = false
+    }
 
     Timer {
         id: showKick
@@ -145,8 +153,7 @@ PanelWindow {
         id: focusGrab
         windows: [quickSettingsWindow]
         onCleared: {
-            if (Date.now() - quickSettingsWindow.openedAt < 400 && quickSettingsWindow.grabRetries < 3) {
-                quickSettingsWindow.grabRetries++;
+            if (quickSettingsWindow.settling) {
                 Qt.callLater(function() { focusGrab.active = true; });
                 return;
             }
