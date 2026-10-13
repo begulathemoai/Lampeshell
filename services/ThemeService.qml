@@ -271,6 +271,7 @@ find "$dir" -maxdepth 3 -type f \\
             root.pendingColorsJson = "";
             root.busy = false;
             QtColors.sync();
+
         }
     }
 
