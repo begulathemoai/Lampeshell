@@ -12,5 +12,11 @@ QtObject {
 
     property real uiScale: 1.3
 
+    function s(n) { return Math.round(n * uiScale) }
+    function ts(n) { return Math.max(14, Math.round(n * uiScale)) }
+
+    property string fontSans: "Google Sans"
+    property string fontIcons: "Material Symbols Rounded"
+
     property string targetMonitor: ""
 }

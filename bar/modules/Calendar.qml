@@ -13,8 +13,8 @@ Item {
         id: visualPill
         anchors.centerIn: parent
 
-        implicitWidth: timeLabel.implicitWidth + 32
-        implicitHeight: timeLabel.implicitHeight + 16
+        implicitWidth: timeLabel.implicitWidth + Layout.s(32)
+        implicitHeight: timeLabel.implicitHeight + Layout.s(16)
         radius: height / 2
 
         color: {

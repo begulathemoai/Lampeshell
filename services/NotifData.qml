@@ -79,7 +79,7 @@ QtObject {
     }
 
     readonly property Connections conn: Connections {
-        target: notif.notification
+        target: notif.notification ?? null
         ignoreUnknownSignals: true
 
         function onClosed() { notif.close(); }

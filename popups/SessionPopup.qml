@@ -27,8 +27,8 @@ PanelWindow {
     }
 
     margins {
-        top: 62
-        right: 15
+        top: Layout.topBarHeight + Layout.s(12)
+        right: Layout.s(15)
     }
 
     property var targetScreen: {

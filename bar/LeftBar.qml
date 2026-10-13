@@ -60,7 +60,10 @@ Variants {
             id: sidebar
             anchors {
                 fill: parent
-                margins: 8
+                leftMargin: 8
+                rightMargin: 8
+                bottomMargin: 8
+                topMargin: Layout.topBarHeight + 8
             }
             visible: sideBarWindow.isFocused
             onLauncherRequested: root.launcherHandler()

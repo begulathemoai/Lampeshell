@@ -17,8 +17,8 @@ Rectangle {
     readonly property bool allowAnimations: isLoaded && windowVisible
 
     readonly property int animDurationShort: 150
-    readonly property int dotHeight: 28
-    readonly property int spacingAmount: 8
+    readonly property int dotHeight: Layout.s(28)
+    readonly property int spacingAmount: Layout.s(8)
 
     property var iconCache: ({})
 
@@ -180,8 +180,8 @@ Rectangle {
         return null;
     }
 
-    implicitWidth: mainLayout.width + 16
-    implicitHeight: mainLayout.height + 16
+    implicitWidth: mainLayout.width + Layout.s(16)
+    implicitHeight: mainLayout.height + Layout.s(16)
     color: Theme.surface_container
     radius: height / 2
 
@@ -278,9 +278,9 @@ Rectangle {
                     if (!isVisible)
                         return 0;
                     if (!hasWindows)
-                        return isFocused || isActive ? 36 : (dotHover.hovered ? 24 : 16);
-                    let padding = isFocused || isActive ? 20 : 16;
-                    let minimum = isFocused || isActive ? 48 : (dotHover.hovered ? 44 : 36);
+                        return isFocused || isActive ? Layout.s(36) : (dotHover.hovered ? Layout.s(24) : Layout.s(16));
+                    let padding = isFocused || isActive ? Layout.s(20) : Layout.s(16);
+                    let minimum = isFocused || isActive ? Layout.s(48) : (dotHover.hovered ? Layout.s(44) : Layout.s(36));
                     return Math.max(minimum, iconsRow.width + padding);
                 }
 
@@ -369,7 +369,7 @@ Rectangle {
                 Row {
                     id: iconsRow
                     anchors.centerIn: parent
-                    spacing: -8
+                    spacing: -Layout.s(8)
                     visible: workspaceDot.hasWindows
 
                     Repeater {
@@ -378,8 +378,8 @@ Rectangle {
                         delegate: Item {
                             id: iconSlot
                             visible: index < 3
-                            width: visible ? 18 : 0
-                            height: 18
+                            width: visible ? Layout.s(18) : 0
+                            height: Layout.s(18)
 
                             readonly property string appClass: modelData.class ?? modelData.initialClass ?? modelData.lastIpcObject?.class ?? ""
                             readonly property string appTitle: modelData.title ?? ""
@@ -393,9 +393,9 @@ Rectangle {
                             Rectangle {
                                 id: roundMask
                                 anchors.centerIn: parent
-                                width: 18
-                                height: 18
-                                radius: 9
+                                width: Layout.s(18)
+                                height: Layout.s(18)
+                                radius: Layout.s(9)
                                 color: Theme.shadow
                                 visible: false
                                 layer.enabled: true
@@ -403,9 +403,9 @@ Rectangle {
 
                             Rectangle {
                                 anchors.centerIn: parent
-                                width: 19
-                                height: 19
-                                radius: 9.5
+                                width: Layout.s(19)
+                                height: Layout.s(19)
+                                radius: Layout.s(9.5)
                                 color: "transparent"
                                 border.width: 1.5
                                 border.color: (workspaceDot.isFocused || workspaceDot.isActive) ? (Theme.primary ?? "#6750A4") : (Theme.surface_container_high ?? "#ECE6F0")
@@ -439,7 +439,7 @@ Rectangle {
                                     color: (workspaceDot.isFocused || workspaceDot.isActive) ? (Theme.primary ?? "#6750A4") : (Theme.surface_container ?? "#FFFFFF")
                                     font {
                                         family: "Google Sans"
-                                        pixelSize: 10
+                                        pixelSize: Layout.ts(10)
                                         weight: Font.Bold
                                     }
                                 }
@@ -480,9 +480,9 @@ Rectangle {
 
                     Rectangle {
                         visible: workspaceDot.windowCount > 3
-                        width: 18
-                        height: 18
-                        radius: 9
+                        width: Layout.s(18)
+                        height: Layout.s(18)
+                        radius: Layout.s(9)
                         color: "transparent"
                         border.color: (workspaceDot.isFocused || workspaceDot.isActive) ? (Theme.on_primary ?? "#FFFFFF") : (Theme.on_surface_variant ?? "#49454F")
                         border.width: 1
@@ -493,7 +493,7 @@ Rectangle {
                             color: (workspaceDot.isFocused || workspaceDot.isActive) ? (Theme.on_primary ?? "#FFFFFF") : (Theme.on_surface_variant ?? "#49454F")
                             font {
                                 family: "Google Sans"
-                                pixelSize: 9
+                                pixelSize: Layout.ts(9)
                                 weight: Font.Bold
                             }
                         }
@@ -504,7 +504,7 @@ Rectangle {
                     anchors.centerIn: parent
                     visible: !workspaceDot.hasWindows
 
-                    width: workspaceDot.isFocused ? 8 : 6
+                    width: workspaceDot.isFocused ? Layout.s(8) : Layout.s(6)
                     height: width
                     radius: width / 2
 

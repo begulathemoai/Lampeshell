@@ -40,7 +40,7 @@ Variants {
             targetMonitor: mainBar.modelData.name
             anchors {
                 left: parent.left
-                leftMargin: 15
+                leftMargin: Layout.s(15)
                 verticalCenter: parent.verticalCenter
             }
         }
@@ -55,7 +55,7 @@ Variants {
             windowHandle: mainBar
             anchors {
                 right: commandCenterModule.left
-                rightMargin: 15
+                rightMargin: Layout.s(15)
                 verticalCenter: parent.verticalCenter
             }
         }
@@ -65,7 +65,7 @@ Variants {
             onClicked: root.statusPillHandler()
             anchors {
                 right: parent.right
-                rightMargin: 15
+                rightMargin: Layout.s(15)
                 verticalCenter: parent.verticalCenter
             }
         }

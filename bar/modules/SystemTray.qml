@@ -35,7 +35,7 @@ Item {
     Row {
         id: contentLayout
         anchors.verticalCenter: parent.verticalCenter
-        spacing: 16
+        spacing: Layout.s(16)
 
         Repeater {
             model: SystemTray.items
@@ -46,8 +46,8 @@ Item {
 
                 readonly property real hitSize: 26
 
-                width: 20
-                height: 20
+                width: Layout.s(20)
+                height: Layout.s(20)
 
                 transform: Scale {
                     origin.x: trayItem.width / 2

@@ -78,8 +78,8 @@ Item {
         id: visualPill
         anchors.centerIn: parent
 
-        implicitWidth: iconsRow.implicitWidth + 32
-        implicitHeight: iconsRow.implicitHeight + 16
+        implicitWidth: iconsRow.implicitWidth + Layout.s(32)
+        implicitHeight: iconsRow.implicitHeight + Layout.s(16)
         radius: height / 2
 
         color: pillMouse.containsMouse ? Qt.tint(Theme.surface_container, Qt.rgba(Theme.on_surface.r, Theme.on_surface.g, Theme.on_surface.b, 0.08)) : Theme.surface_container
@@ -99,13 +99,13 @@ Item {
         Row {
             id: iconsRow
             anchors.centerIn: parent
-            spacing: 14
+            spacing: Layout.s(14)
 
             Text {
                 text: root.networkIcon()
                 color: root.networkColor
                 anchors.verticalCenter: parent.verticalCenter
-                font { family: "Material Symbols Rounded"; pixelSize: 20 }
+                font { family: Layout.fontIcons; pixelSize: Layout.s(20) }
                 Behavior on color { ColorAnimation { duration: 150 } }
             }
 
@@ -131,8 +131,8 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
 
                 Item {
-                    width: 34
-                    height: 18
+                    width: Layout.s(34)
+                    height: Layout.s(18)
                     anchors.verticalCenter: parent.verticalCenter
 
                     Rectangle {
@@ -164,8 +164,8 @@ Item {
                             visible: root.batteryCharging
                             source: "file://" + Quickshell.shellPath("assets/bolt.svg")
                             color: root.batteryPct > 65 ? Theme.surface_container : root.batteryColor
-                            width: 14
-                            height: 14
+                            width: Layout.s(14)
+                            height: Layout.s(14)
                             anchors.verticalCenter: parent.verticalCenter
                         }
 
@@ -175,7 +175,7 @@ Item {
                             color: root.batteryPct > (root.batteryCharging ? 75 : 55) ? Theme.surface_container : root.batteryColor
                             font {
                                 family: "Google Sans"
-                                pixelSize: 12
+                                pixelSize: Layout.ts(12)
                                 weight: Font.Bold
                             }
                             anchors.verticalCenter: parent.verticalCenter
@@ -184,8 +184,8 @@ Item {
                 }
 
                 Item {
-                    width: 3
-                    height: 10
+                    width: Layout.s(3)
+                    height: Layout.s(10)
                     anchors.verticalCenter: parent.verticalCenter
 
                     Rectangle {
