@@ -4,13 +4,21 @@
 QS="${QS:-qs}"
 CONFIG="${LAMPSHELL_CONFIG:-lampshell}"
 
+notify() {
+    [ -n "${LAMPSHELL_QUIET:-}" ] && return 0
+    command -v notify-send >/dev/null 2>&1 || return 0
+    notify-send -a "Lampshell" -u "${2:-normal}" "Lampshell" "$1" >/dev/null 2>&1
+    return 0
+}
+
 err() {
     echo "lampshell: $*" >&2
+    notify "$*" critical
 }
 
 need() {
     command -v "$1" >/dev/null 2>&1 && return 0
-    err "$2 needs '$1', which is not installed"
+    err "$2 needs '$1', which is not installed (pacman -S ${3:-$1})"
     return 1
 }
 
@@ -519,7 +527,7 @@ case "${1:-help}" in
             region)
                 need grim "region screenshots" || exit 1
                 need jq "region screenshots" || exit 1
-                need magick "region screenshots" || exit 1
+                need magick "region screenshots" imagemagick || exit 1
 
                 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/lampshell"
                 job="$state_dir/region-job.json"
