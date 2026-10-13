@@ -40,9 +40,14 @@ Singleton {
     }
 
     Timer {
+        id: settleTimer
+        interval: 2000
+    }
+
+    Timer {
         interval: root.pollIntervalMs
         repeat: true
-        running: root.available
+        running: root.available && !settleTimer.running
         triggeredOnStart: true
         onTriggered: root.refresh()
     }
@@ -75,6 +80,7 @@ Singleton {
             return;
         const pct = Math.round(Math.max(0, Math.min(1, fraction)) * 100);
         level = pct / 100.0;
+        settleTimer.restart();
         setterProc.command = ["sh", "-c", "ddcutil --bus " + root.bus + " setvcp 10 " + pct + " 2>&1 || true"];
         setterProc.running = true;
     }
