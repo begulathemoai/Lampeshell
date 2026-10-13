@@ -48,6 +48,9 @@ Variants {
                 anchors.fill: parent
                 layer.enabled: true
 
+                readonly property real frameRadius: Layout.cornerRadius
+                    + (PanelState.merged ? Layout.s(10) : 0)
+
                 layer.effect: MultiEffect {
                     shadowEnabled: true
                     shadowColor: Qt.rgba(Theme.shadow.r, Theme.shadow.g, Theme.shadow.b, 0.69)
@@ -60,8 +63,15 @@ Variants {
                 Rectangle {
                     id: bezelBackground
                     anchors.fill: parent
-                    color: Theme.surface_container_lowest
+                    color: PanelState.merged ? Theme.surface_container_low : Theme.surface_container_lowest
                     layer.enabled: true
+
+                    Behavior on color {
+                        ColorAnimation {
+                            duration: 280
+                            easing.type: Easing.OutCubic
+                        }
+                    }
 
                     layer.effect: MultiEffect {
                         maskSource: cutoutShape
@@ -89,7 +99,14 @@ Variants {
                             bottomMargin: Layout.bottomBarHeight
                         }
 
-                        radius: Layout.cornerRadius
+                        radius: bezelLayer.frameRadius
+
+                        Behavior on radius {
+                            NumberAnimation {
+                                duration: 320
+                                easing.type: Easing.OutCubic
+                            }
+                        }
                     }
                 }
             }

@@ -28,8 +28,8 @@ PanelWindow {
     }
 
     margins {
-        top: Layout.topBarHeight + Layout.s(12)
-        right: Layout.s(15)
+        top: Layout.topBarHeight
+        right: 0
     }
 
     property var targetScreen: {
@@ -48,6 +48,11 @@ PanelWindow {
             focusGrab.active = true;
             panelBg.forceActiveFocus();
         });
+        if (quickSettingsWindow.shown) {
+            quickSettingsWindow.openedAt = Date.now();
+        } else {
+            showKick.restart();
+        }
     }
 
     property var settingsHandler: null
@@ -70,14 +75,37 @@ PanelWindow {
     }
 
     function close() {
-        quickSettingsWindow.visible = false;
+        quickSettingsWindow.shown = false;
+        PanelState.merged = false;
+        focusGrab.active = false;
+        hideWhenDone.restart();
     }
 
     function toggle() {
-        if (quickSettingsWindow.visible)
+        if (quickSettingsWindow.shown || quickSettingsWindow.visible)
             close();
         else
             open();
+    }
+
+    property bool shown: false
+
+    Timer {
+        id: showKick
+        interval: 1
+        onTriggered: {
+            quickSettingsWindow.shown = true;
+            PanelState.merged = true;
+        }
+    }
+
+    Timer {
+        id: hideWhenDone
+        interval: 210
+        onTriggered: {
+            if (!quickSettingsWindow.shown)
+                quickSettingsWindow.visible = false;
+        }
     }
 
     QuickSettingsBackend {
@@ -128,14 +156,38 @@ PanelWindow {
 
     Rectangle {
         id: panelBg
-        anchors.centerIn: content
-        width: content.width + 36
-        height: content.height + 36
-        radius: Layout.cornerRadius
-        color: Theme.surface_container_low
-        border.width: 1
-        border.color: Theme.outline_variant
+        anchors.left: parent.left
+        anchors.leftMargin: Layout.s(18)
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+
+        topLeftRadius: 0
+        topRightRadius: 0
+        bottomLeftRadius: Layout.cornerRadius
+        bottomRightRadius: Layout.cornerRadius
+
+        color: Theme.surface_container_lowest
         focus: true
+
+        opacity: quickSettingsWindow.shown ? 1 : 0
+        transform: Translate {
+            id: panelSlide
+            y: quickSettingsWindow.shown ? 0 : -Layout.s(12)
+        }
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 190
+                easing.type: Easing.OutCubic
+            }
+        }
+        Behavior on y {
+            NumberAnimation {
+                duration: 230
+                easing.type: Easing.OutCubic
+            }
+        }
 
         Keys.onEscapePressed: function(event) {
             quickSettingsWindow.close();
@@ -157,8 +209,14 @@ PanelWindow {
 
     Column {
         id: content
-        anchors.centerIn: parent
-        width: parent.width - 72
+        anchors.top: parent.top
+        anchors.topMargin: 18
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 18
+        anchors.left: parent.left
+        anchors.leftMargin: Layout.s(36)
+        anchors.right: parent.right
+        anchors.rightMargin: Layout.s(18)
         spacing: 14
 
         Row {
@@ -752,10 +810,40 @@ PanelWindow {
 
                         delegate: NotifHistoryRow {
                             required property var modelData
+                            required property int index
 
                             notif: modelData
                             flat: true
                             width: notifColumn.width
+
+                            id: notifRow
+
+                            property bool revealed: false
+
+                            opacity: quickSettingsWindow.shown && notifRow.revealed ? 1 : 0
+
+                            Behavior on opacity {
+                                NumberAnimation {
+                                    duration: 210
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
+
+                            Timer {
+                                id: stagger
+                                interval: Math.min(notifRow.index * 24, 420)
+                                onTriggered: notifRow.revealed = true
+                            }
+
+                            Connections {
+                                target: PanelState
+                                function onMergedChanged() {
+                                    if (!PanelState.merged)
+                                        return;
+                                    notifRow.revealed = false;
+                                    stagger.restart();
+                                }
+                            }
                         }
                     }
                 }
