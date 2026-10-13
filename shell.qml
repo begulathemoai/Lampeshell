@@ -1,4 +1,5 @@
 import Quickshell
+import Quickshell.Hyprland
 import QtQuick
 import "bar"
 import "popups"
@@ -76,5 +77,39 @@ ShellRoot {
 
     SessionPopup {
         id: sessionWindow
+    }
+
+
+    GlobalShortcut {
+        appid: "lampshell"
+        name: "appLauncher"
+        description: "Toggle launcher"
+        onReleased: {
+            if (launcherWindow.visible)
+                launcherWindow.closeMenu();
+            else
+                launcherWindow.openMenu();
+        }
+    }
+
+    GlobalShortcut {
+        appid: "lampshell"
+        name: "session"
+        description: "Toggle session menu"
+        onPressed: sessionWindow.toggle()
+    }
+
+    GlobalShortcut {
+        appid: "lampshell"
+        name: "quickSettings"
+        description: "Toggle quick settings"
+        onPressed: quickSettingsWindow.toggle()
+    }
+
+    GlobalShortcut {
+        appid: "lampshell"
+        name: "lock"
+        description: "Lock the session"
+        onPressed: sessionWindow.lock()
     }
 }
