@@ -9,6 +9,8 @@ Variants {
     id: root
     model: Quickshell.screens
 
+    property var launcherHandler: function() {}
+
     delegate: PanelWindow {
         id: sideBarWindow
 
@@ -61,12 +63,7 @@ Variants {
                 margins: 8
             }
             visible: sideBarWindow.isFocused
-            onLauncherRequested: {
-                const qs = Quickshell;
-                qs.execDetached({
-                    command: ["qs", "-c", "lampshell", "ipc", "call", "appLauncher", "toggle"]
-                });
-            }
+            onLauncherRequested: root.launcherHandler()
         }
     }
 }

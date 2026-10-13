@@ -84,7 +84,7 @@ Variants {
 
                         anchors {
                             leftMargin: Layout.sideBarWidth
-                            rightMargin: Layout.sideBarWidth
+                            rightMargin: Layout.rightBarWidth
                             topMargin: Layout.topBarHeight
                             bottomMargin: Layout.bottomBarHeight
                         }

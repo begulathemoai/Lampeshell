@@ -17,6 +17,12 @@ ShellRoot {
 
     LeftBar {
         id: leftBar
+        launcherHandler: function() {
+            if (launcherWindow.visible)
+                launcherWindow.closeMenu();
+            else
+                launcherWindow.openMenu();
+        }
     }
     BottomBar {
         id: bottomBar

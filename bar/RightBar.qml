@@ -29,8 +29,8 @@ Variants {
 
         color: "transparent"
 
-        implicitWidth: fullscreen ? 0 : Layout.sideBarWidth
-        WlrLayershell.exclusiveZone: fullscreen ? 0 : Layout.sideBarWidth
+        implicitWidth: fullscreen ? 0 : Layout.rightBarWidth
+        WlrLayershell.exclusiveZone: fullscreen ? 0 : Layout.rightBarWidth
 
         Behavior on implicitWidth {
             NumberAnimation {

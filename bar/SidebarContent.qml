@@ -90,7 +90,7 @@ Item {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: Players.activeIsPlaying ? "play_arrow" : "pause"
+                    text: Players.activeIsPlaying ? "pause" : "play_arrow"
                     color: Theme.on_primary_container
                     font { family: "Material Symbols Rounded"; pixelSize: 22 * root.uiScale }
                 }
@@ -117,13 +117,15 @@ Item {
             }
         }
 
-        Item {
+        Column {
             id: notifArea
             width: root.itemWidth
-            height: parent.height - launcherPill.height - (mediaPill.visible ? mediaPill.height : 0) - (root.itemSpacing * 2)
+            spacing: root.itemSpacing
+            height: parent.height - launcherPill.height - (mediaPill.visible ? mediaPill.height + root.itemSpacing : 0) - root.itemSpacing
+            clip: true
 
             Repeater {
-                model: root.notifStack
+                model: root.notifStack.slice(0, 8)
                 delegate: Rectangle {
                     id: cardItem
                     required property var modelData

@@ -5,8 +5,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Notifications
-import Quickshell.Services.Pam
-import qs.theme
 import qs.services
 
 Singleton {
