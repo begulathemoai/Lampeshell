@@ -93,7 +93,7 @@ Singleton {
         path: "/proc/loadavg"
         blockLoading: true
         onTextChanged: {
-            const p = text.trim().split(/\s+/);
+            const p = text().trim().split(/\s+/);
             root.load1 = parseFloat(p[0]) || 0;
             root.load5 = parseFloat(p[1]) || 0;
             root.load15 = parseFloat(p[2]) || 0;
