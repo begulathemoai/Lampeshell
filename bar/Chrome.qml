@@ -77,40 +77,42 @@ Variants {
 
 
             readonly property string outerPath: {
-                const r = corner;
-                return `M ${r},0 L ${sw - r},0 Q ${sw},0 ${sw},${r}`
-                    + ` L ${sw},${sh - r} Q ${sw},${sh} ${sw - r},${sh}`
-                    + ` L ${r},${sh} Q 0,${sh} 0,${sh - r}`
-                    + ` L 0,${r} Q 0,0 ${r},0 Z`;
+                return `M 0,0 L ${sw},0 L ${sw},${sh} L 0,${sh} Z`;
             }
 
             readonly property string cutoutPath: {
                 const x0 = cutL, x1 = cutR, y0 = cutT, y1 = cutB;
                 const r = corner;
-                return `M ${x0 + r},${y0} L ${x1 - r},${y0} Q ${x1},${y0} ${x1},${y0 + r}`
-                    + ` L ${x1},${y1 - r} Q ${x1},${y1} ${x1 - r},${y1}`
-                    + ` L ${x0 + r},${y1} Q ${x0},${y1} ${x0},${y1 - r}`
-                    + ` L ${x0},${y0 + r} Q ${x0},${y0} ${x0 + r},${y0} Z`;
-            }
-
-            readonly property string cardPath: {
-                if (cardH <= 0.5 || cardW <= 0)
-                    return "";
-                const x = cardX;
-                const y = cardY;
-                const w = cardW;
-                const h = cardH;
-                const r = Math.min(cardR, w / 2, h);
+                const cx = cardX, ch = Math.min(cardH, cutB - cutT - corner);
+                const cr = Math.min(cardR, cardW / 2, ch);
                 const f = fillet;
-                return `M ${x + f},${y}`
-                    + ` L ${x + w},${y}`
-                    + ` L ${x + w},${y + h - r}`
-                    + ` Q ${x + w},${y + h} ${x + w - r},${y + h}`
-                    + ` L ${x + r},${y + h}`
-                    + ` Q ${x},${y + h} ${x},${y + h - r}`
-                    + ` L ${x},${y + f}`
-                    + ` Q ${x},${y} ${x + f},${y}`
-                    + ` Z`;
+                const open = ch > 0.5 && cardW > 1 && cx < x1 - 1;
+
+                const wall = 2;
+
+                let d = `M ${x0 + r},${y0}`
+                    + ` L ${x0},${y0 + r}`
+                    + ` L ${x0},${y1 - r}`
+                    + ` Q ${x0},${y1} ${x0 + r},${y1}`
+                    + ` L ${x1 - r},${y1}`
+                    + ` Q ${x1},${y1} ${x1},${y1 - r}`;
+
+                if (!open) {
+                    return d
+                        + ` L ${x1},${y0 + r}`
+                        + ` Q ${x1},${y0} ${x1 - r},${y0}`
+                        + ` L ${x0 + r},${y0} Z`;
+                }
+
+                d += ` L ${x1},${y0 + ch - wall}`
+                    + ` Q ${x1},${y0 + ch} ${x1 - wall},${y0 + ch}`
+                    + ` L ${cx + cr},${y0 + ch}`
+                    + ` Q ${cx},${y0 + ch} ${cx},${y0 + ch - cr}`
+                    + ` L ${cx},${y0 + f}`;
+
+                return d
+                    + ` Q ${cx},${y0} ${cx - f},${y0}`
+                    + ` L ${x0 + r},${y0} Z`;
             }
 
             ShapePath {
@@ -118,10 +120,10 @@ Variants {
                 strokeWidth: 0
                 strokeColor: "transparent"
 
-                fillRule: ShapePath.OddEvenFill
+                fillRule: ShapePath.WindingFill
 
                 PathSvg {
-                    path: `${chromeShape.outerPath} ${chromeShape.cutoutPath} ${chromeShape.cardPath}`
+                    path: `${chromeShape.outerPath} ${chromeShape.cutoutPath}`
                 }
             }
         }

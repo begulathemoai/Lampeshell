@@ -39,6 +39,12 @@ PanelWindow {
     }
     screen: targetScreen
 
+    function publishGeometry() {
+        PanelState.setContentSize(quickSettingsWindow.width, content.implicitHeight + 36);
+    }
+
+    onWidthChanged: publishGeometry()
+
     function open() {
         quickSettingsBackend.refreshBrightness();
         quickSettingsWindow.openedAt = Date.now();
@@ -46,7 +52,7 @@ PanelWindow {
         settleTimer.restart();
         quickSettingsWindow.visible = true;
 
-        PanelState.setContentSize(quickSettingsWindow.width, content.implicitHeight + 36);
+        publishGeometry();
 
         Qt.callLater(function() {
             focusGrab.active = true;
@@ -201,6 +207,8 @@ PanelWindow {
         anchors.right: parent.right
         anchors.rightMargin: Layout.s(18)
         spacing: 14
+
+        onImplicitHeightChanged: quickSettingsWindow.publishGeometry()
 
         Row {
             width: parent.width
