@@ -43,8 +43,15 @@ Variants {
             right: true
         }
 
+        // The chrome is pure decoration, so every click must fall through to
+        // whatever is behind it - apps, the bars, the panel. A `Combine` mask
+        // on a full-window item is a full-window input region, which swallows
+        // the entire desktop; `Xor` inverts it, and an empty mask makes
+        // Quickshell mark the surface WindowTransparentForInput. This is what
+        // upstream's BezelsMask.qml did before the chrome was split out.
         mask: Region {
             item: chromeShape
+            intersection: Intersection.Xor
         }
 
         Shape {
@@ -97,8 +104,7 @@ Variants {
                 const cr = Math.min(cardR, cardW / 2, ch);
                 const open = chromeWindow.hasCard && ch > 0.5 && cardW > 1 && cx < x1 - 1;
 
-                let d = `M ${x0 + r},${y0}`
-                    + ` L ${x0},${y0 + r}`
+                let d = `M ${x0},${y0 + r}`
                     + ` L ${x0},${y1 - r}`
                     + ` Q ${x0},${y1} ${x0 + r},${y1}`
                     + ` L ${x1 - r},${y1}`
@@ -108,7 +114,8 @@ Variants {
                     return d
                         + ` L ${x1},${y0 + r}`
                         + ` Q ${x1},${y0} ${x1 - r},${y0}`
-                        + ` L ${x0 + r},${y0} Z`;
+                        + ` L ${x0 + r},${y0}`
+                        + ` Q ${x0},${y0} ${x0},${y0 + r} Z`;
                 }
 
                 d += ` L ${x1},${y0 + ch + f}`
@@ -119,7 +126,8 @@ Variants {
 
                 return d
                     + ` Q ${cx},${y0} ${cx - f},${y0}`
-                    + ` L ${x0 + r},${y0} Z`;
+                    + ` L ${x0 + r},${y0}`
+                    + ` Q ${x0},${y0} ${x0},${y0 + r} Z`;
             }
 
             ShapePath {
