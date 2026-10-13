@@ -465,17 +465,17 @@ case "${1:-help}" in
     screenshot)
         dir="${HOME}/Pictures/Screenshots"
         mkdir -p "$dir"
-        mode="full"; output=""; use_swappy=0; use_clipboard=1; use_freeze=0
+        mode="full"; output=""; use_swappy=0; use_clipboard=1
         shift
         while [ $# -gt 0 ]; do
             case "$1" in
                 --full)      mode="full" ;;
                 --region)    mode="region" ;;
+                --slurp)     mode="slurp" ;;
                 --output)    output="$2"; shift ;;
                 --swappy)    use_swappy=1 ;;
                 --clipboard) use_clipboard=1 ;;
                 --no-clipboard) use_clipboard=0 ;;
-                --freeze)    use_freeze=1 ;;
                 *) err "unknown flag: $1"; exit 1 ;;
             esac
             shift
@@ -496,6 +496,50 @@ case "${1:-help}" in
                 grim -o "$output" "$outfile" || { err "grim failed"; exit 1; }
                 ;;
             region)
+                state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/lampshell"
+                job="$state_dir/region-job.json"
+                staging=$(mktemp "${TMPDIR:-/tmp}/lampshell-region-XXXXXX.png") \
+                    || { err "could not create a staging file"; exit 1; }
+                cleanup_region() {
+                    rm -f "$staging" "$job" 2>/dev/null
+                    call regionPicker cancel >/dev/null 2>&1
+                }
+                trap cleanup_region EXIT
+
+                grim -o "$output" "$staging" || { err "grim failed"; exit 1; }
+                printf '{"image":"%s","monitor":"%s"}\n' "$staging" "$output" > "$job"
+                call regionPicker open >/dev/null 2>&1
+
+                sel=""; waited=0
+                while [ "$waited" -lt 1200 ]; do
+                    sel=$(call regionPicker state 2>/dev/null)
+                    [ -n "$sel" ] && break
+                    if ! is_running; then
+                        err "the shell went away while picking"
+                        exit 1
+                    fi
+                    sleep 0.15
+                    waited=$((waited + 1))
+                done
+
+                if [ -z "$sel" ]; then
+                    err "region selection timed out"
+                    exit 1
+                fi
+                if [ "$sel" = "cancelled" ]; then
+                    err "region selection cancelled"
+                    exit 1
+                fi
+
+                read -r sx sy sw sh <<<"$(printf '%s' "$sel" | jq -r '"\(.x) \(.y) \(.w) \(.h)"')"
+                if [ -z "$sw" ] || [ "$sw" -le 0 ] || [ "$sh" -le 0 ]; then
+                    err "empty selection"
+                    exit 1
+                fi
+                magick "$staging" -crop "${sw}x${sh}+${sx}+${sy}" +repage "$outfile" \
+                    || { err "crop failed"; exit 1; }
+                ;;
+            slurp)
                 geom=$(slurp -f "%x %y %w %h" 2>/dev/null) || { err "region selection cancelled"; exit 1; }
                 read -r x y w h <<<"$geom"
                 grim -g "${x},${y} ${w}x${h}" "$outfile" \

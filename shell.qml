@@ -43,6 +43,10 @@ ShellRoot {
         id: toastOverlay
     }
 
+    RegionPicker {
+        id: regionPicker
+    }
+
     Clipboard {
         id: clipboardWindow
     }
