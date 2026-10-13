@@ -163,15 +163,36 @@ PanelWindow {
         }
     }
 
+    property bool pointerHeld: false
+    property bool closePending: false
+
+    function releasePointer() {
+        quickSettingsWindow.pointerHeld = false;
+        if (quickSettingsWindow.closePending) {
+            quickSettingsWindow.closePending = false;
+            quickSettingsWindow.close();
+        }
+    }
+
     MouseArea {
+        id: backdrop
         anchors.fill: parent
-        onClicked: quickSettingsWindow.close()
+        onPressed: quickSettingsWindow.pointerHeld = true
+        onReleased: {
+            quickSettingsWindow.releasePointer();
+            quickSettingsWindow.close();
+        }
+        onCanceled: quickSettingsWindow.releasePointer()
     }
 
     HyprlandFocusGrab {
         id: focusGrab
         windows: [quickSettingsWindow]
         onCleared: {
+            if (quickSettingsWindow.pointerHeld) {
+                quickSettingsWindow.closePending = true;
+                return;
+            }
             if (quickSettingsWindow.settling) {
                 Qt.callLater(function() { focusGrab.active = true; });
                 return;

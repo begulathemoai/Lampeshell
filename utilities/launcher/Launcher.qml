@@ -168,15 +168,22 @@ PanelWindow {
     }
 
     property bool closing: false
+    property bool pointerHeld: false
+    property bool closePending: false
 
     function openMenu() {
         ctrl.searchText = "";
         closing = false;
+        closePending = false;
         closeWatchdog.stop();
         launcherWindow.visible = true;
     }
 
     function closeMenu() {
+        if (pointerHeld) {
+            closePending = true;
+            return;
+        }
         if (!launcherWindow.visible || launcherWindow.closing)
             return;
         launcherWindow.closing = true;
@@ -185,6 +192,14 @@ PanelWindow {
         else
             launcherWindow.visible = false;
         closeWatchdog.restart();
+    }
+
+    function releasePointer() {
+        launcherWindow.pointerHeld = false;
+        if (launcherWindow.closePending) {
+            launcherWindow.closePending = false;
+            launcherWindow.closeMenu();
+        }
     }
 
     Timer {
@@ -234,9 +249,15 @@ PanelWindow {
                 }
 
                 MouseArea {
+                    id: backdrop
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-                    onClicked: launcherWindow.closeMenu()
+                    onPressed: launcherWindow.pointerHeld = true
+                    onReleased: {
+                        launcherWindow.releasePointer();
+                        launcherWindow.closeMenu();
+                    }
+                    onCanceled: launcherWindow.releasePointer()
                 }
 
                 Item {
