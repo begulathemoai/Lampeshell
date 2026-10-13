@@ -44,6 +44,11 @@ ShellRoot {
         id: toastOverlay
     }
 
+    Item {
+        id: qtColorsAnchor
+        Component.onCompleted: QtColors.writeScheme()
+    }
+
     RegionPicker {
         id: regionPicker
     }

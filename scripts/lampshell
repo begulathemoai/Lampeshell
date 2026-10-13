@@ -123,6 +123,23 @@ case "${1:-help}" in
         fi
         bootlog="${XDG_STATE_HOME:-$HOME/.local/state}/lampshell/last-boot.log"
         mkdir -p "$(dirname "$bootlog")"
+        scheme="$HOME/.config/qtengine/lampshell.colors"
+        qcfg="$HOME/.config/qtengine/config.json"
+        if [ -f "$qcfg" ] && command -v jq >/dev/null; then
+            if [ "$(jq -r '.theme.colorScheme // ""' "$qcfg" 2>/dev/null)" != "$scheme" ]; then
+                tmp="$qcfg.lampshell.$$"
+                if jq --arg s "$scheme" '.theme.colorScheme = $s' "$qcfg" > "$tmp" 2>/dev/null; then
+                    cat "$tmp" > "$qcfg"
+                    rm -f "$tmp"
+                else
+                    rm -f "$tmp"
+                fi
+            fi
+        fi
+
+        export QT_QPA_PLATFORMTHEME=gtk3
+        export QT_STYLE_OVERRIDE=Fusion
+
         setsid "$QS" -c "$CONFIG" -n -d >"$bootlog" 2>&1 &
         sleep 0.5
         if is_running; then

@@ -81,11 +81,15 @@ rm -f "$tmp"
     Process {
         id: applyAccentProc
         stdout: StdioCollector {}
+
+        onExited: QtColors.sync()
     }
 
     Process {
         id: revertProc
         command: ["sh", "-c", 'cp "' + root.colorsPath + '.bak" "' + root.colorsPath + '" 2>/dev/null || true']
         stdout: StdioCollector {}
+
+        onExited: QtColors.sync()
     }
 }
