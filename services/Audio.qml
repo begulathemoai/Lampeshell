@@ -23,6 +23,7 @@ Singleton {
             return;
         Pipewire.preferredDefaultAudioSink = node;
         Pipewire.defaultAudioSink = node;
+        Toaster.toast("Output switched", displayName(node), iconForSink(node), Toaster.success);
     }
 
     function setSource(node) {
@@ -30,6 +31,7 @@ Singleton {
             return;
         Pipewire.preferredDefaultAudioSource = node;
         Pipewire.defaultAudioSource = node;
+        Toaster.toast("Input switched", displayName(node), iconForSource(node), Toaster.success);
     }
 
     function cycleSink() {

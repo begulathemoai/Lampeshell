@@ -41,8 +41,15 @@ Singleton {
         on = !!on;
         if (on === root.enabled)
             return;
+        on = !!on;
+        if (on === root.enabled)
+            return;
         root.enabled = on;
         flag.setText((on ? "1" : "0") + "\n");
+        Toaster.toast(on ? "Game mode on" : "Game mode off",
+                      on ? "Animations, blur and shadows are off" : "Back to normal",
+                      "sports_esports",
+                      on ? Toaster.success : Toaster.info);
         reloadProc.command = ["hyprctl", "reload", "config-only"];
         reloadProc.running = true;
     }

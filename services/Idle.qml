@@ -39,6 +39,10 @@ Singleton {
             if (root.screenOff)
                 root.setScreenOff(false);
         }
+        Toaster.toast(enabled ? "Caffeine on" : "Caffeine off",
+                      enabled ? "Auto-lock and screen blanking are paused" : "Auto-lock and screen blanking are back",
+                      "local_cafe",
+                      enabled ? Toaster.warning : Toaster.info);
     }
 
     function toggleCaffeine() {

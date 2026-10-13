@@ -19,8 +19,14 @@ Singleton {
     readonly property var popups: list.filter(n => n.exiting || (n.popup && !n.closed))
 
     readonly property bool dnd: SettingsStore.get("dnd") ?? false
-    function setDnd(enabled) { SettingsStore.set("dnd", !!enabled); }
-    function toggleDnd() { SettingsStore.set("dnd", !dnd); }
+    function setDnd(enabled) {
+        SettingsStore.set("dnd", !!enabled);
+        Toaster.toast(enabled ? "Do not disturb" : "Notifications on",
+                      enabled ? "Popups are suppressed until DND is off" : "Popups are back",
+                      enabled ? "notifications_off" : "notifications",
+                      enabled ? Toaster.info : Toaster.success);
+    }
+    function toggleDnd() { setDnd(!dnd); }
 
     property var focusedMonitor: null
 

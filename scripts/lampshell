@@ -30,6 +30,10 @@ Interface
   media <verb>          MPRIS: play | pause | toggle | next | prev | stop | status | list
   hypr                  Raw Hyprland target (hypr focus_workspace 2)
 
+Toast
+  toast <title> [msg] [icon]   Show an info toast (or use 'toaster' IPC)
+  toast clear                  Dismiss every toast
+
 Idle
   caffeine [on|off|status]   Keep the machine awake (toggle by default).
                              Holds both a Wayland idle inhibitor and a
@@ -232,6 +236,15 @@ case "${1:-help}" in
             "")       err "usage: lampshell audio <sinks|sources|streams|current|switch>"; exit 1 ;;
             *)        err "unknown audio verb '$2'"; exit 1 ;;
         esac
+        ;;
+
+    toast)
+        require_running || exit 1
+        if [ "$2" = "clear" ]; then
+            call toaster clear
+        else
+            call toaster info "$2" "$3" "$4"
+        fi
         ;;
 
     settings-set)

@@ -48,6 +48,10 @@ ShellRoot {
         id: notificationOverlay
     }
 
+    ToastsPopup {
+        id: toastOverlay
+    }
+
     Clipboard {
         id: clipboardWindow
     }
