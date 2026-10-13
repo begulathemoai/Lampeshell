@@ -7,19 +7,9 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    // ddcutil holds an exclusive lock on the I2C bus and waits 0ms for it,
-    // so anything else touching the display at that moment gets
-    // DDCRC_VERIFY instead of a write. Two seconds collided with the night
-    // light's writes constantly, and a brightness value does not need
-    // second-level resolution.
     readonly property int pollIntervalMs: 5000
-    readonly property real nudgeStep: 0.05 // matches Caelestia's 5%
+    readonly property real nudgeStep: 0.05
 
-    // Shared with services/NightLight.qml: ddcutil takes an exclusive lock on
-    // the I2C bus and does not wait for it, so two of our own processes
-    // overlapping - a brightness poll and a colour write - make the loser
-    // fail with DDCRC_VERIFY, which is indistinguishable from the display
-    // refusing the change. flock makes them queue.
     readonly property string ddcLock: "/tmp/lampshell-ddc.lock"
 
     function ddc(args) {

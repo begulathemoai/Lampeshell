@@ -61,7 +61,7 @@ PageBase {
                 { label: "Auto", value: "auto" },
                 { label: "Display", value: "ddc" },
                 { label: "Gamma", value: "gamma" },
-                { label: "Filter", value: "overlay" }
+                { label: "Overlay", value: "overlay" }
             ]
             value: NightLight.backend
             onSelected: function(v) {
@@ -83,10 +83,8 @@ PageBase {
                     return "learning display presets…";
                 if (!NightLight.enabled)
                     return "off";
-                // A screen filter is not a colour temperature, and quoting a
-                // Kelvin value for it would be the same lie as before.
                 if (NightLight.resolvedBackend === "overlay")
-                    return "screen filter toward "
+                    return "screen overlay toward "
                         + Math.round(NightLight.temperature) + " K";
                 if (NightLight.resolvedBackend === "gamma" && !NightLight.gammaSupported)
                     return "screen gamma unavailable";

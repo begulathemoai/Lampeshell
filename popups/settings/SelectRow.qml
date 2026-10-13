@@ -1,10 +1,6 @@
 import QtQuick
 import qs.theme
 
-// A row of choices, for settings where the shell has several ways to do one
-// thing and the right one depends on the machine rather than on taste. Which
-// backend actually works is discovered at runtime, so this never hides the
-// others: picking one that cannot work here says so instead of disappearing.
 Item {
     id: root
 

@@ -4,54 +4,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Night light: lowers the display's colour temperature in the evening.
-//
-// It used to be started unconditionally from hyprland/execs.lua as a bare
-// `gammastep`, which means "pick the temperature yourself from the clock and
-// a geoclue location" - on at login with no way to change or disable it. That
-// autostart is gone; this applies the stored state at shell startup and
-// whenever the setting changes.
-//
-// Two backends, because neither works everywhere:
-//
-//   ddc    - ddcutil writing VCP 0x0b on the monitor itself. Works on
-//            external displays regardless of graphics driver, including
-//            NVIDIA, where gamma cannot work at all. Preferred.
-//   gamma  - gammastep via the compositor's gamma-control protocol. Works on
-//            integrated/Intel/AMD displays; reports zero adjustable outputs
-//            on the NVIDIA proprietary driver, which does not expose CRTC
-//            gamma ramps to wlroots.
-//
-// "auto" prefers ddc and falls back to gamma. The choice can be pinned per
-// user, because which of the two actually works is a property of the
-// hardware, not of this shell.
-//
-// Nothing here names a monitor, a bus or a graphics card.
-//
-// ddcutil notes for this path, from `ddcutil getvcp 0c` on a display that
-// supports it: the monitor's colour temperature is
-//     3000 + 35 * (VCP 0x0b value)
-// so 0x0b is a step count, and it is the nicest control when a display
-// lets you write it - continuous, 3000 K..6500 K.
-//
-// Plenty of displays do not. A BenQ/Eizo EW3270U reports 0x0b as read-only
-// ("Feature 0x0b (Color temperature increment) is not writable") and
-// exposes 0x14 "Select color preset" instead, which reads back in Kelvin -
-// on that one 0x04 is 5000 K and 0x05 is 6500 K. The preset index to Kelvin
-// mapping is per-model, so it is discovered by walking the preset values and
-// reading each one back, then cached. That walk flickers the screen once,
-// on first use, and only for displays that need it.
-//
-// 0x1a "Video gain: Blue" is the last resort: almost universally writable,
-// continuous, but crude - it shifts the blue channel rather than setting a
-// temperature, so the slider's Kelvin number is a rough label on it.
-//
-// Whichever control is used, "off" means the neutral end of that control,
-// not "leave it where it was".
-//
-// Values are deliberately not saved into the monitor's non-volatile memory
-// (ddcutil savevcp): the filter should not outlive the session, and a
-// monitor left warm after a crash is a bad surprise to come back to.
 Singleton {
     id: root
 
@@ -62,66 +14,32 @@ Singleton {
         return isNaN(v) || v <= 0 ? 4500 : v;
     }
 
-    // "auto" | "ddc" | "gamma"
     property string backend: String(SettingsStore.get("nightLightBackend") ?? "auto")
 
     property string resolvedBackend: ""
 
     property bool ddcPresent: false
     property int ddcDisplays: 0
-    // Which VCP this display actually accepts for colour temperature:
-    // "0x0b" (continuous steps), "0x14" (presets) or "0x1a" (blue gain).
-    // Empty until probed, or when none of them is writable.
     property string ddcControl: ""
-    // kelvin -> preset index, learned by walking the presets once and kept
-    // in the store so it costs one flicker per machine, not per session.
     property var presetTable: JSON.parse(String(SettingsStore.get("nightLightPresets") ?? "{}"))
     property bool scanningPresets: false
 
     property bool gammaPresent: false
     property bool gammaSupported: false
 
-    // Learned from the display itself rather than assumed, because these
-// differ between monitor models:
-//   tempBase/tempStep  - 0x0b's units. A BenQ/Eizo EW3270U describes 0x0c as
-//                        "3000 + 35 * (feature 0B color temp increment)", so
-//                        0x0b is a step count from 3000 K in 35 K steps.
-//                        Other displays describe their own base and step;
-//                        if 0x0c says nothing parseable, these stay at that
-//                        same widely-used default.
-//   blueMax           - 0x1a's full-scale value, read from the display.
 property real tempBase: 3000
 property real tempStep: 35
 property int blueMax: 65535
 
-// Which display the writability probe found a usable control on. Writes go
-// to every display that reported the feature, but the probe has to happen on
-// one of them, and the first one is not guaranteed to be the one with colour
-// control.
 property int probeDisplay: 1
 
 property string lastMessage: ""
 
-    // Whether the last write actually took, checked by reading the control
-    // back. A display can advertise a colour feature and still refuse the
-    // write - the BenQ/Eizo EW3270U answers DDCRC_VERIFY for presets it does
-    // not recognise, and started refusing ones it had accepted minutes
-    // earlier - so "we sent it" is not "it happened". The status row reports
-    // this instead of claiming to be filtering.
     property bool writeVerified: false
     property bool writePending: false
     property int expectedValue: 0
-    // What the display actually reports after the write. A preset control
-    // can only pick from the presets it has, so asking for 5200 K on a
-    // display whose only known preset is 6500 K "succeeds" and changes
-    // nothing - reporting the requested temperature in that case is how the
-    // status row ended up claiming to be filtering while the screen sat at
-    // neutral.
     property int achievedKelvin: 0
 
-    // DDC can only reach the monitor's own range. Gamma can go much warmer
-    // than any monitor offers, which is why the slider bounds follow the
-    // backend in use.
     readonly property real ddcMin: 3000
     readonly property real ddcMax: 6500
     readonly property real gammaMin: 1000
@@ -134,22 +52,12 @@ property string lastMessage: ""
 
     readonly property bool available: resolvedBackend.length > 0
 
-    // A display can advertise a colour feature and still refuse every write to
-    // it, so "a DDC display exists" is not "DDC can filter". Without this the
-    // auto choice settles on a backend that does nothing and the toggle looks
-    // inert, which is how this feature spent an evening looking broken.
     readonly property bool ddcUsable: ddcControl === "0x14"
         ? presetsUsable
         : (ddcControl === "0x0b" || ddcControl === "0x1a")
 
     readonly property bool overlayActive: enabled && resolvedBackend === "overlay"
 
-    // A compositor overlay can only add light: it has no way to sample the
-    // screen behind it, so the tint has to be thin to avoid washing the
-    // desktop out, and it has to keep blue low. Washing towards white
-    // raises blue the most and turns a night light into pale peach; the
-    // yellow the eye reads as "evening" comes from blue being pulled down
-    // hard while green stays up, so that is what the tint is aimed at.
     readonly property color overlayWashTarget: Qt.rgba(1, 0.84, 0.42, 1)
     readonly property real overlayWash: 0.55
     readonly property real overlayMaxAlpha: 0.22
@@ -172,8 +80,6 @@ property string lastMessage: ""
             1);
     }
 
-    // Colour of light at a temperature, so the tint follows the same curve the
-    // hardware backends aim at instead of being tuned to one display.
     function kelvinColor(kelvin) {
         const t = Math.max(10, Math.min(400, kelvin / 100));
         let r, g, b;
@@ -217,17 +123,12 @@ property string lastMessage: ""
         const b = String(value ?? "auto").trim() || "auto";
         if (backend === b)
             return;
-        // Leaving a backend warm behind would tint the screen with nothing
-        // able to turn it back off.
         restore();
         backend = b;
         SettingsStore.set("nightLightBackend", b);
         recheck();
     }
 
-    // Re-probing rather than caching matters: which backend works can change
-    // under a running session (a monitor plugged in, Hyprland restarted, a
-    // different cable), and a stale answer leaves the toggle inert.
     function recheck() {
         lastMessage = "";
         probeDdc.running = false;
@@ -248,21 +149,11 @@ property string lastMessage: ""
         } else if (gammaPresent && gammaSupported) {
             resolvedBackend = "gamma";
         } else {
-            // Deliberately not the screen filter. It cannot set a white point
-            // - an overlay surface can only add light, never sample what is
-            // behind it - so on a dark desktop any visible tint lifts the
-            // blacks and reads as a wash rather than as evening. Choosing it
-            // is a decision, so it is only ever made by hand.
             resolvedBackend = "";
         }
         apply();
     }
 
-    // step = (kelvin - base) / step, in this display's own units
-    // ddcutil locks the I2C bus and does not wait for it: two of our own
-    // processes overlapping - a colour write and a brightness poll - make
-    // the loser fail with DDCRC_VERIFY, which looks exactly like the display
-    // refusing the change. flock makes them queue instead.
     readonly property string ddcLock: "/tmp/lampshell-ddc.lock"
     function ddcCall(args) {
         const inner = ["ddcutil"].concat(args).map(a => "'" + String(a).replace(/'/g, "'\\''") + "'").join(" ");
@@ -289,8 +180,6 @@ property string lastMessage: ""
             applyGamma();
     }
 
-    // Neutral, not "whatever it was" - the point of turning this off is a
-    // normal-looking screen.
     function restore() {
         if (resolvedBackend === "ddc" && ddcDisplays > 0) {
             if (ddcControl === "0x14" && Object.keys(presetTable ?? {}).length > 0) {
@@ -327,9 +216,6 @@ property string lastMessage: ""
                 setForAll(["setvcp", "0x14", preset]);
             }
         } else if (ddcControl === "0x1a") {
-            // Full-scale blue is neutral, lower is warmer. The 40% is a
-            // heuristic: this control shifts one channel rather than setting
-            // a temperature, so the Kelvin number here is a rough label.
             const ratio = Math.max(0, Math.min(1,
                 (ddcMax - temperature) / Math.max(1, ddcMax - ddcMin)));
             const gain = Math.round(blueMax * (1 - ratio * 0.4));
@@ -348,7 +234,6 @@ property string lastMessage: ""
         verifyDelay.restart();
     }
 
-    // Read the control back and compare with what was asked for.
     function verifyDdc() {
         verifyProc.command = ["sh", "-c",
             ddcCall(["--display", String(probeDisplay), "getvcp", ddcControl])
@@ -357,8 +242,6 @@ property string lastMessage: ""
         verifyProc.running = true;
     }
 
-    // A table that only contains neutral (6500 K) cannot filter anything, so
-    // it does not count as a usable control.
     readonly property bool presetsUsable: {
         for (const k of Object.keys(presetTable ?? {})) {
             if (parseInt(k, 10) < 6000)
@@ -383,10 +266,6 @@ property string lastMessage: ""
         return best;
     }
 
-    // Which colour control does this display actually let us write?
-    // Writability is not advertised in ddcutil's capability list - it has to
-    // be found by attempting it, so this writes back the value it just read
-    // (a no-op for the display) and looks at the error.
     property string probeStage: ""
     property int probeValue: 0
     property int probePreset: 0
@@ -396,8 +275,6 @@ property string lastMessage: ""
             ddcControl = "";
             return;
         }
-        // Learn 0x0b's units from the display's own description of 0x0c
-        // before using them.
         readUnits.command = ddcCall(["--display", "1", "getvcp", "0x0c"]);
         readUnits.running = false;
         readUnits.running = true;
@@ -435,9 +312,6 @@ property string lastMessage: ""
     function finishDdcProbe(control) {
         ddcControl = control;
         probeStage = "";
-        // Writes go to every display that reported the feature, so a
-        // multi-monitor setup is not left with one panel warm and the rest
-        // neutral.
         if (control !== "")
             writeDdc(stepFor(enabled ? temperature : ddcMax));
         if (control === "0x14" && Object.keys(presetTable ?? {}).length === 0)
@@ -445,9 +319,6 @@ property string lastMessage: ""
         resolve();
     }
 
-    // Walk the preset indices and read each one's Kelvin back. This is the
-    // only way to learn a monitor's preset table, it flickers the display
-    // once, and the result is cached so it does not repeat.
     property int scanIndex: 0
     property var scanTable: ({})
     property int scanRestore: 0
@@ -475,10 +346,6 @@ property string lastMessage: ""
             apply();
             return;
         }
-        // One process per step, and the read is retried in-shell.
-        // ddcutil takes a flock on the I2C bus and a getvcp that loses the
-        // race returns nothing at all - which silently threw away most of the
-        // table the first time this ran.
         const w = ddcCall(["--display", String(probeDisplay), "setvcp", "0x14",
             String(scanIndex)]).slice(2).join(" ");
         const r = ddcCall(["--display", String(probeDisplay), "getvcp", "0x14"])
@@ -500,7 +367,6 @@ property string lastMessage: ""
     }
 
     function startGamma() {
-        // -P first so a second change does not stack gamma corrections.
         gammaSet.command = ["gammastep", "-P", "-O", String(Math.round(temperature))];
         gammaSet.running = false;
         gammaSet.running = true;
@@ -571,10 +437,6 @@ property string lastMessage: ""
             root.lastMessage = t.split("\n")[0];
     }
 
-    // Does this display take a colour temperature at all? 0x0b is the
-    // writable feature; its presence in the capability list is what makes a
-    // display usable here. Counting the displays that have it is what lets
-    // the setting say "2 displays" rather than pretending.
     Process {
         id: probeDdc
 
@@ -583,7 +445,6 @@ property string lastMessage: ""
                 const text = String(this.text ?? "");
                 const hasFeature = /0B \(Color temperature|14 \(Select color preset|1A \(Video gain/i
                     .test(text);
-                // String.matchAll is not available in this QML's JS engine.
                 let displays = 0;
                 const re = /Display\s+(\d+)/g;
                 let m = re.exec(text);
@@ -654,7 +515,6 @@ property string lastMessage: ""
             onStreamFinished: {
                 const t = String(this.text ?? "");
                 if (/not writable/i.test(t)) {
-                    // 0x0b is read-only here; try the preset control.
                     read14.command = ddcCall(["--display", String(probeDisplay),
                         "getvcp", "0x14"]);
                     read14.running = false;
@@ -701,13 +561,6 @@ property string lastMessage: ""
         stdout: StdioCollector {
             onStreamFinished: {
                 const m = String(this.text ?? "").match(/(\d+)\s*K\s*\(0x([0-9a-fA-F]+)\)/);
-                // Only record a preset the display actually accepted.
-                // A monitor rejects presets it does not know with
-                // DDCRC_VERIFY, leaving the previous preset in place - so the
-                // readback still succeeds and reports the old value. Without
-                // this check the walk fills the table with rejected indices
-                // pointing at whatever happened to be selected, which is how
-                // it "learned" one bogus entry and nothing else.
                 if (m !== null && parseInt(m[2], 16) === root.scanIndex)
                     root.scanTable[m[1]] = "0x" + parseInt(m[2], 16).toString(16).padStart(2, "0");
                 root.scanIndex = root.scanIndex + 1;
@@ -720,7 +573,6 @@ property string lastMessage: ""
         id: readUnits
         stdout: StdioCollector {
             onStreamFinished: {
-                // e.g. "3000 + 35 * (feature 0B color temp increment)"
                 const m = String(this.text ?? "").match(/(\d+)\s*\+\s*(\d+)\s*\*/);
                 if (m !== null) {
                     root.tempBase = parseInt(m[1], 10);
@@ -767,8 +619,6 @@ property string lastMessage: ""
         id: gammaSet
         stdout: StdioCollector {}
         stderr: StdioCollector {
-            // gammastep narrates on stderr even when nothing is wrong, so
-            // this must never be read as "missing".
             onStreamFinished: {
                 root.gammaSupported = !/zero outputs support gamma|do not support gamma/i
                     .test(this.text);
@@ -786,9 +636,6 @@ property string lastMessage: ""
         }
     }
 
-    // Presence checks first, then the capability probe, then resolve once
-    // both have reported. Resolving early would let a backend that merely
-    // exists be chosen over one that is known to work.
     Process {
         id: which
         command: ["sh", "-c",
