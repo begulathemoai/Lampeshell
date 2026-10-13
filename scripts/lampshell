@@ -41,6 +41,16 @@ Keyboard
   kblayout                  Cycle to the next keyboard layout (us -> fr)
   kblayout <n>              Switch to layout n (0-based)
 
+Audio
+  audio sinks               List output devices
+  audio current             Show the active output device
+  audio switch [n]          Cycle outputs, or switch to index n
+  audio streams             List per-app streams
+
+Game mode
+  gamemode [on|off|status]  Toggle compositor effects for gaming
+                             (animations/blur/shadow/rounding off)
+
 Record
   record toggle         Toggle recording on/off (saves to ~/Videos/Screencasts)
   record start [-s] [-r WxH+X+Y]   Start a recording; -s audio, -r region
@@ -193,6 +203,35 @@ case "${1:-help}" in
         else
             call kblayout cycle
         fi
+        ;;
+
+    gamemode)
+        require_running || exit 1
+        case "${2:-toggle}" in
+            on | enable)  call gamemode enable ;;
+            off | disable) call gamemode disable ;;
+            status)       call gamemode isEnabled ;;
+            *)            call gamemode toggle ;;
+        esac
+        ;;
+
+    audio)
+        require_running || exit 1
+        case "${2:-}" in
+            sinks)    call audio listSinks ;;
+            sources)  call audio listSources ;;
+            streams)  call audio listStreams ;;
+            current)  call audio currentSink ;;
+            switch)
+                if [ -n "$3" ]; then
+                    call audio setSink "$3"
+                else
+                    call audio cycleOutput
+                fi
+                ;;
+            "")       err "usage: lampshell audio <sinks|sources|streams|current|switch>"; exit 1 ;;
+            *)        err "unknown audio verb '$2'"; exit 1 ;;
+        esac
         ;;
 
     settings-set)

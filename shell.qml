@@ -13,6 +13,7 @@ ShellRoot {
     id: root
 
     readonly property bool idleServiceUp: Idle.caffeine !== undefined
+    readonly property bool gameModeUp: GameMode.enabled !== undefined
 
     WallpaperLayer {
         id: wallpaperLayer
