@@ -2,7 +2,6 @@
 
 #include <qdir.h>
 #include <qfile.h>
-#include <qregularexpression.h>
 
 namespace lampshell::services::sensors {
 
@@ -17,13 +16,15 @@ QString readText(const QString& path) {
     return QString::fromLatin1(f.readLine()).trimmed();
 }
 
-std::optional<double> readDouble(const QString& path) {
+// hwmon exposes temp*_input in milli-degrees celsius; libsensors (which
+// caelestia uses) already scales to celsius, so divide to match.
+std::optional<double> readTempCelsius(const QString& path) {
     const QString text = readText(path);
     bool ok = false;
-    const double value = text.toDouble(&ok);
+    const double milli = text.toDouble(&ok);
     if (!ok)
         return std::nullopt;
-    return value;
+    return milli / 1000.0;
 }
 
 struct Hwmon {
@@ -42,9 +43,14 @@ QList<Hwmon> hwmonChips() {
     return chips;
 }
 
+struct TempInput {
+    QString path;
+    QString label;
+};
+
 // Returns the tempN_input files of a chip alongside their labels.
-QList<QPair<QString, QString>> tempInputs(const QString& chipPath) {
-    QList<QPair<QString, QString>> out;
+QList<TempInput> tempInputs(const QString& chipPath) {
+    QList<TempInput> out;
     const QDir dir(chipPath);
     const QStringList inputs = dir.entryList({ u"temp*_input"_s }, QDir::Files);
     for (const QString& input : inputs) {
@@ -55,58 +61,92 @@ QList<QPair<QString, QString>> tempInputs(const QString& chipPath) {
     return out;
 }
 
-bool isCpuChip(const QString& name) {
-    static const QStringList names = { u"k10temp"_s, u"coretemp"_s, u"zenpower"_s, u"cpu_thermal"_s, u"soc_thermal"_s };
-    return names.contains(name);
-}
-
 bool isGpuChip(const QString& name) {
     static const QStringList names = { u"amdgpu"_s, u"nouveau"_s, u"i915"_s, u"xe"_s, u"radeon"_s, u"nvidia"_s };
     return names.contains(name);
 }
 
-} // namespace
+struct Accum {
+    double sum = 0.0;
+    int count = 0;
 
-std::optional<double> cpuPackageTemp() {
-    static const QRegularExpression primary(u"Package id|Tctl|Tdie"_s);
-
-    std::optional<double> fallback;
-    for (const auto& chip : hwmonChips()) {
-        if (!isCpuChip(chip.name))
-            continue;
-
-        for (const auto& [path, label] : tempInputs(chip.path)) {
-            const auto value = readDouble(path);
-            if (!value)
-                continue;
-            if (primary.match(label).hasMatch())
-                return value;
-            if (!fallback)
-                fallback = value;
-        }
+    void add(double value) {
+        sum += value;
+        ++count;
     }
-    return fallback;
+
+    [[nodiscard]] std::optional<double> average() const {
+        if (count == 0)
+            return std::nullopt;
+        return sum / count;
+    }
+};
+
+// Mirrors caelestia's classifyGpuTempLabel: indexed tempN labels and the vendor
+// die labels are the reading we want; junction/mem only stand in when no
+// primary sensor exists.
+bool isPrimaryGpuLabel(const QString& label) {
+    const bool tempIndexed = label.startsWith(u"temp"_s) && label.size() > 4 && label.at(4).isDigit();
+    return tempIndexed || label == u"GPU core"_s || label == u"edge"_s;
 }
 
-std::optional<double> gpuTemp() {
-    static const QRegularExpression preferred(u"edge|junction"_s);
+bool isFallbackGpuLabel(const QString& label) {
+    return label == u"junction"_s || label == u"mem"_s;
+}
 
+} // namespace
+
+// Matches caelestia's cpuPackageTemp: "Package id N" / "Tdie" are the primary
+// reading, "Tctl" only stands in when neither is present.
+std::optional<double> cpuPackageTemp() {
+    std::optional<double> primary;
     std::optional<double> fallback;
+
+    for (const auto& chip : hwmonChips()) {
+        for (const auto& input : tempInputs(chip.path)) {
+            if (input.label.startsWith(u"Package id "_s) || input.label == u"Tdie"_s) {
+                if (const auto value = readTempCelsius(input.path))
+                    primary = value;
+            } else if (input.label == u"Tctl"_s) {
+                if (const auto value = readTempCelsius(input.path))
+                    fallback = value;
+            }
+        }
+    }
+
+    return primary.has_value() ? primary : fallback;
+}
+
+// Matches caelestia's gpuPciAverageTemp: average the primary GPU sensors, or
+// fall back to the junction/mem average when there is no primary.
+std::optional<double> gpuTemp() {
+    Accum primary;
+    Accum fallback;
+
     for (const auto& chip : hwmonChips()) {
         if (!isGpuChip(chip.name))
             continue;
 
-        for (const auto& [path, label] : tempInputs(chip.path)) {
-            const auto value = readDouble(path);
+        for (const auto& input : tempInputs(chip.path)) {
+            const bool primaryLabel = isPrimaryGpuLabel(input.label);
+            const bool fallbackLabel = isFallbackGpuLabel(input.label);
+            if (!primaryLabel && !fallbackLabel)
+                continue;
+
+            const auto value = readTempCelsius(input.path);
             if (!value)
                 continue;
-            if (preferred.match(label).hasMatch())
-                return value;
-            if (!fallback)
-                fallback = value;
+
+            if (primaryLabel)
+                primary.add(*value);
+            else
+                fallback.add(*value);
         }
     }
-    return fallback;
+
+    if (const auto average = primary.average())
+        return average;
+    return fallback.average();
 }
 
 } // namespace lampshell::services::sensors
