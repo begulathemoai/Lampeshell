@@ -43,8 +43,15 @@ Variants {
             right: true
         }
 
+        // The chrome is pure decoration, so every click must fall through to
+        // whatever is behind it - apps, the bars, the panel. A `Combine` mask
+        // on a full-window item is a full-window input region, which swallows
+        // the entire desktop; `Xor` inverts it, and an empty mask makes
+        // Quickshell mark the surface WindowTransparentForInput. This is what
+        // upstream's BezelsMask.qml did before the chrome was split out.
         mask: Region {
             item: chromeShape
+            intersection: Intersection.Xor
         }
 
         Shape {
