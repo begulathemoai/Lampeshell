@@ -55,7 +55,6 @@ property string lastMessage: ""
         ? presetsUsable
         : (ddcControl === "0x0b" || ddcControl === "0x1a")
 
-
     property bool shaderSupported: false
     property bool shaderActive: false
     property string shaderSaved: ""
@@ -114,11 +113,6 @@ property string lastMessage: ""
         path: root.shaderPath
         printErrors: false
         watchChanges: false
-        // The compositor is told to load this file immediately afterwards, and
-        // an async write loses that race often enough to be visible: it reads
-        // a path that does not exist yet, drops the filter for a frame, and
-        // logs a parser failure. setText() returns void rather than a promise,
-        // so this is the only way to order the two.
         blockWrites: true
     }
 
@@ -162,8 +156,6 @@ property string lastMessage: ""
         shaderSavedExists.running = true;
     }
 
-    // Hyprland resolves the option as a path, so pointing it at a file that
-    // is gone makes it complain rather than simply clearing.
     Process {
         id: shaderSavedExists
         command: ["sh", "-c", "test -f \"$1\"", "_", root.shaderSaved]
@@ -196,9 +188,6 @@ property string lastMessage: ""
                 if (root.shaderSaved === "" && m !== null) {
                     const v = m[1].trim();
                     const clean = v === "[[EMPTY]]" ? "" : v;
-                    // One of our own files means the filter survived a restart.
-                    // Adopting it as "what was there before" would restore the
-                    // filter on disable instead of clearing it.
                     root.shaderSaved = /nightscreen-[0-9]+\.frag$/.test(clean) ? "" : clean;
                 }
                 root.resolve();
