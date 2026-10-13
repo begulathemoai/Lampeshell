@@ -1,0 +1,27 @@
+#include "service.hpp"
+
+namespace lampshell::services {
+
+Service::Service(QObject* parent)
+    : QObject(parent) {}
+
+void Service::ref(QObject* sender) {
+    if (m_refs.isEmpty()) {
+        start();
+    }
+
+    QObject::connect(sender, &QObject::destroyed, this, &Service::unref);
+    m_refs << sender;
+}
+
+void Service::unref(QObject* sender) {
+    if (m_refs.remove(sender) && m_refs.isEmpty()) {
+        stop();
+    }
+}
+
+int Service::refCount() const {
+    return m_refs.size();
+}
+
+} // namespace lampshell::services

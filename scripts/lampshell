@@ -11,6 +11,11 @@ notify() {
     return 0
 }
 
+_self=$(readlink -f "$0")
+REPO_DIR=$(dirname "$(dirname "$_self")")
+PLUGIN_DIR="$REPO_DIR/plugin"
+PLUGIN_QML="$PLUGIN_DIR/build/qml"
+
 err() {
     echo "lampshell: $*" >&2
     notify "$*" critical
@@ -32,6 +37,7 @@ Shell
   restart               Stop the shell, then start it again
   status                Report whether the shell is running
   logs                  Follow the shell log
+  plugin                Rebuild the native (C++) services plugin
 
 Interface
   launcher              Toggle the app launcher
@@ -129,6 +135,23 @@ call() {
     "$QS" -c "$CONFIG" ipc call "$@"
 }
 
+# The native services live in a small C++ Qt QML module under plugin/. Build it
+# on demand (only when a source is newer than the built module) and point
+# QML_IMPORT_PATH at the build tree so qs can `import Lampshell.Services`.
+build_plugin() {
+    local qmldir="$PLUGIN_QML/Lampshell/Services/qmldir"
+    if [ -f "$qmldir" ] && [ -z "$(find "$PLUGIN_DIR/src" "$PLUGIN_DIR/CMakeLists.txt" -newer "$qmldir" -print -quit 2>/dev/null)" ]; then
+        return 0
+    fi
+    if ! command -v cmake >/dev/null 2>&1; then
+        err "cmake is required to build the native plugin"
+        return 1
+    fi
+    echo "lampshell: building native plugin..."
+    cmake -B "$PLUGIN_DIR/build" -G Ninja -DCMAKE_BUILD_TYPE=Release >/dev/null || return 1
+    cmake --build "$PLUGIN_DIR/build" >/dev/null || return 1
+}
+
 case "${1:-help}" in
     start)
         if is_running; then
@@ -152,7 +175,10 @@ case "${1:-help}" in
         fi
 
 
-        setsid "$QS" -c "$CONFIG" -n -d >"$bootlog" 2>&1 &
+        build_plugin || exit 1
+
+        setsid env QML_IMPORT_PATH="$PLUGIN_QML${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}" \
+            "$QS" -c "$CONFIG" -n -d >"$bootlog" 2>&1 &
         sleep 0.5
         if is_running; then
             echo "lampshell: started"
@@ -174,6 +200,11 @@ case "${1:-help}" in
         is_running && "$QS" -c "$CONFIG" kill
         wait_gone
         exec "$0" start
+        ;;
+
+    plugin)
+        rm -rf "$PLUGIN_DIR/build"
+        build_plugin && echo "lampshell: plugin built at $PLUGIN_QML"
         ;;
 
     status)
