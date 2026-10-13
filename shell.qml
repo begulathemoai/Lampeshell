@@ -27,7 +27,7 @@ ShellRoot {
         id: rightBar
     }
 
-    BezelsMask {
+    Chrome {
         id: desktopBezels
     }
 

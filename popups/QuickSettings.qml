@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Shapes
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
@@ -45,9 +46,11 @@ PanelWindow {
         settleTimer.restart();
         quickSettingsWindow.visible = true;
 
+        PanelState.setContentSize(quickSettingsWindow.width, content.implicitHeight + 36);
+
         Qt.callLater(function() {
             focusGrab.active = true;
-            panelBg.forceActiveFocus();
+            panelSurface.forceActiveFocus();
         });
         if (quickSettingsWindow.shown) {
             quickSettingsWindow.openedAt = Date.now();
@@ -76,7 +79,7 @@ PanelWindow {
 
     function close() {
         quickSettingsWindow.shown = false;
-        PanelState.merged = false;
+        PanelState.open = false;
         focusGrab.active = false;
         hideWhenDone.restart();
     }
@@ -90,7 +93,7 @@ PanelWindow {
 
     property bool shown: false
 
-    onShownChanged: panelBg.slideOffset = shown ? 0 : 1;
+    onShownChanged: PanelState.open = shown;
 
     property bool settling: false
 
@@ -105,7 +108,6 @@ PanelWindow {
         interval: 1
         onTriggered: {
             quickSettingsWindow.shown = true;
-            PanelState.merged = true;
         }
     }
 
@@ -163,33 +165,20 @@ PanelWindow {
         }
     }
 
-    Rectangle {
-        id: panelBg
-        anchors.left: parent.left
-        anchors.leftMargin: Layout.s(18)
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
+    mask: Region {
+        item: cardHitArea
+    }
 
-        radius: Layout.cornerRadius
+    Item {
+        id: cardHitArea
+        width: parent.width
+        height: PanelState.panelHeight
+    }
 
-        color: Theme.surface_container_lowest
+    Item {
+        id: panelSurface
+        anchors.fill: parent
         focus: true
-
-        property real slideOffset: 1
-
-        transform: Translate {
-            x: panelBg.slideOffset * Layout.s(28)
-        }
-        opacity: Math.max(0, 1 - panelBg.slideOffset)
-
-        Behavior on slideOffset {
-            NumberAnimation {
-                duration: 400
-                easing.type: Easing.OutCubic
-            }
-        }
-
 
         Keys.onEscapePressed: function(event) {
             quickSettingsWindow.close();
@@ -198,7 +187,7 @@ PanelWindow {
     }
 
     MouseArea {
-        anchors.fill: panelBg
+        anchors.fill: parent
     }
 
     Column {
