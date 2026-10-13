@@ -48,8 +48,8 @@ PanelWindow {
     }
 
     function disarmGrab() {
-        if (item)
-            item.disarmGrab();
+        if (contentLoader.item)
+            contentLoader.item.disarmGrab();
         emojiWindow.visible = false;
     }
 
