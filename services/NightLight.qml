@@ -123,15 +123,18 @@ property string lastMessage: ""
             clearShader();
             return;
         }
-        const cmd = "hl.config({ decoration = { screen_shader = \""
-            + shaderPath + "\" } })";
         shaderFile.setText(shaderSource());
-        shaderSet.command = ["hyprctl", "eval", cmd];
         shaderActive = true;
-        shaderSet.running = false;
-        shaderSet.running = true;
+        sendShader(shaderPath);
         shaderPrune.running = false;
         shaderPrune.running = true;
+    }
+
+    function sendShader(value) {
+        shaderSet.command = ["hyprctl", "eval",
+            "hl.config({ decoration = { screen_shader = \"" + value + "\" } })"];
+        shaderSet.running = false;
+        shaderSet.running = true;
     }
 
     Process {
@@ -140,17 +143,31 @@ property string lastMessage: ""
             "find " + shaderPath.substring(0, shaderPath.lastIndexOf("/"))
             + " -name 'nightscreen-*.frag' ! -name '"
             + shaderPath.substring(shaderPath.lastIndexOf("/") + 1)
+            + "' ! -name '" + shaderSaved.substring(shaderSaved.lastIndexOf("/") + 1)
             + "' -delete 2>/dev/null; true"]
     }
 
     function clearShader() {
         if (!shaderActive)
             return;
-        const cmd = "hl.config({ decoration = { screen_shader = \""
-            + shaderSaved + "\" } })";
-        shaderSet.command = ["hyprctl", "eval", cmd];
-        shaderSet.running = false;
-        shaderSet.running = true;
+        if (shaderSaved === "") {
+            finishClear("");
+            return;
+        }
+        shaderSavedExists.running = false;
+        shaderSavedExists.running = true;
+    }
+
+    // Hyprland resolves the option as a path, so pointing it at a file that
+    // is gone makes it complain rather than simply clearing.
+    Process {
+        id: shaderSavedExists
+        command: ["sh", "-c", "test -f \"$1\"", "_", root.shaderSaved]
+        onExited: (exitCode) => root.finishClear(exitCode === 0 ? root.shaderSaved : "")
+    }
+
+    function finishClear(value) {
+        sendShader(value);
         shaderActive = false;
     }
 
