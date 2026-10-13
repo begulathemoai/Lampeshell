@@ -106,7 +106,10 @@ property string lastMessage: ""
             return;
         enabled = on;
         SettingsStore.set("nightLightEnabled", on);
-        recheck();
+        if (resolvedBackend === "overlay")
+            apply();
+        else
+            recheck();
     }
 
     function setTemperature(kelvin) {
@@ -126,7 +129,9 @@ property string lastMessage: ""
         restore();
         backend = b;
         SettingsStore.set("nightLightBackend", b);
-        recheck();
+        resolve();
+        if (b !== "overlay")
+            recheck();
     }
 
     function recheck() {
