@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell.Services.Pipewire
+import qs.services
 import qs.theme
 
 Item {
