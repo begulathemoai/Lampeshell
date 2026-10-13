@@ -71,12 +71,15 @@ case "${1:-help}" in
             echo "lampshell: already running"
             exit 0
         fi
-        setsid "$QS" -c "$CONFIG" -n -d >/dev/null 2>&1 &
+        bootlog="${XDG_STATE_HOME:-$HOME/.local/state}/lampshell/last-boot.log"
+        mkdir -p "$(dirname "$bootlog")"
+        setsid "$QS" -c "$CONFIG" -n -d >"$bootlog" 2>&1 &
         sleep 0.5
         if is_running; then
             echo "lampshell: started"
         else
-            err "failed to start, check the log with: lampshell logs"
+            err "failed to start; boot output:"
+            sed 's/^/  | /' "$bootlog" | head -30 >&2
             exit 1
         fi
         ;;
@@ -105,7 +108,17 @@ case "${1:-help}" in
         ;;
 
     logs)
-        exec "$QS" -c "$CONFIG" log -f
+        if is_running; then
+            exec "$QS" -c "$CONFIG" log -f
+        else
+            bootlog="${XDG_STATE_HOME:-$HOME/.local/state}/lampshell/last-boot.log"
+            if [ -f "$bootlog" ]; then
+                echo "lampshell is not running; last boot output:"
+                cat "$bootlog"
+            else
+                exec "$QS" -c "$CONFIG" log -f
+            fi
+        fi
         ;;
 
     launcher)

@@ -3,8 +3,6 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Quickshell.Services.UPower
-import qs.theme
 
 Singleton {
     id: root
@@ -14,43 +12,31 @@ Singleton {
 
     property int bus: -1
     property real level: 0.0
-    property real lastSetLevel: -1.0
     property string lastError: ""
     property bool available: false
-
-    readonly property string _displayModel: {
-        const out = detectProc.text;
-        for (const line of out.split("\n")) {
-            const m = line.match(/Monitor:\s+(.+)$/);
-            if (m) return m[1].trim();
-        }
-        return "";
-    }
+    property string displayModel: ""
 
     Process {
         id: detectProc
-        command: ["ddcutil", "detect", "--brief"]
-        stdout: StdioCollector {}
-        onExited: {
-            const out = detectProc.text;
-            const m = out.match(/I2C bus:\s+\/dev\/i2c-(\d+)/);
-            if (m) {
-                root.bus = parseInt(m[1]);
-                root.available = true;
-                root.refresh();
-            } else {
-                root.lastError = "no DDC display found";
-                root.available = false;
+        command: ["sh", "-c", "ddcutil detect --brief 2>/dev/null || true"]
+        running: true
+        stdout: StdioCollector {
+            id: detectCollector
+            onStreamFinished: {
+                const out = detectCollector.text;
+                const m = out.match(/I2C bus:\s+\/dev\/i2c-(\d+)/);
+                const nameMatch = out.match(/Monitor:\s+(.+)$/m);
+                if (m) {
+                    root.bus = parseInt(m[1]);
+                    root.displayModel = nameMatch ? nameMatch[1].trim() : "";
+                    root.available = true;
+                    root.refresh();
+                } else {
+                    root.lastError = "no DDC display found (is ddcutil installed?)";
+                    root.available = false;
+                }
             }
         }
-        onErrorOccurred: {
-            root.lastError = "ddcutil not available (is it installed?)";
-        }
-    }
-
-    Component.onCompleted: {
-        if (available)
-            refresh();
     }
 
     Timer {
@@ -62,35 +48,34 @@ Singleton {
     }
 
     function refresh() {
-        if (bus < 0) return;
-        queryProc.command = ["ddcutil", "--bus", String(bus), "getvcp", "10"];
+        if (bus < 0)
+            return;
+        queryProc.command = ["sh", "-c", "ddcutil --bus " + root.bus + " getvcp 10 2>/dev/null || true"];
         queryProc.running = true;
     }
 
     Process {
         id: queryProc
-        stdout: StdioCollector {}
-        onExited: {
-            if (queryProc.exitCode !== 0) return;
-            const m = queryProc.text.match(/VCP 10 [CL] (\d+)/);
-            if (!m) return;
-            const cur = parseInt(m[1]);
-            if (isNaN(cur)) return;
-            const newLevel = cur / 100.0;
-            if (Math.abs(newLevel - root.lastSetLevel) > 0.001) {
-                root.level = newLevel;
-            } else if (Math.abs(newLevel - root.level) > 0.001) {
-                root.level = newLevel;
+        stdout: StdioCollector {
+            id: queryCollector
+            onStreamFinished: {
+                const m = queryCollector.text.match(/current value =\s*(\d+)/);
+                if (!m)
+                    return;
+                const cur = parseInt(m[1]);
+                if (isNaN(cur))
+                    return;
+                root.level = cur / 100.0;
             }
         }
     }
 
     function setLevel(fraction) {
-        if (bus < 0) return;
+        if (bus < 0)
+            return;
         const pct = Math.round(Math.max(0, Math.min(1, fraction)) * 100);
         level = pct / 100.0;
-        lastSetLevel = level;
-        setterProc.command = ["ddcutil", "--bus", String(bus), "setvcp", "10", String(pct)];
+        setterProc.command = ["sh", "-c", "ddcutil --bus " + root.bus + " setvcp 10 " + pct + " 2>&1 || true"];
         setterProc.running = true;
     }
 
@@ -100,19 +85,31 @@ Singleton {
 
     Process {
         id: setterProc
-        stdout: StdioCollector {}
-        onExited: {
-            if (setterProc.exitCode !== 0)
-                root.lastError = "ddcutil setvcp failed: " + setterProc.text.trim();
+        stdout: StdioCollector {
+            id: setterCollector
+            onStreamFinished: {
+                const out = setterCollector.text.trim();
+                if (out.length > 0 && out.indexOf("DDC communication failed") >= 0)
+                    root.lastError = out;
+            }
         }
     }
 
     IpcHandler {
         target: "brightness"
 
-        function get(): real { return root.level; }
-        function set(value: string): string { root.setLevel(parseFloat(value)); return String(root.level); }
-        function up(): void { root.nudge(root.nudgeStep); }
-        function down(): void { root.nudge(-root.nudgeStep); }
+        function get(): real {
+            return root.level;
+        }
+        function set(value: string): string {
+            root.setLevel(parseFloat(value));
+            return String(root.level);
+        }
+        function up(): void {
+            root.nudge(root.nudgeStep);
+        }
+        function down(): void {
+            root.nudge(-root.nudgeStep);
+        }
     }
 }
