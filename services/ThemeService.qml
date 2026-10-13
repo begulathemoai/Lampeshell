@@ -14,7 +14,7 @@ Item {
     readonly property string homeDir: Quickshell.env("HOME")
     readonly property string wallDir: homeDir + "/Pictures/walls"
     readonly property string colorsPath: Quickshell.shellPath("theme/colors.json")
-    readonly property string stateDir: (Quickshell.env("XDG_STATE_HOME") || (homeDir + "/.local/state")) + "/octashell"
+    readonly property string stateDir: (Quickshell.env("XDG_STATE_HOME") || (homeDir + "/.local/state")) + "/lampshell"
 
     readonly property string matugenType: "scheme-smart"
     readonly property string matugenPrefer: "saturation"
@@ -36,7 +36,7 @@ find "$dir" -maxdepth 3 -type f \\
 `
 
     function refresh() {
-        listProc.command = ["bash", "-c", root.listScript, "octashell-list", root.wallDir];
+        listProc.command = ["bash", "-c", root.listScript, "lampshell-list", root.wallDir];
         listProc.running = true;
     }
 
@@ -250,7 +250,7 @@ find "$dir" -maxdepth 3 -type f \\
             }
         }
 
-        onErrorOccurred: error => {
+        onError: error => {
             root.lastError = "matugen failed to run (is it installed?)";
             root.busy = false;
         }
