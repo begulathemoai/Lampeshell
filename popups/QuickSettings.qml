@@ -40,10 +40,19 @@ PanelWindow {
     screen: targetScreen
 
     function publishGeometry() {
+        PanelState.screenName = quickSettingsWindow.screen
+            ? quickSettingsWindow.screen.name
+            : "";
         PanelState.setContentSize(quickSettingsWindow.width, content.implicitHeight + 36);
     }
 
     onWidthChanged: publishGeometry()
+
+    // The panel follows the focused monitor, so the painted card has to
+    // follow it too - and moving between screens of different sizes does
+    // not change this window's width, so width alone would leave the
+    // card painted on the screen the panel just left.
+    onTargetScreenChanged: publishGeometry()
 
     function open() {
         quickSettingsBackend.refreshBrightness();

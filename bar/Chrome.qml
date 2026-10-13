@@ -24,6 +24,14 @@ Variants {
         readonly property HyprlandMonitor monitor: Hyprland.monitorFor(screen)
         visible: !FullscreenState.isFullscreen(monitor)
 
+        // The card belongs to the screen the panel window is on, which
+        // follows the focused monitor. Everywhere else this delegate
+        // paints the frame alone, because a card drawn at this screen's
+        // own resolution on a screen that has no panel is a slab of
+        // surface floating over live desktop.
+        readonly property bool hasCard: PanelState.screenName.length === 0
+            || PanelState.screenName === modelData.name
+
         WlrLayershell.layer: WlrLayer.Top
         WlrLayershell.namespace: "quickshell-bezels"
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
@@ -37,7 +45,6 @@ Variants {
 
         mask: Region {
             item: chromeShape
-            intersection: Intersection.Xor
         }
 
         Shape {
@@ -88,7 +95,7 @@ Variants {
                 const ch = Math.min(cardH, cutB - cutT - corner - f);
                 const cx = cardX;
                 const cr = Math.min(cardR, cardW / 2, ch);
-                const open = ch > 0.5 && cardW > 1 && cx < x1 - 1;
+                const open = chromeWindow.hasCard && ch > 0.5 && cardW > 1 && cx < x1 - 1;
 
                 let d = `M ${x0 + r},${y0}`
                     + ` L ${x0},${y0 + r}`

@@ -14,6 +14,13 @@ Item {
     readonly property real leftInset: Layout.s(18)
     property real cardHeight: 0
 
+    // Which screen the panel window is actually on. The painted card only
+    // goes there: bar/Chrome.qml runs once per screen, so without this
+    // every screen gets a copy of the card sized to itself, which on a
+    // mixed-setup desktop is a panel-shaped slab floating over a monitor
+    // that has no panel on it.
+    property string screenName: ""
+
     property real progress: 0
 
     readonly property real offsetScale: 1 - Motion.ease(
