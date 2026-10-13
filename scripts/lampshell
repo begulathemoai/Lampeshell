@@ -26,8 +26,16 @@ Interface
   settings              Toggle the shell settings panel
   clipboard             Toggle the clipboard history
   emoji                 Toggle the emoji picker
+  lock                  Lock the session now (hyprlock)
   media <verb>          MPRIS: play | pause | toggle | next | prev | stop | status | list
   hypr                  Raw Hyprland target (hypr focus_workspace 2)
+
+Idle
+  caffeine [on|off|status]   Keep the machine awake (toggle by default).
+                             Holds both a Wayland idle inhibitor and a
+                             logind lock, so suspend is blocked too.
+  settings-get <key>         Read a persisted setting (lockAfterMin, ...)
+  settings-set <key> <val>   Write one (e.g. lockAfterMin 30; 0 = never)
 
 Record
   record toggle         Toggle recording on/off (saves to ~/Videos/Screencasts)
@@ -139,6 +147,35 @@ case "${1:-help}" in
     settings)
         require_running || exit 1
         call shellSettings toggle
+        ;;
+
+    caffeine)
+        require_running || exit 1
+        case "${2:-toggle}" in
+            on | enable)  call idle enableCaffeine ;;
+            off | disable) call idle disableCaffeine ;;
+            status)       if [ "$(call idle isCaffeineEnabled)" = "true" ]; then
+                              echo "on (since $(call idle activeSince))"
+                          else
+                              echo "off"
+                          fi ;;
+            *)            call idle toggleCaffeine ;;
+        esac
+        ;;
+
+    lock)
+        require_running || exit 1
+        call session lock
+        ;;
+
+    settings-set)
+        require_running || exit 1
+        call settings set "$2" "$3"
+        ;;
+
+    settings-get)
+        require_running || exit 1
+        call settings get "$2"
         ;;
 
     clipboard)

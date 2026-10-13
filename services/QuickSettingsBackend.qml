@@ -158,7 +158,11 @@ Item {
             activeSource.audio.muted = !activeSource.audio.muted;
     }
 
-    property real brightnessLevel: 0.0
+    property real backlightLevel: 0.0
+
+    readonly property real brightnessLevel: DdcBrightness.available
+        ? DdcBrightness.level
+        : backlightLevel
 
     readonly property real volumePercent: Math.round(volumeLevel * 100)
 
@@ -261,7 +265,7 @@ Item {
                     return; // no backlight device (DDC-only monitor)
                 const val = parseInt(fields[3].replace("%", ""));
                 if (!isNaN(val))
-                    root.brightnessLevel = val / 100.0;
+                    root.backlightLevel = val / 100.0;
             }
         }
     }

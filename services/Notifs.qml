@@ -18,9 +18,9 @@ Singleton {
     readonly property var notClosed: list.filter(n => !n.closed)
     readonly property var popups: list.filter(n => n.exiting || (n.popup && !n.closed))
 
-    readonly property bool dnd: props.dnd
-    function setDnd(enabled) { props.dnd = !!enabled; }
-    function toggleDnd() { props.dnd = !props.dnd; }
+    readonly property bool dnd: SettingsStore.get("dnd") ?? false
+    function setDnd(enabled) { SettingsStore.set("dnd", !!enabled); }
+    function toggleDnd() { SettingsStore.set("dnd", !dnd); }
 
     property var focusedMonitor: null
 
@@ -38,16 +38,11 @@ Singleton {
     }
 
     function shouldShowPopup() {
-        if (props.dnd)
+        if (dnd)
             return false;
         return !root.hasFullscreen(root.focusedMonitor);
     }
 
-    PersistentProperties {
-        id: props
-        property bool dnd: false
-        reloadableId: "notifs"
-    }
 
     NotificationServer {
         id: server

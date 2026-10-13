@@ -192,13 +192,13 @@ PanelWindow {
             spacing: 12
 
             Repeater {
-                model: 3
+                model: 4
 
                 delegate: Item {
                     id: tile
                     required property int index
-                    width: (content.width - 24) / 3
-                    height: 76
+                    width: (content.width - 36) / 4
+                    height: Layout.s(76)
 
                     readonly property bool toggleOn: {
                         if (index === 0)
@@ -206,7 +206,9 @@ PanelWindow {
                             return quickSettingsBackend.wifiEnabled;
                         if (index === 1)
                             return quickSettingsBackend.btPowered;
-                        return !quickSettingsBackend.isMuted;
+                        if (index === 2)
+                            return !quickSettingsBackend.isMuted;
+                        return Idle.caffeine;
                     }
 
                     readonly property string iconName: {
@@ -215,10 +217,13 @@ PanelWindow {
                         }
                         if (index === 1)
                             return quickSettingsBackend.btPowered ? "bluetooth" : "bluetooth_disabled";
-                        return quickSettingsBackend.isMuted ? "volume_off" : "volume_up";
+                        if (index === 2)
+                            return quickSettingsBackend.isMuted ? "volume_off" : "volume_up";
+                        return Idle.caffeine ? "local_cafe" : "coffee";
                     }
 
-                    readonly property string labelText: index === 0 ? "Wi-Fi" : (index === 1 ? "Bluetooth" : "Sound")
+                    readonly property string labelText: index === 0 ? "Wi-Fi"
+                        : (index === 1 ? "Bluetooth" : (index === 2 ? "Sound" : "Caffeine"))
 
                     Rectangle {
                         id: tileBg
@@ -285,8 +290,10 @@ PanelWindow {
                                 quickSettingsBackend.toggleWifi();
                             else if (tile.index === 1)
                                 quickSettingsBackend.toggleBluetooth();
-                            else
+                            else if (tile.index === 2)
                                 quickSettingsBackend.toggleMute();
+                            else
+                                Idle.toggleCaffeine();
                         }
                     }
                 }

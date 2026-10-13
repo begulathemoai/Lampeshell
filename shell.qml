@@ -12,6 +12,8 @@ import qs.services
 ShellRoot {
     id: root
 
+    readonly property bool idleServiceUp: Idle.caffeine !== undefined
+
     WallpaperLayer {
         id: wallpaperLayer
     }
