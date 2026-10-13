@@ -25,6 +25,20 @@ Item {
         return Quickshell.iconPath(icon, true) || "";
     }
 
+    readonly property string displayImage: {
+        const img = notif.image;
+        if (!img)
+            return "";
+        if (img.startsWith("image://qsimage/"))
+            return ""; // process-local, dead on restart
+        if (img.startsWith("/"))
+            return "file://" + img;
+        if (img.startsWith("file://"))
+            return img;
+        return "";
+    }
+    readonly property bool hasImage: displayImage !== ""
+
     width: cardWidth
     height: cardInner.height + 20
 
@@ -245,6 +259,33 @@ Item {
                 elide: Text.ElideRight
                 visible: card.notif.summary.length > 0
             }
+
+            Image {
+                width: parent.width
+                height: 120
+                visible: card.hasImage && status === Image.Ready
+                source: card.displayImage
+                fillMode: Image.PreserveAspectCrop
+                sourceSize: Qt.size(350, 120)
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    maskEnabled: true
+                    maskSource: imageMask
+                    maskThresholdMin: 0.5
+                    maskSpreadAtMin: 1.0
+                }
+
+                Rectangle {
+                    id: imageMask
+                    width: parent.width
+                    height: 120
+                    radius: 12
+                    color: "black"
+                    visible: false
+                    layer.enabled: true
+                }
+            }
+
             Text {
                 width: parent.width
                 text: Markup.sanitize(card.notif.body)

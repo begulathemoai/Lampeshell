@@ -454,7 +454,7 @@ case "${1:-help}" in
     screenshot)
         dir="${HOME}/Pictures/Screenshots"
         mkdir -p "$dir"
-        mode="full"; output=""; use_swappy=0; use_clipboard=0; use_freeze=0
+        mode="full"; output=""; use_swappy=0; use_clipboard=1; use_freeze=0
         shift
         while [ $# -gt 0 ]; do
             case "$1" in
@@ -463,6 +463,7 @@ case "${1:-help}" in
                 --output)    output="$2"; shift ;;
                 --swappy)    use_swappy=1 ;;
                 --clipboard) use_clipboard=1 ;;
+                --no-clipboard) use_clipboard=0 ;;
                 --freeze)    use_freeze=1 ;;
                 *) err "unknown flag: $1"; exit 1 ;;
             esac
@@ -497,8 +498,15 @@ case "${1:-help}" in
         if [ "$use_clipboard" = 1 ] && command -v wl-copy >/dev/null; then
             wl-copy --type image/png < "$outfile" 2>/dev/null
         fi
-        ls -la "$outfile"
-        notify-send "Screenshot saved" "$outfile" 2>/dev/null || true
+
+        if [ "$use_clipboard" = 1 ] && command -v wl-copy >/dev/null; then
+            call toaster info "Screenshot copied" "Paste it anywhere - also saved in Pictures/Screenshots" "screenshot_monitor" 2>/dev/null \
+                || notify-send "Screenshot copied to clipboard" "$outfile" 2>/dev/null || true
+        else
+            call toaster info "Screenshot saved" "$outfile" "screenshot_monitor" 2>/dev/null \
+                || notify-send "Screenshot saved" "$outfile" 2>/dev/null || true
+        fi
+        echo "$outfile"
         ;;
 
     ipc)
