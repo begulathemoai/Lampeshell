@@ -7,6 +7,7 @@ import Quickshell.Hyprland
 import Quickshell.Io
 import qs.theme
 import qs.services
+import qs.popups.settings
 
 PanelWindow {
     id: quickSettingsWindow
@@ -577,6 +578,202 @@ PanelWindow {
                         }
                     }
                 }
+            }
+        }
+
+        Rectangle {
+            id: notifCard
+            width: parent.width
+            readonly property int listHeight: Math.min(notifColumn.implicitHeight, Layout.s(210))
+            height: Notifs.notClosed.length > 0
+                ? notifHeader.height + Layout.s(20) + listHeight
+                : notifHeader.height + Layout.s(46)
+            radius: 22
+            color: Theme.surface_container_highest
+            visible: Notifs.notClosed.length > 0 || Notifs.dnd
+
+            Item {
+                id: notifHeader
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 14
+                height: 24
+
+                Row {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 10
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "notifications"
+                        color: Theme.on_surface
+                        font {
+                            family: "Material Symbols Rounded"
+                            pixelSize: 18
+                        }
+                    }
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Notifs.notClosed.length > 0 ? Notifs.notClosed.length : "off"
+                        color: Theme.on_surface_variant
+                        font {
+                            family: "Google Sans"
+                            pixelSize: 12
+                            weight: Font.Medium
+                        }
+                    }
+                }
+
+                Row {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 6
+
+                    Rectangle {
+                        width: 28
+                        height: 28
+                        radius: 14
+                        visible: Notifs.notClosed.length > 0
+                        color: dndMouse.containsMouse
+                            ? Qt.rgba(Theme.on_surface.r, Theme.on_surface.g, Theme.on_surface.b, 0.10)
+                            : "transparent"
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: Notifs.dnd ? "notifications_off" : "notifications_active"
+                            color: Notifs.dnd ? Theme.primary : Theme.on_surface_variant
+                            font {
+                                family: "Material Symbols Rounded"
+                                pixelSize: 17
+                            }
+                        }
+
+                        MouseArea {
+                            id: dndMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: Notifs.toggleDnd()
+                        }
+                    }
+
+                    Rectangle {
+                        width: 28
+                        height: 28
+                        radius: 14
+                        visible: Notifs.notClosed.length > 0
+                        color: clearMouse.containsMouse
+                            ? Qt.rgba(Theme.critical.r, Theme.critical.g, Theme.critical.b, 0.18)
+                            : "transparent"
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "delete_sweep"
+                            color: clearMouse.containsMouse ? Theme.critical : Theme.on_surface_variant
+                            font {
+                                family: "Material Symbols Rounded"
+                                pixelSize: 17
+                            }
+                        }
+
+                        MouseArea {
+                            id: clearMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: notifClearTimer.restart()
+                        }
+                    }
+                }
+            }
+
+            Item {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: 14
+                height: 24
+                visible: Notifs.notClosed.length === 0
+
+                Text {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Notifs.dnd ? "Do not disturb is on" : "No notifications yet"
+                    color: Theme.on_surface_variant
+                    font {
+                        family: "Google Sans"
+                        pixelSize: 12
+                    }
+                }
+
+                Text {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Notifs.dnd ? "bell_off" : "bell"
+                    color: Theme.primary
+                    font {
+                        family: "Material Symbols Rounded"
+                        pixelSize: 18
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: Notifs.toggleDnd()
+                }
+            }
+
+            Flickable {
+                id: notifFlick
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: notifHeader.bottom
+                anchors.topMargin: Layout.s(6)
+                height: notifCard.listHeight
+                clip: true
+                contentWidth: width
+                contentHeight: notifColumn.implicitHeight
+                boundsBehavior: Flickable.StopAtBounds
+                visible: Notifs.notClosed.length > 0
+
+                ScrollBar.vertical: ScrollBar {}
+
+                Column {
+                    id: notifColumn
+                    width: notifFlick.contentWidth
+                    spacing: 2
+
+                    Repeater {
+                        model: Notifs.notClosed
+
+                        delegate: NotifHistoryRow {
+                            required property var modelData
+
+                            notif: modelData
+                            flat: true
+                            width: notifColumn.width
+                        }
+                    }
+                }
+            }
+        }
+
+        Timer {
+            id: notifClearTimer
+            interval: 15
+            repeat: true
+            onTriggered: {
+                const batch = Notifs.notClosed.slice(0, 30);
+                if (batch.length === 0) {
+                    notifClearTimer.stop();
+                    return;
+                }
+                for (const n of batch)
+                    n.close();
             }
         }
 
