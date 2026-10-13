@@ -137,8 +137,6 @@ case "${1:-help}" in
             fi
         fi
 
-        export QT_QPA_PLATFORMTHEME=gtk3
-        export QT_STYLE_OVERRIDE=Fusion
 
         setsid "$QS" -c "$CONFIG" -n -d >"$bootlog" 2>&1 &
         sleep 0.5
