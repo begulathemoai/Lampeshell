@@ -123,9 +123,12 @@ property string lastMessage: ""
             clearShader();
             return;
         }
-        shaderFile.setText(shaderSource());
         shaderActive = true;
-        sendShader(shaderPath);
+        const written = shaderFile.setText(shaderSource());
+        if (written && typeof written.then === "function")
+            written.then(() => root.sendShader(root.shaderPath));
+        else
+            sendShader(shaderPath);
         shaderPrune.running = false;
         shaderPrune.running = true;
     }
