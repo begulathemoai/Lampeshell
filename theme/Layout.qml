@@ -4,7 +4,7 @@ import QtQuick
 
 QtObject {
     property int topBarHeight: s(50)
-    property int sideBarWidth: 0
+    property int sideBarWidth: 10         // left bezel frame (the old dock is gone)
     property int rightBarWidth: 10        // the right bar stays a hairline bezel
     property int bottomBarHeight: s(10)
 

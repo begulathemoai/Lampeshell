@@ -104,8 +104,7 @@ Variants {
                 const cr = Math.min(cardR, cardW / 2, ch);
                 const open = chromeWindow.hasCard && ch > 0.5 && cardW > 1 && cx < x1 - 1;
 
-                let d = `M ${x0 + r},${y0}`
-                    + ` L ${x0},${y0 + r}`
+                let d = `M ${x0},${y0 + r}`
                     + ` L ${x0},${y1 - r}`
                     + ` Q ${x0},${y1} ${x0 + r},${y1}`
                     + ` L ${x1 - r},${y1}`
@@ -115,7 +114,8 @@ Variants {
                     return d
                         + ` L ${x1},${y0 + r}`
                         + ` Q ${x1},${y0} ${x1 - r},${y0}`
-                        + ` L ${x0 + r},${y0} Z`;
+                        + ` L ${x0 + r},${y0}`
+                        + ` Q ${x0},${y0} ${x0},${y0 + r} Z`;
                 }
 
                 d += ` L ${x1},${y0 + ch + f}`
@@ -126,7 +126,8 @@ Variants {
 
                 return d
                     + ` Q ${cx},${y0} ${cx - f},${y0}`
-                    + ` L ${x0 + r},${y0} Z`;
+                    + ` L ${x0 + r},${y0}`
+                    + ` Q ${x0},${y0} ${x0},${y0 + r} Z`;
             }
 
             ShapePath {

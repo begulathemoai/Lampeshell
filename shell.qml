@@ -23,6 +23,9 @@ ShellRoot {
     BottomBar {
         id: bottomBar
     }
+    LeftBar {
+        id: leftBar
+    }
     RightBar {
         id: rightBar
     }
