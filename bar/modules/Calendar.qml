@@ -18,7 +18,7 @@ Item {
         radius: height / 2
 
         color: {
-            if (calendarWidget.visible)
+            if (DashboardState.open)
 
                 return Qt.tint(Theme.surface_container, Qt.rgba(Theme.on_surface.r, Theme.on_surface.g, Theme.on_surface.b, 0.12));
             if (pillMouse.containsMouse)
@@ -48,7 +48,7 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: calendarWidget.visible = !calendarWidget.visible
+            onClicked: DashboardState.requestToggle()
         }
 
         Text {
@@ -71,10 +71,5 @@ Item {
                 }
             }
         }
-    }
-
-    CalendarWidget {
-        id: calendarWidget
-        visible: false
     }
 }

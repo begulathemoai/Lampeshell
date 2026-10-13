@@ -1,0 +1,185 @@
+import QtQuick
+import qs.theme
+import qs.services
+
+// Compact now-playing card for the Dashboard tab, mirroring caelestia's
+// modules/dashboard/dash/Media.qml: cover art ringed by a 180° progress arc,
+// centred title/album/artist, and a transport row.
+Item {
+    id: root
+
+    implicitWidth: Layout.s(200)
+    implicitHeight: Layout.s(440)
+
+    readonly property var player: Players.active
+    readonly property real progress: player && player.length > 0 ? (player.position % player.length) / player.length : 0
+    readonly property color accent: Theme.primary
+
+    // MPRIS position only notifies on change; poll it while playing.
+    Timer {
+        running: root.player ? root.player.isPlaying : false
+        interval: 1000
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: {
+            if (root.player)
+                root.player.positionChanged();
+        }
+    }
+
+    Item {
+        id: coverWrap
+
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: Layout.s(132)
+        height: width
+
+        ProgressRing {
+            id: ring
+
+            anchors.centerIn: parent
+            width: coverWrap.width + Layout.s(12) + strokeWidth * 2
+            height: width
+            value: root.progress
+            strokeWidth: Layout.s(5)
+            startAngle: -180
+            sweepAngle: 180
+            fgColor: root.accent
+            bgColor: Theme.surface_container_highest
+        }
+
+        Rectangle {
+            id: cover
+
+            anchors.centerIn: parent
+            width: coverWrap.width
+            height: width
+            radius: Layout.s(18)
+            color: Theme.surface_container_high
+            clip: true
+
+            Image {
+                id: art
+
+                anchors.fill: parent
+                source: root.player ? (root.player.trackArtUrl ?? "") : ""
+                fillMode: Image.PreserveAspectCrop
+                asynchronous: true
+                visible: status === Image.Ready
+            }
+
+            Text {
+                anchors.centerIn: parent
+                visible: !art.visible
+                text: "music_note"
+                color: Theme.on_surface_variant
+                font {
+                    family: Layout.fontIcons
+                    pixelSize: Layout.s(40)
+                }
+            }
+        }
+    }
+
+    Column {
+        id: info
+
+        anchors.top: coverWrap.bottom
+        anchors.topMargin: Layout.s(16)
+        anchors.left: parent.left
+        anchors.right: parent.right
+        spacing: Layout.s(3)
+
+        Text {
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideRight
+            text: root.player ? (root.player.trackTitle || "Unknown title") : "No media"
+            color: root.accent
+            font {
+                family: Layout.fontSans
+                pixelSize: Layout.s(15)
+                weight: Font.Medium
+            }
+        }
+
+        Text {
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideRight
+            text: root.player ? (root.player.trackAlbum || "Unknown album") : ""
+            color: Theme.outline
+            font {
+                family: Layout.fontSans
+                pixelSize: Layout.s(12)
+            }
+        }
+
+        Text {
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideRight
+            text: root.player ? (root.player.trackArtist || "Unknown artist") : ""
+            color: Theme.secondary
+            font {
+                family: Layout.fontSans
+                pixelSize: Layout.s(12)
+            }
+        }
+    }
+
+    Row {
+        id: controls
+
+        anchors.top: info.bottom
+        anchors.topMargin: Layout.s(16)
+        anchors.horizontalCenter: parent.horizontalCenter
+        spacing: Layout.s(10)
+
+        Repeater {
+            model: [
+                { icon: "skip_previous", action: "previous", size: 26, enabled: !!root.player && root.player.canGoPrevious },
+                { icon: root.player && root.player.isPlaying ? "pause" : "play_arrow", action: "toggle", size: 34, enabled: !!root.player && root.player.canTogglePlaying },
+                { icon: "skip_next", action: "next", size: 26, enabled: !!root.player && root.player.canGoNext }
+            ]
+
+            delegate: Rectangle {
+                required property var modelData
+
+                width: modelData.action === "toggle" ? Layout.s(46) : Layout.s(36)
+                height: width
+                radius: width / 2
+                color: modelData.action === "toggle" ? root.accent : "transparent"
+                opacity: modelData.enabled ? 1 : 0.4
+
+                Text {
+                    anchors.centerIn: parent
+                    text: modelData.icon
+                    color: modelData.action === "toggle" ? Theme.on_primary : Theme.on_surface
+                    font {
+                        family: Layout.fontIcons
+                        pixelSize: Layout.s(modelData.size)
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    enabled: modelData.enabled
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (!root.player)
+                            return;
+                        if (modelData.action === "toggle")
+                            root.player.togglePlaying();
+                        else if (modelData.action === "next")
+                            root.player.next();
+                        else if (modelData.action === "previous")
+                            root.player.previous();
+                    }
+                }
+            }
+        }
+    }
+}

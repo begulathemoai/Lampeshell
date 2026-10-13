@@ -82,6 +82,11 @@ ShellRoot {
         sessionHandler: sessionWindow.open
     }
 
+    Dashboard {
+        id: dashboardWindow
+        closeSidebarHandler: quickSettingsWindow.close
+    }
+
     Settings {
         id: settingsWindow
     }

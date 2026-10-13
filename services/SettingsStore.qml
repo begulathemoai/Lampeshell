@@ -25,7 +25,10 @@ Singleton {
         screenOffAfterMin: 10,
         suspendAfterMin: 0,
         dockPosition: "left",
-        barPosition: "top"
+        barPosition: "top",
+        dashboardEnabled: true,
+        weatherLocation: "",
+        weatherUnits: "metric"
     })
 
     property var values: root.defaults

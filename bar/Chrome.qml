@@ -32,6 +32,9 @@ Variants {
         readonly property bool hasCard: PanelState.screenName.length === 0
             || PanelState.screenName === modelData.name
 
+        readonly property bool hasDashCard: DashboardState.screenName.length === 0
+            || DashboardState.screenName === modelData.name
+
         WlrLayershell.layer: WlrLayer.Top
         WlrLayershell.namespace: "quickshell-bezels"
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
@@ -90,6 +93,13 @@ Variants {
 
             readonly property real cardR: Layout.panelRadius
 
+            // Top-centre dashboard card.
+            readonly property real dashW: DashboardState.panelWidth
+            readonly property real dashH: DashboardState.revealHeight
+            readonly property real dashX: (sw - dashW) / 2
+            readonly property real dashRight: dashX + dashW
+            readonly property real dashFillet: Math.min(corner, dashW / 4)
+
 
             readonly property string outerPath: {
                 return `M 0,0 L ${sw},0 L ${sw},${sh} L 0,${sh} Z`;
@@ -104,28 +114,50 @@ Variants {
                 const cr = Math.min(cardR, cardW / 2, ch);
                 const open = chromeWindow.hasCard && ch > 0.5 && cardW > 1 && cx < x1 - 1;
 
+                // Centre dashboard notch.
+                const dch = Math.min(dashH, cutB - cutT - corner - dashFillet);
+                const dcr = Math.min(Layout.panelRadius, dashW / 2, dch);
+                const dopen = chromeWindow.hasDashCard && dch > 0.5 && dashW > 1
+                    && dashX > x0 + r && dashRight < x1 - r;
+
+                // Left side and bottom are shared.
                 let d = `M ${x0},${y0 + r}`
                     + ` L ${x0},${y1 - r}`
                     + ` Q ${x0},${y1} ${x0 + r},${y1}`
                     + ` L ${x1 - r},${y1}`
                     + ` Q ${x1},${y1} ${x1},${y1 - r}`;
 
-                if (!open) {
-                    return d
-                        + ` L ${x1},${y0 + r}`
-                        + ` Q ${x1},${y0} ${x1 - r},${y0}`
-                        + ` L ${x0 + r},${y0}`
-                        + ` Q ${x0},${y0} ${x0},${y0 + r} Z`;
+                // Right edge, then traverse the top edge right-to-left,
+                // dipping around the sidebar card and/or the dashboard notch.
+                let cursor; // current x while walking the top edge leftwards
+
+                if (open) {
+                    d += ` L ${x1},${y0 + ch + f}`
+                        + ` Q ${x1},${y0 + ch} ${x1 - f},${y0 + ch}`
+                        + ` L ${cx + cr},${y0 + ch}`
+                        + ` Q ${cx},${y0 + ch} ${cx},${y0 + ch - cr}`
+                        + ` L ${cx},${y0 + f}`
+                        + ` Q ${cx},${y0} ${cx - f},${y0}`;
+                    cursor = cx - f;
+                } else {
+                    d += ` L ${x1},${y0 + r}`
+                        + ` Q ${x1},${y0} ${x1 - r},${y0}`;
+                    cursor = x1 - r;
                 }
 
-                d += ` L ${x1},${y0 + ch + f}`
-                    + ` Q ${x1},${y0 + ch} ${x1 - f},${y0 + ch}`
-                    + ` L ${cx + cr},${y0 + ch}`
-                    + ` Q ${cx},${y0 + ch} ${cx},${y0 + ch - cr}`
-                    + ` L ${cx},${y0 + f}`;
+                if (dopen && dashRight < cursor - 1) {
+                    d += ` L ${dashRight + dashFillet},${y0}`
+                        + ` Q ${dashRight},${y0} ${dashRight},${y0 + dashFillet}`
+                        + ` L ${dashRight},${y0 + dch - dcr}`
+                        + ` Q ${dashRight},${y0 + dch} ${dashRight - dcr},${y0 + dch}`
+                        + ` L ${dashX + dcr},${y0 + dch}`
+                        + ` Q ${dashX},${y0 + dch} ${dashX},${y0 + dch - dcr}`
+                        + ` L ${dashX},${y0 + dashFillet}`
+                        + ` Q ${dashX},${y0} ${dashX - dashFillet},${y0}`;
+                    cursor = dashX - dashFillet;
+                }
 
                 return d
-                    + ` Q ${cx},${y0} ${cx - f},${y0}`
                     + ` L ${x0 + r},${y0}`
                     + ` Q ${x0},${y0} ${x0},${y0 + r} Z`;
             }
