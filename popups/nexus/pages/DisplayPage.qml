@@ -74,13 +74,17 @@ PageBase {
                         ? "off"
                         : (NightLight.resolvedBackend === "gamma" && !NightLight.gammaSupported
                             ? "screen gamma unavailable"
-                            : (NightLight.ddcControl === "0x14"
-                                && Object.keys(NightLight.presetTable ?? {}).length === 0
-                                ? "display offers no usable temperature preset"
+                            : (NightLight.ddcControl === "0x14" && !NightLight.presetsUsable
+                                ? "no warmer preset on this display"
                                 : (NightLight.writePending
                                     ? "applying…"
                                     : (NightLight.writeVerified
-                                        ? "on at " + Math.round(NightLight.temperature) + " K"
+                                        ? (NightLight.achievedKelvin > 0
+                                            && Math.abs(NightLight.achievedKelvin
+                                                - NightLight.temperature) > 100
+                                            ? "closest the display offers: "
+                                                + NightLight.achievedKelvin + " K"
+                                            : "on at " + Math.round(NightLight.temperature) + " K")
                                         : "display refused the change"))))))
         }
     }

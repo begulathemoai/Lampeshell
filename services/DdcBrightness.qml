@@ -7,8 +7,24 @@ import Quickshell.Io
 Singleton {
     id: root
 
-    readonly property int pollIntervalMs: 2000
+    // ddcutil holds an exclusive lock on the I2C bus and waits 0ms for it,
+    // so anything else touching the display at that moment gets
+    // DDCRC_VERIFY instead of a write. Two seconds collided with the night
+    // light's writes constantly, and a brightness value does not need
+    // second-level resolution.
+    readonly property int pollIntervalMs: 5000
     readonly property real nudgeStep: 0.05 // matches Caelestia's 5%
+
+    // Shared with services/NightLight.qml: ddcutil takes an exclusive lock on
+    // the I2C bus and does not wait for it, so two of our own processes
+    // overlapping - a brightness poll and a colour write - make the loser
+    // fail with DDCRC_VERIFY, which is indistinguishable from the display
+    // refusing the change. flock makes them queue.
+    readonly property string ddcLock: "/tmp/lampshell-ddc.lock"
+
+    function ddc(args) {
+        return "flock -w 15 " + ddcLock + " " + args;
+    }
 
     property int bus: -1
     property real level: 0.0
@@ -18,7 +34,7 @@ Singleton {
 
     Process {
         id: detectProc
-        command: ["sh", "-c", "ddcutil detect --brief 2>/dev/null || true"]
+        command: ["sh", "-c", ddc("ddcutil detect --brief") + " 2>/dev/null || true"]
         running: true
         stdout: StdioCollector {
             id: detectCollector
@@ -55,7 +71,7 @@ Singleton {
     function refresh() {
         if (bus < 0)
             return;
-        queryProc.command = ["sh", "-c", "ddcutil --bus " + root.bus + " getvcp 10 2>/dev/null || true"];
+        queryProc.command = ["sh", "-c", ddc("ddcutil --bus " + root.bus + " getvcp 10") + " 2>/dev/null || true"];
         queryProc.running = true;
     }
 
@@ -81,7 +97,7 @@ Singleton {
         const pct = Math.round(Math.max(0, Math.min(1, fraction)) * 100);
         level = pct / 100.0;
         settleTimer.restart();
-        setterProc.command = ["sh", "-c", "ddcutil --bus " + root.bus + " setvcp 10 " + pct + " 2>&1 || true"];
+        setterProc.command = ["sh", "-c", ddc("ddcutil --bus " + root.bus + " setvcp 10 " + pct) + " 2>&1 || true"];
         setterProc.running = true;
     }
 

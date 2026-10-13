@@ -111,6 +111,13 @@ property string lastMessage: ""
     property bool writeVerified: false
     property bool writePending: false
     property int expectedValue: 0
+    // What the display actually reports after the write. A preset control
+    // can only pick from the presets it has, so asking for 5200 K on a
+    // display whose only known preset is 6500 K "succeeds" and changes
+    // nothing - reporting the requested temperature in that case is how the
+    // status row ended up claiming to be filtering while the screen sat at
+    // neutral.
+    property int achievedKelvin: 0
 
     // DDC can only reach the monitor's own range. Gamma can go much warmer
     // than any monitor offers, which is why the slider bounds follow the
@@ -183,6 +190,16 @@ property string lastMessage: ""
     }
 
     // step = (kelvin - base) / step, in this display's own units
+    // ddcutil locks the I2C bus and does not wait for it: two of our own
+    // processes overlapping - a colour write and a brightness poll - make
+    // the loser fail with DDCRC_VERIFY, which looks exactly like the display
+    // refusing the change. flock makes them queue instead.
+    readonly property string ddcLock: "/tmp/lampshell-ddc.lock"
+    function ddcCall(args) {
+        const inner = ["ddcutil"].concat(args).map(a => "'" + String(a).replace(/'/g, "'\\''") + "'").join(" ");
+        return ["sh", "-c", "flock -w 15 " + ddcLock + " " + inner];
+    }
+
     function stepFor(kelvin) {
         const clamped = Math.max(tempBase, Math.min(ddcMax, kelvin));
         return Math.max(0, Math.min(100, Math.round((clamped - tempBase) / Math.max(1, tempStep))));
@@ -252,7 +269,7 @@ property string lastMessage: ""
 
     function setForAll(args) {
         for (let i = 1; i <= ddcDisplays; i++)
-            ddcSet.command = ["ddcutil", "--display", String(i)].concat(args);
+            ddcSet.command = ddcCall(["--display", String(i)].concat(args));
         writePending = true;
         writeVerified = false;
         ddcSet.running = false;
@@ -263,10 +280,20 @@ property string lastMessage: ""
     // Read the control back and compare with what was asked for.
     function verifyDdc() {
         verifyProc.command = ["sh", "-c",
-            "ddcutil --display " + probeDisplay + " getvcp " + ddcControl
-            + " 2>/dev/null || true"];
+            ddcCall(["--display", String(probeDisplay), "getvcp", ddcControl])
+                .slice(2).join(" ") + " 2>/dev/null || true"];
         verifyProc.running = false;
         verifyProc.running = true;
+    }
+
+    // A table that only contains neutral (6500 K) cannot filter anything, so
+    // it does not count as a usable control.
+    readonly property bool presetsUsable: {
+        for (const k of Object.keys(presetTable ?? {})) {
+            if (parseInt(k, 10) < 6000)
+                return true;
+        }
+        return false;
     }
 
     function nearestPreset(kelvin) {
@@ -300,7 +327,7 @@ property string lastMessage: ""
         }
         // Learn 0x0b's units from the display's own description of 0x0c
         // before using them.
-        readUnits.command = ["ddcutil", "--display", "1", "getvcp", "0x0c"];
+        readUnits.command = ddcCall(["--display", "1", "getvcp", "0x0c"]);
         readUnits.running = false;
         readUnits.running = true;
     }
@@ -313,23 +340,23 @@ property string lastMessage: ""
     function probeOn(display) {
         probeDisplay = display;
         probeStage = "read0b";
-        read0b.command = ["ddcutil", "--display", String(display), "getvcp", "0x0b"];
+        read0b.command = ddcCall(["--display", String(display), "getvcp", "0x0b"]);
         read0b.running = false;
         read0b.running = true;
     }
 
     function tryWrite0b() {
         probeStage = "write0b";
-        write0b.command = ["ddcutil", "--display", String(probeDisplay),
-            "setvcp", "0x0b", String(probeValue)];
+        write0b.command = ddcCall(["--display", String(probeDisplay),
+            "setvcp", "0x0b", String(probeValue)]);
         write0b.running = false;
         write0b.running = true;
     }
 
     function tryWrite14() {
         probeStage = "write14";
-        write14.command = ["ddcutil", "--display", String(probeDisplay),
-            "setvcp", "0x14", String(probePreset)];
+        write14.command = ddcCall(["--display", String(probeDisplay),
+            "setvcp", "0x14", String(probePreset)]);
         write14.running = false;
         write14.running = true;
     }
@@ -358,7 +385,7 @@ property string lastMessage: ""
         scanningPresets = true;
         scanIndex = 0;
         scanTable = ({});
-        read14Again.command = ["ddcutil", "--display", String(probeDisplay), "getvcp", "0x14"];
+        read14Again.command = ddcCall(["--display", String(probeDisplay), "getvcp", "0x14"]);
         read14Again.running = false;
         read14Again.running = true;
     }
@@ -370,8 +397,8 @@ property string lastMessage: ""
             presetTable = scanTable;
             SettingsStore.set("nightLightPresets", JSON.stringify(scanTable));
             scanRestore = 0;
-            ddcSet.command = ["ddcutil", "--display", String(probeDisplay),
-                "setvcp", "0x14", String(restored)];
+            ddcSet.command = ddcCall(["--display", String(probeDisplay),
+                "setvcp", "0x14", String(restored)]);
             ddcSet.running = false;
             ddcSet.running = true;
             apply();
@@ -381,11 +408,14 @@ property string lastMessage: ""
         // ddcutil takes a flock on the I2C bus and a getvcp that loses the
         // race returns nothing at all - which silently threw away most of the
         // table the first time this ran.
+        const w = ddcCall(["--display", String(probeDisplay), "setvcp", "0x14",
+            String(scanIndex)]).slice(2).join(" ");
+        const r = ddcCall(["--display", String(probeDisplay), "getvcp", "0x14"])
+            .slice(2).join(" ");
         scanStep.command = ["sh", "-c",
-            "ddcutil --display " + probeDisplay + " setvcp 0x14 " + scanIndex
-            + " >/dev/null 2>&1; "
+            w + " >/dev/null 2>&1; "
             + "i=0; while [ $i -lt 4 ]; do "
-            + "out=$(ddcutil --display " + probeDisplay + " getvcp 0x14 2>/dev/null); "
+            + "out=$(" + r + " 2>/dev/null); "
             + "case \"$out\" in *' K (0x'*) echo \"$out\"; exit 0;; esac; "
             + "i=$((i+1)); sleep 1; done"];
         scanStep.running = false;
@@ -442,10 +472,15 @@ property string lastMessage: ""
                 const text = String(this.text ?? "");
                 root.writePending = false;
                 if (root.ddcControl === "0x14") {
-                    const m = text.match(/\(0x([0-9a-fA-F]+)\)/);
-                    root.writeVerified = m !== null && parseInt(m[1], 16) === root.expectedValue;
+                    const m = text.match(/(\d+)\s*K\s*\(0x([0-9a-fA-F]+)\)/);
+                    if (m !== null)
+                        root.achievedKelvin = parseInt(m[1], 10);
+                    root.writeVerified = m !== null && parseInt(m[2], 16) === root.expectedValue;
                 } else if (root.ddcControl === "0x0b") {
                     const m = text.match(/:\s*(\d+)\s*degree/);
+                    if (m !== null)
+                        root.achievedKelvin = Math.round(root.tempBase
+                            + parseInt(m[1], 10) * root.tempStep);
                     root.writeVerified = m !== null && parseInt(m[1], 10) === root.expectedValue;
                 } else if (root.ddcControl === "0x1a") {
                     const m = text.match(/current value\s*=\s*(\d+)/);
@@ -549,8 +584,8 @@ property string lastMessage: ""
                 const t = String(this.text ?? "");
                 if (/not writable/i.test(t)) {
                     // 0x0b is read-only here; try the preset control.
-                    read14.command = ["ddcutil", "--display", String(probeDisplay),
-                        "getvcp", "0x14"];
+                    read14.command = ddcCall(["--display", String(probeDisplay),
+                        "getvcp", "0x14"]);
                     read14.running = false;
                     read14.running = true;
                 } else {
@@ -635,7 +670,7 @@ property string lastMessage: ""
                 root.probeOn(1);
             }
         }
-        command: ["sh", "-c", "ddcutil --display 1 getvcp 0x1a 2>/dev/null || true"]
+        command: ["sh", "-c", ddcCall(["--display", "1", "getvcp", "0x1a"]).slice(2).join(" ") + " 2>/dev/null || true"]
     }
 
     Process {
@@ -744,6 +779,8 @@ property string lastMessage: ""
                 resolved: root.resolvedBackend,
                 ddcDisplays: root.ddcDisplays,
                 ddcControl: root.ddcControl,
+                achievedKelvin: root.achievedKelvin,
+                presetsUsable: root.presetsUsable,
                 tempBase: root.tempBase,
                 tempStep: root.tempStep,
                 blueMax: root.blueMax,
