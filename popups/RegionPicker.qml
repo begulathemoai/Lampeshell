@@ -71,8 +71,13 @@ Variants {
         visible: RegionPick.open && picker.isMine
 
         onVisibleChanged: {
-            if (visible)
-                Qt.callLater(function() { surface.forceActiveFocus(); });
+            if (!visible)
+                return;
+            picker.selX = 0;
+            picker.selY = 0;
+            picker.selW = 0;
+            picker.selH = 0;
+            Qt.callLater(function() { surface.forceActiveFocus(); });
         }
 
         Image {
