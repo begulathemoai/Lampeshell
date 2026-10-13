@@ -50,8 +50,10 @@ Variants {
         }
 
         function finishDrag() {
-            if (picker.selW < 12 || picker.selH < 12)
+            if (picker.selW < 12 || picker.selH < 12) {
+                RegionPick.cancel();
                 return;
+            }
             RegionPick.accept(
                 Math.round(picker.selX * picker.pxScale),
                 Math.round(picker.selY * picker.pxScale),
@@ -196,7 +198,14 @@ Variants {
             MouseArea {
                 id: dragArea
                 anchors.fill: parent
-                onPressed: function(event) { picker.beginDrag(Qt.point(event.x, event.y)); }
+                acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                onPressed: function(event) {
+                    if (event.button === Qt.RightButton || event.button === Qt.MiddleButton) {
+                        RegionPick.cancel();
+                        return;
+                    }
+                    picker.beginDrag(Qt.point(event.x, event.y));
+                }
                 onPositionChanged: function(event) {
                     if (pressed)
                         picker.updateDrag(Qt.point(event.x, event.y));

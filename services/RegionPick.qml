@@ -13,6 +13,20 @@ Singleton {
     property bool open: false
     property string state: ""
 
+    Timer {
+        id: selfDismiss
+        interval: 90000
+        onTriggered: {
+            if (root.open) {
+                root.state = "cancelled";
+                root.open = false;
+            }
+        }
+    }
+
+    onOpenChanged: if (open)
+        selfDismiss.restart()
+
     readonly property string jobPath: {
         const base = Quickshell.env("XDG_STATE_HOME")
             || (Quickshell.env("HOME") + "/.local/state");

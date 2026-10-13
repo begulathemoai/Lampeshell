@@ -8,6 +8,12 @@ err() {
     echo "lampshell: $*" >&2
 }
 
+need() {
+    command -v "$1" >/dev/null 2>&1 && return 0
+    err "$2 needs '$1', which is not installed"
+    return 1
+}
+
 usage() {
     cat <<EOF
 usage: lampshell <command> [args]
@@ -511,8 +517,14 @@ case "${1:-help}" in
                 grim -o "$output" "$outfile" || { err "grim failed"; exit 1; }
                 ;;
             region)
+                need grim "region screenshots" || exit 1
+                need jq "region screenshots" || exit 1
+                need magick "region screenshots" || exit 1
+
                 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/lampshell"
                 job="$state_dir/region-job.json"
+                mkdir -p "$state_dir" \
+                    || { err "could not create $state_dir"; exit 1; }
                 staging=$(mktemp "${TMPDIR:-/tmp}/lampshell-region-XXXXXX.png") \
                     || { err "could not create a staging file"; exit 1; }
                 cleanup_region() {
@@ -522,11 +534,12 @@ case "${1:-help}" in
                 trap cleanup_region EXIT
 
                 grim -o "$output" "$staging" || { err "grim failed"; exit 1; }
-                printf '{"image":"%s","monitor":"%s"}\n' "$staging" "$output" > "$job"
+                printf '{"image":"%s","monitor":"%s"}\n' "$staging" "$output" > "$job" \
+                    || { err "could not write the picker job to $job"; exit 1; }
                 call regionPicker open >/dev/null 2>&1
 
                 sel=""; waited=0
-                while [ "$waited" -lt 1200 ]; do
+                while [ "$waited" -lt 400 ]; do
                     sel=$(call regionPicker state 2>/dev/null)
                     [ -n "$sel" ] && break
                     if ! is_running; then
@@ -538,7 +551,7 @@ case "${1:-help}" in
                 done
 
                 if [ -z "$sel" ]; then
-                    err "region selection timed out"
+                    err "region selection timed out after 60s; drag to pick, or press Esc"
                     exit 1
                 fi
                 if [ "$sel" = "cancelled" ]; then
