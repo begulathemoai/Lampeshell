@@ -90,6 +90,8 @@ PanelWindow {
 
     property bool shown: false
 
+    onShownChanged: panelBg.slideOffset = shown ? 0 : 1;
+
     property bool settling: false
 
     Timer {
@@ -153,11 +155,7 @@ PanelWindow {
         id: focusGrab
         windows: [quickSettingsWindow]
         onCleared: {
-            if (quickSettingsWindow.settling) {
-                Qt.callLater(function() { focusGrab.active = true; });
-                return;
-            }
-            quickSettingsWindow.close();
+            Qt.callLater(function() { focusGrab.active = true; });
         }
     }
 
@@ -177,23 +175,20 @@ PanelWindow {
         color: Theme.surface_container_lowest
         focus: true
 
-        transformOrigin: Item.TopLeft
-        scale: quickSettingsWindow.shown ? 1 : 0.84
-        opacity: quickSettingsWindow.shown ? 1 : 0
+        property real slideOffset: 1
 
-        Behavior on scale {
-            SpringAnimation {
-                spring: 280
-                damping: 24
-            }
+        transform: Translate {
+            x: panelBg.slideOffset * Layout.s(28)
         }
+        opacity: Math.max(0, 1 - panelBg.slideOffset)
 
-        Behavior on opacity {
+        Behavior on slideOffset {
             NumberAnimation {
-                duration: 200
+                duration: 400
                 easing.type: Easing.OutCubic
             }
         }
+
 
         Keys.onEscapePressed: function(event) {
             quickSettingsWindow.close();
