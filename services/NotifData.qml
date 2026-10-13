@@ -8,12 +8,21 @@ import qs.services
 QtObject {
     id: notif
 
-    property bool popup: true
+    property bool popup: false
     property bool closed: false
 
-    property var locks: new Set()
+    property bool exiting: false
+
+    property var locks: []
 
     property date time: new Date()
+    readonly property real timeMs: {
+        const t = notif.time;
+        if (t instanceof Date)
+            return t.getTime();
+        const parsed = Date.parse(t);
+        return isNaN(parsed) ? Date.now() : parsed;
+    }
     property int ageMins: 0
     readonly property string timeStr: {
         if (ageMins < 1)
@@ -35,7 +44,7 @@ QtObject {
     property string appIcon: ""
     property string appName: ""
     property string image: ""
-    property real expireTimeout: 0
+    property real expireTimeout: -1 // -1 = server default (fdo spec)
     property int urgency: NotificationUrgency.Normal
     property bool resident: false
     property bool hasActionIcons: false
@@ -57,25 +66,49 @@ QtObject {
         interval: 60000
         triggeredOnStart: true
         onTriggered: {
-            const diff = Date.now() - notif.time.getTime();
-            notif.ageMins = Math.floor(diff / 60000);
+            const diff = Date.now() - notif.timeMs;
+            notif.ageMins = Math.max(0, Math.floor(diff / 60000));
         }
     }
 
     readonly property Timer expireTimer: Timer {
-        running: true
-        interval: {
-            if (notif.expireTimeout > 0)
-                return notif.expireTimeout;
-            if (notif.hasFullscreen)
-                return notif.fullscreenExpireTimeout;
-            return notif.defaultExpireTimeout;
+        onTriggered: notif.retract();
+    }
+
+    function retract() {
+        if (exiting)
+            return;
+        exiting = true;
+        popup = false;
+    }
+
+    function computeInterval() {
+        if (notif.expireTimeout > 0)
+            return notif.expireTimeout;
+        if (notif.expireTimeout === 0 || notif.resident)
+            return -1;
+        if (notif.hasFullscreen)
+            return notif.fullscreenExpireTimeout;
+        return notif.defaultExpireTimeout;
+    }
+
+    function scheduleExpire() {
+        const ms = computeInterval();
+        if (ms < 0 || (!Notifs.expire && !notif.hasFullscreen)) {
+            expireTimer.stop();
+            return;
         }
-        onTriggered: {
-            notif.popup = false;
-            if (notif.expireTimer.running)
-                notif.expireTimer.restart();
-        }
+        expireTimer.interval = ms;
+        expireTimer.restart();
+    }
+
+    function pauseExpire() {
+        expireTimer.stop();
+    }
+
+    function resumeExpire() {
+        if (!closed && popup)
+            scheduleExpire();
     }
 
     readonly property Connections conn: Connections {
@@ -105,21 +138,48 @@ QtObject {
         }
     }
 
-    function lock(item) { locks.add(item); }
+    function lock(item) {
+        if (!locks.includes(item))
+            locks = [...locks, item];
+    }
+
     function unlock(item) {
-        locks.delete(item);
+        if (!locks.includes(item))
+            return;
+        locks = locks.filter(x => x !== item);
         if (closed)
             close();
     }
 
     function close() {
         closed = true;
-        if (locks.size === 0 && Notifs.list.includes(this)) {
-            Notifs.list = Notifs.list.filter(n => n !== this);
-            if (notification && typeof notification.dismiss === "function")
-                notification.dismiss();
-            destroy();
+        if (locks.length > 0) {
+            exiting = true;
+            return;
         }
+        notif.removeTimer.restart();
+    }
+
+    readonly property Timer removeTimer: Timer {
+        interval: 0
+        onTriggered: {
+            if (locks.length > 0 || closed === false)
+                return;
+            if (!Notifs.list.includes(notif))
+                return;
+            Notifs.list = Notifs.list.filter(n => n !== notif);
+            if (notif.notification && typeof notif.notification.dismiss === "function")
+                notif.notification.dismiss();
+            notif.destroy();
+        }
+    }
+
+    function endExit() {
+        if (!exiting)
+            return;
+        exiting = false;
+        if (closed)
+            close();
     }
 
     Component.onCompleted: {
@@ -140,5 +200,7 @@ QtObject {
             text: a.text,
             invoke: () => a.invoke()
         }));
+        if (popup)
+            scheduleExpire();
     }
 }

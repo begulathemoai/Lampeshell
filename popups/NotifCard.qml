@@ -13,6 +13,7 @@ Item {
     readonly property real cardWidth: 350
     readonly property bool isCritical: notif.urgency === NotificationUrgency.Critical
     readonly property bool isLow: notif.urgency === NotificationUrgency.Low
+    readonly property bool live: notif.notification !== null && notif.notification !== undefined
 
     readonly property string appIconUrl: {
         const icon = notif.appIcon;
@@ -29,9 +30,19 @@ Item {
     x: cardWidth
     opacity: 0
     Behavior on opacity { NumberAnimation { duration: 250 } }
+
+    readonly property bool isFresh: Date.now() - notif.timeMs < 1500
     Component.onCompleted: {
-        slideIn.start();
         card.notif.lock(card);
+        if (card.notif.exiting) {
+            card.x = cardWidth;
+            card.opacity = 0;
+        } else if (card.isFresh) {
+            slideIn.start();
+        } else {
+            card.x = 0;
+            card.opacity = 1;
+        }
     }
 
     ParallelAnimation {
@@ -70,19 +81,40 @@ Item {
             duration: 220
         }
         onFinished: {
-            if (card.notif)
-                card.notif.close();
+            if (!card.notif)
+                return;
+            card.notif.unlock(card);
+            card.notif.endExit();
         }
     }
 
-    function dismiss() {
-        if (slideOut.running)
+    function startExit() {
+        if (slideOut.running || !card.notif)
             return;
-        card.notif.lock(card);
+        if (card.opacity === 0)
+            return;
         slideOut.start();
     }
 
+    function dismiss() {
+        if (!card.notif || card.notif.closed)
+            return;
+        card.notif.close();
+    }
+
     Component.onDestruction: card.notif.unlock(card)
+
+    Connections {
+        target: card.notif
+        function onClosedChanged() {
+            if (card.notif.closed)
+                card.startExit();
+        }
+        function onPopupChanged() {
+            if (!card.notif.popup)
+                card.startExit();
+        }
+    }
 
     Rectangle {
         id: cardInner
@@ -113,9 +145,8 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             acceptedButtons: Qt.NoButton
-            onEntered: card.window.hoveredNotificationId = card.notif.notificationId
-            onExited: if (card.window.hoveredNotificationId === card.notif.notificationId)
-                          card.window.hoveredNotificationId = -1
+            onEntered: card.notif.pauseExpire()
+            onExited: card.notif.resumeExpire()
         }
 
         Column {
@@ -225,13 +256,17 @@ Item {
             }
 
             Row {
+                id: actionsRow
                 width: parent.width
                 spacing: 8
                 layoutDirection: Qt.RightToLeft
-                visible: (card.notif.actions || []).filter(a => a.identifier !== "default").length > 0
+                readonly property var shown: card.live
+                    ? (card.notif.actions || []).filter(a => a.identifier !== "default")
+                    : []
+                visible: shown.length > 0
 
                 Repeater {
-                    model: (card.notif.actions || []).filter(a => a.identifier !== "default")
+                    model: actionsRow.shown
                     delegate: Rectangle {
                         required property var modelData
                         radius: 14
@@ -257,7 +292,7 @@ Item {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                card.notif.lock(card);
+                                card.notif.pauseExpire();
                                 if (typeof modelData.invoke === "function")
                                     modelData.invoke();
                                 card.dismiss();
@@ -273,10 +308,10 @@ Item {
             acceptedButtons: Qt.LeftButton
             cursorShape: Qt.PointingHandCursor
             onClicked: {
-                const acts = (card.notif.actions || []).filter(a => a.identifier === "default");
-                if (acts.length > 0 && typeof acts[0].invoke === "function") {
-                    card.notif.lock(card);
-                    acts[0].invoke();
+                if (card.live) {
+                    const acts = (card.notif.actions || []).filter(a => a.identifier === "default");
+                    if (acts.length > 0 && typeof acts[0].invoke === "function")
+                        acts[0].invoke();
                 }
                 card.dismiss();
             }

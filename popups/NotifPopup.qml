@@ -28,7 +28,8 @@ Variants {
         Connections {
             target: Hyprland
             function onFocusedMonitorChanged() {
-                if (modelData.name === Hyprland.focusedMonitor.name)
+                const m = Hyprland.focusedMonitor;
+                if (m && modelData.name === m.name)
                     Notifs.focusedMonitor = monitor;
             }
         }
@@ -38,6 +39,8 @@ Variants {
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
         color: "transparent"
+
+        mask: Region { item: stack }
 
         anchors { top: true; right: true }
         margins { top: 40; right: 5 }
@@ -53,6 +56,7 @@ Variants {
         Item {
             id: stack
             width: 350
+            height: cardColumn.implicitHeight
             anchors.top: parent.top
             anchors.right: parent.right
             anchors.topMargin: 20

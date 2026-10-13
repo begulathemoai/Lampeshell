@@ -16,7 +16,7 @@ Singleton {
 
     property var list: []
     readonly property var notClosed: list.filter(n => !n.closed)
-    readonly property var popups: list.filter(n => n.popup && !n.closed)
+    readonly property var popups: list.filter(n => n.exiting || (n.popup && !n.closed))
 
     readonly property bool dnd: props.dnd
     function setDnd(enabled) { props.dnd = !!enabled; }
@@ -49,15 +49,10 @@ Singleton {
         reloadableId: "notifs"
     }
 
-    onDndChanged: {
-        if (root.loaded)
-            Notifs.lastError = ""; // touch to avoid linter
-    }    // ------- The bus -------
     NotificationServer {
         id: server
 
         bodyHyperlinksSupported: true
-        bodyImagesSupported: true
         bodyMarkupSupported: true
         actionsSupported: true
         imageSupported: true
@@ -86,13 +81,15 @@ Singleton {
         onLoaded: {
             try {
                 const data = JSON.parse(text());
+                const restored = [];
                 for (const n of data) {
                     if (n.notificationId === undefined && n.id !== undefined)
                         n.notificationId = n.id;
                     delete n.id;
-                    root.list.push(notifComp.createObject(root, n));
+                    restored.push(notifComp.createObject(root, n));
                 }
-                root.list.sort((a, b) => b.time - a.time);
+                restored.sort((a, b) => b.time - a.time);
+                root.list = restored;
             } catch (e) {
                 root.lastError = "could not parse notifs.json: " + e;
             }
