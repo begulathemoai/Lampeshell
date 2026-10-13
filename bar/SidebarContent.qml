@@ -13,7 +13,7 @@ Item {
 
     property bool isFocused: Hyprland.focusedMonitor
         && (Hyprland.focusedMonitor.name === (Layout.targetMonitor ?? ""))
-    property real uiScale: 1.3  // global scale-up for 4K, exposed for tuning
+    readonly property real uiScale: Layout.uiScale  // single source of truth
 
     readonly property real itemSpacing: 10 * uiScale
     readonly property real itemWidth: 56 * uiScale
