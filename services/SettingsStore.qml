@@ -20,7 +20,7 @@ Singleton {
         caffeine: false,
         nightLightEnabled: false,
         nightLightTemperature: 4500,
-        nightLightMethod: "",
+        nightLightBackend: "auto",
         lockAfterMin: 15,
         screenOffAfterMin: 10,
         suspendAfterMin: 0,

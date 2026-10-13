@@ -36,10 +36,6 @@ PageBase {
             icon: "light_mode"
             label: "Enabled"
             checked: NightLight.enabled
-            // Only blocked when gammastep is genuinely missing. A display
-            // that cannot do gamma stays toggleable: capability can change
-            // with a compositor restart or a different output, and the
-            // status row below says what the current answer is.
             enabled: NightLight.available
             onToggled: function(checked) {
                 NightLight.setEnabled(checked);
@@ -60,14 +56,32 @@ PageBase {
         }
 
         InfoRow {
+            label: "Method"
+            value: NightLight.ddcDisplays > 0
+                ? "Display (DDC), " + NightLight.ddcDisplays + " display(s)"
+                : (NightLight.gammaPresent
+                    ? (NightLight.gammaSupported ? "Screen gamma" : "Screen gamma unavailable")
+                    : "no method available")
+        }
+
+        InfoRow {
             label: "Status"
             value: !NightLight.available
-                ? "gammastep not installed"
-                : (!NightLight.supported
-                    ? "display cannot adjust gamma"
-                    : (NightLight.enabled
-                        ? "on at " + Math.round(NightLight.temperature) + " K"
-                        : "off"))
+                ? "install ddcutil or gammastep"
+                : (NightLight.scanningPresets
+                    ? "learning display presets…"
+                    : (!NightLight.enabled
+                        ? "off"
+                        : (NightLight.resolvedBackend === "gamma" && !NightLight.gammaSupported
+                            ? "screen gamma unavailable"
+                            : (NightLight.ddcControl === "0x14"
+                                && Object.keys(NightLight.presetTable ?? {}).length === 0
+                                ? "display offers no usable temperature preset"
+                                : (NightLight.writePending
+                                    ? "applying…"
+                                    : (NightLight.writeVerified
+                                        ? "on at " + Math.round(NightLight.temperature) + " K"
+                                        : "display refused the change"))))))
         }
     }
 }

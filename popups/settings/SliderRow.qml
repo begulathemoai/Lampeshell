@@ -111,11 +111,11 @@ Item {
 
                 onPressed: function(event) {
                     root.dragging = true;
-                    root.applyAt(event.x);
+                    track.applyAt(event.x);
                 }
                 onPositionChanged: function(event) {
                     if (root.dragging)
-                        root.applyAt(event.x);
+                        track.applyAt(event.x);
                 }
                 onReleased: {
                     root.dragging = false;
