@@ -148,7 +148,7 @@ build_plugin() {
         return 1
     fi
     echo "lampshell: building native plugin..."
-    cmake -B "$PLUGIN_DIR/build" -G Ninja -DCMAKE_BUILD_TYPE=Release >/dev/null || return 1
+    cmake -S "$PLUGIN_DIR" -B "$PLUGIN_DIR/build" -G Ninja -DCMAKE_BUILD_TYPE=Release >/dev/null || return 1
     cmake --build "$PLUGIN_DIR/build" >/dev/null || return 1
 }
 
