@@ -165,7 +165,7 @@ PanelWindow {
         topLeftRadius: 0
         topRightRadius: 0
         bottomLeftRadius: Layout.cornerRadius
-        bottomRightRadius: Layout.cornerRadius
+        bottomRightRadius: 0
 
         color: Theme.surface_container_lowest
         focus: true
@@ -192,14 +192,6 @@ PanelWindow {
         Keys.onEscapePressed: function(event) {
             quickSettingsWindow.close();
             event.accepted = true;
-        }
-
-        layer.enabled: true
-        layer.effect: MultiEffect {
-            shadowEnabled: true
-            shadowBlur: 1.0
-            shadowColor: Qt.rgba(Theme.shadow.r, Theme.shadow.g, Theme.shadow.b, 0.38)
-            shadowVerticalOffset: 10
         }
     }
 
