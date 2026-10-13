@@ -73,7 +73,7 @@ Variants {
 
             readonly property real cardW: cutR - cardX
 
-            readonly property real cardR: Layout.cornerRadius
+            readonly property real cardR: Layout.panelRadius
 
 
             readonly property string outerPath: {

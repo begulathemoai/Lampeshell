@@ -10,6 +10,8 @@ QtObject {
 
     property int cornerRadius: 20
 
+    property int panelRadius: 28
+
     property real uiScale: 1.3
 
     function s(n) { return Math.round(n * uiScale) }
