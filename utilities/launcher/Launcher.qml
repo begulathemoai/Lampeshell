@@ -187,10 +187,12 @@ PanelWindow {
         if (!launcherWindow.visible || launcherWindow.closing)
             return;
         launcherWindow.closing = true;
-        if (contentLoader.item)
+        if (contentLoader.item) {
+            contentLoader.item.disarmGrab();
             contentLoader.item.dismiss();
-        else
+        } else {
             launcherWindow.visible = false;
+        }
         closeWatchdog.restart();
     }
 
@@ -207,6 +209,8 @@ PanelWindow {
         interval: 800
         onTriggered: {
             if (launcherWindow.visible) {
+                if (contentLoader.item)
+                    contentLoader.item.disarmGrab();
                 launcherWindow.closing = false;
                 launcherWindow.visible = false;
             }
@@ -219,9 +223,10 @@ PanelWindow {
         activeAsync: launcherWindow.visible
 
         function exit() {
-            if (item)
+            if (item) {
+                item.disarmGrab();
                 item.dismiss();
-            else
+            } else
                 launcherWindow.visible = false;
         }
 
@@ -236,6 +241,10 @@ PanelWindow {
                     id: focusGrab
                     windows: [launcherWindow]
                     onCleared: launcherWindow.closeMenu()
+                }
+
+                function disarmGrab() {
+                    focusGrab.active = false;
                 }
 
                 function dismiss() {

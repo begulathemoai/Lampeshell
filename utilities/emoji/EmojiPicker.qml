@@ -43,8 +43,14 @@ PanelWindow {
     }
 
     function closeMenu() {
-        emojiWindow.visible = false;
+        disarmGrab();
         ctrl.commitRecents();
+    }
+
+    function disarmGrab() {
+        if (item)
+            item.disarmGrab();
+        emojiWindow.visible = false;
     }
 
     function processSelection(emojiChar, isShift) {
@@ -94,6 +100,10 @@ PanelWindow {
                     id: focusGrab
                     windows: [emojiWindow]
                     onCleared: emojiWindow.closeMenu()
+                }
+
+                function disarmGrab() {
+                    focusGrab.active = false;
                 }
 
                 Component.onCompleted: {

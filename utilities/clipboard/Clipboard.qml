@@ -42,8 +42,14 @@ PanelWindow {
         }
     }
 
-    function closeMenu() {
+    function disarmGrab() {
+        if (item)
+            item.disarmGrab();
         clipboardWindow.visible = false;
+    }
+
+    function closeMenu() {
+        disarmGrab();
     }
 
     LazyLoader {
@@ -63,6 +69,10 @@ PanelWindow {
                     id: focusGrab
                     windows: [clipboardWindow]
                     onCleared: clipboardWindow.closeMenu()
+                }
+
+                function disarmGrab() {
+                    focusGrab.active = false;
                 }
 
                 Component.onCompleted: {

@@ -53,6 +53,7 @@ PanelWindow {
 
     function close() {
         sessionBackend.cancel();
+        sessionFocusGrab.active = false;
         sessionWindow.visible = false;
     }
 
