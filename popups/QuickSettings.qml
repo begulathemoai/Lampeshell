@@ -260,7 +260,9 @@ PanelWindow {
             id: notifCard
             width: parent.width
             readonly property int listHeight: Math.min(notifColumn.implicitHeight, Layout.s(210))
-            readonly property int bodyHeight: Notifs.notClosed.length > 0 ? listHeight : Layout.s(88)
+            readonly property int bodyHeight: Notifs.notClosed.length > 0
+                ? Math.max(listHeight, Layout.s(88))
+                : Layout.s(88)
             implicitHeight: 14 + notifHeader.height + Layout.s(16) + bodyHeight + 14
             radius: 22
             color: Theme.surface_container_low
