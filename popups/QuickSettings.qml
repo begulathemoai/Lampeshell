@@ -177,8 +177,10 @@ PanelWindow {
 
     Item {
         id: cardHitArea
-        width: parent.width
-        height: PanelState.panelHeight
+        x: PanelState.leftInset + PanelState.cardOffset
+        width: Math.max(0, parent.width - PanelState.leftInset
+            - PanelState.cardOffset - Layout.rightBarWidth)
+        height: PanelState.cardHeight
     }
 
     Item {
@@ -207,6 +209,11 @@ PanelWindow {
         anchors.right: parent.right
         anchors.rightMargin: Layout.s(18)
         spacing: 14
+
+        transform: Translate {
+            x: PanelState.cardOffset
+        }
+        opacity: Math.max(0, Math.min(1, 1 - PanelState.offsetScale))
 
         onImplicitHeightChanged: quickSettingsWindow.publishGeometry()
 

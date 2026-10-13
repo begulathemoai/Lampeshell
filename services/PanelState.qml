@@ -12,35 +12,40 @@ Item {
 
     property real panelWidth: 0
     readonly property real leftInset: Layout.s(18)
-    readonly property real rightInset: 0
+    property real cardHeight: 0
 
-    property real panelHeight: 0
+    property real progress: 0
+
+    readonly property real offsetScale: 1 - Motion.ease(
+        Motion.curve(Motion.defaultSpatial), progress)
 
     property bool open: false
 
-    readonly property bool merged: panelHeight > 0.5
+    readonly property bool merged: offsetScale < 1
 
-    readonly property real fillet: Math.min(Layout.cornerRadius, panelHeight / 2)
+    readonly property real travel: panelWidth + Motion.offscreenGap
+    readonly property real cardOffset: travel * offsetScale
+
+    readonly property real fillet: Layout.cornerRadius
 
     function setContentSize(w, h) {
         if (panelWidth !== w)
             panelWidth = w;
-        targetHeight = h;
+        if (cardHeight !== h)
+            cardHeight = h;
     }
 
-    property real targetHeight: 0
-
     onOpenChanged: {
-        panelHeightAnim.from = panelHeight;
-        panelHeightAnim.to = open ? targetHeight : 0;
-        panelHeightAnim.restart();
+        panelAnim.from = progress;
+        panelAnim.to = open ? 1 : 0;
+        panelAnim.restart();
     }
 
     NumberAnimation {
-        id: panelHeightAnim
+        id: panelAnim
         target: root
-        property: "panelHeight"
-        duration: 400
-        easing.type: Easing.OutCubic
+        property: "progress"
+        duration: Motion.duration(Motion.defaultSpatial)
+        easing.type: Easing.Linear
     }
 }

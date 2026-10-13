@@ -66,8 +66,9 @@ Variants {
             readonly property real cutB: sh - Layout.bottomBarHeight
 
             readonly property real cardWinW: PanelState.panelWidth
-            readonly property real cardH: PanelState.panelHeight
+            readonly property real cardH: PanelState.cardHeight
             readonly property real cardX: sw - cardWinW + PanelState.leftInset
+                + PanelState.cardOffset
             readonly property real cardY: cutT
             readonly property real fillet: Math.min(PanelState.fillet, cardWinW / 2)
 
