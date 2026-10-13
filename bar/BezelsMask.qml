@@ -63,15 +63,8 @@ Variants {
                 Rectangle {
                     id: bezelBackground
                     anchors.fill: parent
-                    color: PanelState.merged ? Theme.surface_container_low : Theme.surface_container_lowest
+                    color: Theme.surface_container_lowest
                     layer.enabled: true
-
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: 280
-                            easing.type: Easing.OutCubic
-                        }
-                    }
 
                     layer.effect: MultiEffect {
                         maskSource: cutoutShape
