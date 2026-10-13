@@ -101,7 +101,7 @@ PanelWindow {
 
     Timer {
         id: hideWhenDone
-        interval: 210
+        interval: 460
         onTriggered: {
             if (!quickSettingsWindow.shown)
                 quickSettingsWindow.visible = false;
@@ -165,26 +165,25 @@ PanelWindow {
         topLeftRadius: 0
         topRightRadius: 0
         bottomLeftRadius: Layout.cornerRadius
-        bottomRightRadius: 0
+        bottomRightRadius: Layout.cornerRadius
 
         color: Theme.surface_container_lowest
         focus: true
 
+        transformOrigin: Item.TopLeft
+        scale: quickSettingsWindow.shown ? 1 : 0.84
         opacity: quickSettingsWindow.shown ? 1 : 0
-        transform: Translate {
-            id: panelSlide
-            y: quickSettingsWindow.shown ? 0 : -Layout.s(12)
+
+        Behavior on scale {
+            SpringAnimation {
+                spring: 280
+                damping: 24
+            }
         }
 
         Behavior on opacity {
             NumberAnimation {
-                duration: 190
-                easing.type: Easing.OutCubic
-            }
-        }
-        Behavior on y {
-            NumberAnimation {
-                duration: 230
+                duration: 200
                 easing.type: Easing.OutCubic
             }
         }
