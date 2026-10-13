@@ -127,10 +127,73 @@ property string lastMessage: ""
     readonly property real gammaMin: 1000
     readonly property real gammaMax: 6500
 
-    readonly property real minTemperature: resolvedBackend === "ddc" ? ddcMin : gammaMin
+    readonly property real overlayMin: 1000
+    readonly property real minTemperature: resolvedBackend === "ddc" ? ddcMin
+        : (resolvedBackend === "overlay" ? overlayMin : gammaMin)
     readonly property real maxTemperature: 6500
 
     readonly property bool available: resolvedBackend.length > 0
+
+    // A display can advertise a colour feature and still refuse every write to
+    // it, so "a DDC display exists" is not "DDC can filter". Without this the
+    // auto choice settles on a backend that does nothing and the toggle looks
+    // inert, which is how this feature spent an evening looking broken.
+    readonly property bool ddcUsable: ddcControl === "0x14"
+        ? presetsUsable
+        : (ddcControl === "0x0b" || ddcControl === "0x1a")
+
+    readonly property bool overlayActive: enabled && resolvedBackend === "overlay"
+
+    // A compositor overlay can only add light: it has no way to sample the
+    // screen behind it, so the tint has to be thin to avoid washing the
+    // desktop out, and it has to keep blue low. Washing towards white
+    // raises blue the most and turns a night light into pale peach; the
+    // yellow the eye reads as "evening" comes from blue being pulled down
+    // hard while green stays up, so that is what the tint is aimed at.
+    readonly property color overlayWashTarget: Qt.rgba(1, 0.84, 0.42, 1)
+    readonly property real overlayWash: 0.55
+    readonly property real overlayMaxAlpha: 0.22
+
+    readonly property color overlayColor: washOut(kelvinColor(temperature), overlayWash)
+
+    readonly property real overlayAlpha: {
+        if (!overlayActive)
+            return 0;
+        const strength = Math.max(0, Math.min(1, (maxTemperature - temperature) / 5500));
+        return strength * overlayMaxAlpha;
+    }
+
+    function washOut(c, amount) {
+        const t = overlayWashTarget;
+        return Qt.rgba(
+            c.r + (t.r - c.r) * amount,
+            c.g + (t.g - c.g) * amount,
+            c.b + (t.b - c.b) * amount,
+            1);
+    }
+
+    // Colour of light at a temperature, so the tint follows the same curve the
+    // hardware backends aim at instead of being tuned to one display.
+    function kelvinColor(kelvin) {
+        const t = Math.max(10, Math.min(400, kelvin / 100));
+        let r, g, b;
+        if (t <= 66)
+            r = 255;
+        else
+            r = 329.698727446 * Math.pow(t - 60, -0.1332047592);
+        if (t <= 66)
+            g = 99.4708025861 * Math.log(t) - 161.1195681661;
+        else
+            g = 288.1221695283 * Math.pow(t - 60, -0.0755148492);
+        if (t >= 66)
+            b = 255;
+        else if (t <= 19)
+            b = 0;
+        else
+            b = 138.5177312231 * Math.log(t - 10) - 305.0447927307;
+        const clamp = v => Math.max(0, Math.min(255, v)) / 255;
+        return Qt.rgba(clamp(r), clamp(g), clamp(b), 1);
+    }
 
     function setEnabled(on) {
         if (enabled === on)
@@ -174,19 +237,25 @@ property string lastMessage: ""
     }
 
     function resolve() {
-        if (backend === "ddc" && ddcDisplays > 0) {
+        if (backend === "overlay") {
+            resolvedBackend = "overlay";
+        } else if (backend === "ddc" && ddcDisplays > 0 && ddcUsable) {
             resolvedBackend = "ddc";
-        } else if (backend === "gamma" && gammaPresent) {
+        } else if (backend === "gamma" && gammaPresent && gammaSupported) {
             resolvedBackend = "gamma";
-        } else if (ddcDisplays > 0) {
+        } else if (ddcDisplays > 0 && ddcUsable) {
             resolvedBackend = "ddc";
-        } else if (gammaPresent) {
+        } else if (gammaPresent && gammaSupported) {
             resolvedBackend = "gamma";
         } else {
+            // Deliberately not the screen filter. It cannot set a white point
+            // - an overlay surface can only add light, never sample what is
+            // behind it - so on a dark desktop any visible tint lifts the
+            // blacks and reads as a wash rather than as evening. Choosing it
+            // is a decision, so it is only ever made by hand.
             resolvedBackend = "";
         }
-        if (resolvedBackend.length > 0)
-            apply();
+        apply();
     }
 
     // step = (kelvin - base) / step, in this display's own units
@@ -212,6 +281,8 @@ property string lastMessage: ""
             restore();
             return;
         }
+        if (resolvedBackend === "overlay")
+            return;
         if (resolvedBackend === "ddc")
             writeDdc(stepFor(temperature));
         else
@@ -777,6 +848,9 @@ property string lastMessage: ""
                 available: root.available,
                 backend: root.backend,
                 resolved: root.resolvedBackend,
+                overlayActive: root.overlayActive,
+                overlayAlpha: root.overlayAlpha,
+                ddcUsable: root.ddcUsable,
                 ddcDisplays: root.ddcDisplays,
                 ddcControl: root.ddcControl,
                 achievedKelvin: root.achievedKelvin,

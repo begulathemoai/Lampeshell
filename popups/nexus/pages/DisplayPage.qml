@@ -55,37 +55,52 @@ PageBase {
             }
         }
 
-        InfoRow {
+        SelectRow {
             label: "Method"
-            value: NightLight.ddcDisplays > 0
-                ? "Display (DDC), " + NightLight.ddcDisplays + " display(s)"
-                : (NightLight.gammaPresent
-                    ? (NightLight.gammaSupported ? "Screen gamma" : "Screen gamma unavailable")
-                    : "no method available")
+            model: [
+                { label: "Auto", value: "auto" },
+                { label: "Display", value: "ddc" },
+                { label: "Gamma", value: "gamma" },
+                { label: "Filter", value: "overlay" }
+            ]
+            value: NightLight.backend
+            onSelected: function(v) {
+                NightLight.setBackend(v);
+            }
         }
 
         InfoRow {
             label: "Status"
-            value: !NightLight.available
-                ? "install ddcutil or gammastep"
-                : (NightLight.scanningPresets
-                    ? "learning display presets…"
-                    : (!NightLight.enabled
-                        ? "off"
-                        : (NightLight.resolvedBackend === "gamma" && !NightLight.gammaSupported
-                            ? "screen gamma unavailable"
-                            : (NightLight.ddcControl === "0x14" && !NightLight.presetsUsable
-                                ? "no warmer preset on this display"
-                                : (NightLight.writePending
-                                    ? "applying…"
-                                    : (NightLight.writeVerified
-                                        ? (NightLight.achievedKelvin > 0
-                                            && Math.abs(NightLight.achievedKelvin
-                                                - NightLight.temperature) > 100
-                                            ? "closest the display offers: "
-                                                + NightLight.achievedKelvin + " K"
-                                            : "on at " + Math.round(NightLight.temperature) + " K")
-                                        : "display refused the change"))))))
+            value: {
+                if (!NightLight.available) {
+                    if (!NightLight.ddcPresent && !NightLight.gammaPresent)
+                        return "install ddcutil or gammastep";
+                    if (NightLight.ddcDisplays > 0)
+                        return "this display accepts no colour setting";
+                    return "no gamma-capable output";
+                }
+                if (NightLight.scanningPresets)
+                    return "learning display presets…";
+                if (!NightLight.enabled)
+                    return "off";
+                // A screen filter is not a colour temperature, and quoting a
+                // Kelvin value for it would be the same lie as before.
+                if (NightLight.resolvedBackend === "overlay")
+                    return "screen filter toward "
+                        + Math.round(NightLight.temperature) + " K";
+                if (NightLight.resolvedBackend === "gamma" && !NightLight.gammaSupported)
+                    return "screen gamma unavailable";
+                if (NightLight.ddcControl === "0x14" && !NightLight.presetsUsable)
+                    return "no warmer preset on this display";
+                if (NightLight.writePending)
+                    return "applying…";
+                if (!NightLight.writeVerified)
+                    return "display refused the change";
+                if (NightLight.achievedKelvin > 0
+                    && Math.abs(NightLight.achievedKelvin - NightLight.temperature) > 100)
+                    return "closest the display offers: " + NightLight.achievedKelvin + " K";
+                return "on at " + Math.round(NightLight.temperature) + " K";
+            }
         }
     }
 }
