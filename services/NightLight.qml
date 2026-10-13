@@ -61,7 +61,12 @@ Singleton {
             return;
         enabled = on;
         SettingsStore.set("nightLightEnabled", on);
-        apply();
+        // Capability is a property of the compositor and the outputs, and
+        // both can change under us - a Hyprland restart, a monitor being
+        // plugged in, a different backend becoming usable. Re-probe on every
+        // toggle instead of trusting a result from whenever the shell
+        // happened to start.
+        recheck();
     }
 
     function setTemperature(kelvin) {
@@ -89,6 +94,14 @@ Singleton {
         if (method.length > 0)
             base.push("-m", method);
         return base.concat(extra);
+    }
+
+    function recheck() {
+        supported = true;
+        lastMessage = "";
+        unavailableReason = "";
+        probe.running = false;
+        probe.running = true;
     }
 
     function apply() {
@@ -176,10 +189,14 @@ Singleton {
         stdout: StdioCollector {}
         onExited: exitCode => {
             root.available = exitCode === 0;
-            if (!root.available)
+            if (!root.available) {
                 root.unavailableReason = "gammastep was not found on PATH";
-            else
-                root.apply();
+                return;
+            }
+            // Always apply, not just on first probe: a recheck after a
+            // compositor restart should both re-test capability and restore
+            // whatever the user asked for on the new session.
+            root.apply();
         }
     }
 
@@ -198,6 +215,10 @@ Singleton {
 
         function setMethod(value: string): void {
             root.setMethod(value);
+        }
+
+        function recheck(): void {
+            root.recheck();
         }
 
         function state(): string {

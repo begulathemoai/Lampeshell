@@ -36,6 +36,10 @@ PageBase {
             icon: "light_mode"
             label: "Enabled"
             checked: NightLight.enabled
+            // Only blocked when gammastep is genuinely missing. A display
+            // that cannot do gamma stays toggleable: capability can change
+            // with a compositor restart or a different output, and the
+            // status row below says what the current answer is.
             enabled: NightLight.available
             onToggled: function(checked) {
                 NightLight.setEnabled(checked);
