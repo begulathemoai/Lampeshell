@@ -43,7 +43,7 @@ PanelWindow {
         if (!visible)
             return;
         PanelState.screenName = root.monitorName;
-        PanelState.setContentSize(root.width + Layout.s(18), root.height + Layout.s(36));
+        PanelState.setContentSize(root.width + Layout.s(18), root.height);
     }
 
     function show(handle) {
