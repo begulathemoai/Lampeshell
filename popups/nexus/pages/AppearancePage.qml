@@ -510,9 +510,8 @@ PageBase {
                     visible: root.pickingColor
 
                     ColorField {
-                        anchors.top: parent.top
-                        anchors.topMargin: 12
                         anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.verticalCenter: parent.verticalCenter
                         width: parent.width - 24
                         maxSide: pickerCard.sideAvail
                         hue: root.hue
