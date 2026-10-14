@@ -71,9 +71,19 @@ Item {
     readonly property var battery: UPower.displayDevice
     readonly property bool batteryPresent: battery?.isLaptopBattery ?? false
     readonly property real batteryPct: (battery?.percentage ?? 0) * 100
-    readonly property bool batteryCharging: battery?.state === UPowerDeviceState.Charging || battery?.state === UPowerDeviceState.PendingCharge
+    readonly property bool batteryCharging: battery?.state === UPowerDeviceState.Charging || battery?.state === UPowerDeviceState.PendingCharge || battery?.state === UPowerDeviceState.FullyCharged
 
     readonly property color batteryColor: (batteryPct < 20 && !batteryCharging) ? Theme.critical : Theme.on_surface
+
+    function batteryIcon() {
+        const pct = battery?.percentage ?? 0;
+        if (pct >= 1)
+            return "battery_android_full";
+        if (batteryCharging)
+            return "battery_android_bolt";
+        const level = Math.max(0, Math.min(6, Math.round(pct * 6)));
+        return "battery_android_" + level;
+    }
 
     Rectangle {
         id: visualPill
@@ -146,89 +156,30 @@ Item {
                 }
             }
 
-            Row {
+            Item {
+                id: batteryWidget
                 visible: root.batteryPresent
-                spacing: 2
+                implicitWidth: Layout.s(30)
+                implicitHeight: Layout.s(22)
                 anchors.verticalCenter: parent.verticalCenter
 
-                Item {
-                    width: Layout.s(34)
-                    height: Layout.s(18)
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: height / 2
-                        color: root.batteryColor
-                        opacity: 0.25
-                        Behavior on color { ColorAnimation { duration: 150 } }
-                    }
-
-                    Rectangle {
-                        anchors.left: parent.left
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-
-                        width: Math.max(height, parent.width * Math.min(1.0, root.batteryPct / 98))
-                        radius: height / 2
-                        color: root.batteryColor
-
-                        Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                        Behavior on color { ColorAnimation { duration: 150 } }
-                    }
-
-                    Row {
-                        anchors.centerIn: parent
-                        spacing: 0
-
-                        IconImage {
-                            visible: root.batteryCharging
-                            source: "file://" + Quickshell.shellPath("assets/bolt.svg")
-                            color: root.batteryPct > 65 ? Theme.surface_container : root.batteryColor
-                            width: Layout.s(14)
-                            height: Layout.s(14)
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        Text {
-                            visible: !(root.batteryCharging && root.batteryPct === 100)
-                            text: Math.round(root.batteryPct)
-                            color: root.batteryPct > (root.batteryCharging ? 75 : 55) ? Theme.surface_container : root.batteryColor
-                            font {
-                                family: "Google Sans"
-                                pixelSize: Layout.ts(12)
-                                weight: Font.Bold
-                            }
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                    }
+                Text {
+                    id: batteryGlyph
+                    anchors.centerIn: parent
+                    text: root.batteryIcon()
+                    color: root.batteryColor
+                    font { family: "Material Symbols Rounded"; pixelSize: Layout.s(30) }
+                    Behavior on color { ColorAnimation { duration: 150 } }
                 }
 
-                Item {
-                    width: Layout.s(3)
-                    height: Layout.s(10)
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: 1.5
-                        color: root.batteryColor
-                        opacity: 0.25
-                        Behavior on color { ColorAnimation { duration: 150 } }
-                    }
-
-                    Rectangle {
-                        anchors.left: parent.left
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-
-                        width: parent.width * Math.max(0, Math.min(1.0, (root.batteryPct - 98) / 2))
-                        radius: 1.5
-                        color: root.batteryColor
-
-                        Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                        Behavior on color { ColorAnimation { duration: 150 } }
-                    }
+                Text {
+                    id: batteryPercent
+                    anchors.centerIn: batteryGlyph
+                    anchors.horizontalCenterOffset: -Math.round(batteryGlyph.implicitWidth * 0.055)
+                    visible: !(root.batteryCharging && root.batteryPct < 100)
+                    text: Math.round(root.batteryPct)
+                    color: root.batteryPct >= 50 ? Theme.surface_container : root.batteryColor
+                    font { family: Layout.fontSans; pixelSize: Layout.s(11); weight: Font.Bold }
                 }
             }
         }
