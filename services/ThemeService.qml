@@ -210,9 +210,6 @@ find "$dir" -maxdepth 3 -type f \\
         backupProc.running = true;
     }
 
-    // --- Terminal palette ---------------------------------------------------
-    // The 16 ANSI slots start from gruvbox and are rotated towards the
-    // wallpaper's primary hue so terminals always follow the shell palette.
     readonly property var gruvbox: [
         "282828", "cc241d", "98971a", "d79921", "458588", "b16286", "689d6a", "a89984",
         "928374", "fb4934", "b8bb26", "fabd2f", "83a598", "d3869b", "8ec07c", "ebdbb2"
@@ -398,9 +395,6 @@ find "$dir" -maxdepth 3 -type f \\
             id: backupErr
         }
 
-        // Best-effort backup: write the new palette even if the copy failed,
-        // otherwise the revert snapshot would race the write (async cp) and
-        // often capture the *new* colors instead of the old ones.
         onExited: {
             const err = backupErr.text.trim();
             if (err.length > 0)
@@ -455,8 +449,6 @@ find "$dir" -maxdepth 3 -type f \\
         }
     }
 
-    // Regenerate the terminal palette whenever colors.json changes, so both
-    // applying a wallpaper and reverting keep the terminals in sync.
     FileView {
         id: colorsWatch
         path: root.colorsPath

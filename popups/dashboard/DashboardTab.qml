@@ -3,8 +3,6 @@ import qs.theme
 import qs.services
 import qs.bar.widgets.calendar
 
-// The Dashboard tab: clock + calendar on the left, a resource column in the
-// middle and the now-playing media card on the right (as in caelestia's Dash).
 Item {
     id: root
 

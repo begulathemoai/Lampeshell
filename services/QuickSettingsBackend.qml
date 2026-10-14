@@ -267,9 +267,6 @@ Item {
 
     Process {
         id: brightnessQuery
-        // --class=backlight stops brightnessctl from falling back to the first
-        // device of any class (e.g. a NIC LED on desktop machines), which would
-        // report 0% forever and redirect writes to the wrong device.
         command: ["sh", "-c", "brightnessctl -m --class=backlight 2>/dev/null || true"]
         stdout: StdioCollector {
             onStreamFinished: {

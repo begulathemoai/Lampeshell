@@ -2,9 +2,6 @@ import QtQuick
 import qs.theme
 import qs.services
 
-// Tab bar, matching caelestia's dashboard tabs: equal-width cells, icon above
-// label, a 3px primary indicator (width = active tab content) that animates,
-// and a 1px outline_variant separator underneath.
 Item {
     id: root
 
@@ -127,8 +124,6 @@ Item {
         implicitHeight: 3
         height: implicitHeight
 
-        // reactive: re-evaluates when the Repeater creates/removes delegates
-        // and whenever DashboardState.tab changes
         readonly property var currentItem: repeater.count > 0 ? repeater.itemAt(DashboardState.tab) : null
 
         implicitWidth: currentItem ? currentItem.contentWidth : root.tabCell

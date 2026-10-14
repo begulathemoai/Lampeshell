@@ -6,10 +6,6 @@ import QtQuick.Controls
 import "../../theme"
 import qs.services
 
-// Bottom-centre launcher, merged into the bottom bezel the same way the
-// dashboard is merged into the top bar: the window is transparent and
-// bar/Chrome.qml paints a matching notch under it, growing upwards from the
-// bottom. The body is clipped to the reveal so it slides up out of the bezel.
 PanelWindow {
     id: launcherWindow
 
@@ -23,9 +19,6 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
     exclusiveZone: -1
 
-    // Bottom-only anchor: wlr-layer-shell centres the surface horizontally and
-    // hangs it off the bottom bezel. Mirrors the top-centre dashboard (opened
-    // by the clock) on the opposite side of the screen.
     anchors.bottom: true
     margins.bottom: Layout.bottomBarHeight
 
@@ -38,9 +31,6 @@ PanelWindow {
 
     implicitWidth: Math.round(contentRoot.width)
 
-    // Fixed surface, exactly like the dashboard: the card grows and shrinks
-    // inside a constant-size window while the reveal clips it. Resizing the
-    // layer surface every frame is what made the height change stutter.
     readonly property real maxContentHeight: 16 + ((57 + 8) * 7 - 8) + 16 + searchField.height + 6
     implicitHeight: Math.round(maxContentHeight)
 
@@ -256,8 +246,6 @@ PanelWindow {
         onCleared: launcherWindow.closeMenu()
     }
 
-    // Curtain: the window is fixed at the card size, the reveal grows the
-    // merged notch up from the bottom bar and this clips the body to match.
     Item {
         id: reveal
 
@@ -320,10 +308,6 @@ PanelWindow {
                 Item {
                     id: listArea
 
-                    // Single animated quantity: the list area height drives the
-                    // card, the merged notch and the window, so they move as one.
-                    // A monotonic OutCubic (no overshoot) keeps retargeting while
-                    // typing smooth instead of bouncing.
                     readonly property real targetHeight: listView.count > 0 ? listView.implicitHeight : emptyState.implicitHeight
 
                     width: parent.width - 32

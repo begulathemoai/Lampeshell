@@ -4,9 +4,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Self-contained weather backend for the dashboard's Weather tab.
-// Uses open-meteo (no API key) for the forecast and ip-api / nominatim for
-// locating the user when no location is configured.
 Singleton {
     id: root
 

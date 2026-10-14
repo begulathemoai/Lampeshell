@@ -3,10 +3,6 @@ import Quickshell.Widgets
 import "../../theme"
 import qs.services
 
-// Mirrors caelestia's launcher AppItem: a full-width 57px row whose content
-// sits in an 8px inset, a 33px icon, a two-line name/description, an optional
-// favourite star, and a 16px-rounded hover highlight. Selection is drawn by a
-// separate overlay in the ListView, not per-row.
 Item {
     id: delegateRoot
 
@@ -17,8 +13,6 @@ Item {
     readonly property bool isAction: !!modelData.__action
     readonly property bool isFavourite: !delegateRoot.isCalc && !delegateRoot.isAction && delegateRoot.matchesFavourite(modelData)
 
-    // Caelestia falls back comment -> genericName -> name so every row keeps
-    // its second line.
     readonly property string descriptionText: (delegateRoot.isAction || delegateRoot.isCalc)
         ? (modelData.genericName || "")
         : (modelData.comment || modelData.genericName || modelData.name || "")

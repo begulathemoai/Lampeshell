@@ -5,14 +5,9 @@ import Quickshell
 import Quickshell.Io
 import Lampshell.Services
 
-// Thin QML facade over the native Lampshell.Services singletons. The dashboard
-// tabs keep their original property names, but the data now comes from C++
-// (proc/sys/hwmon reads, nvidia-smi) instead of a shelled-out script.
 Singleton {
     id: root
 
-    // Only poll while the dashboard is on screen: the tick wakes the (usually
-    // suspended) dGPU via nvidia-smi, which is not free.
     property bool active: false
 
     ServiceRef { service: root.active ? Cpu : null }

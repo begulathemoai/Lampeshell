@@ -3,8 +3,6 @@ pragma Singleton
 import QtQuick
 import qs.theme
 
-// State for the merged top-centre dashboard. Mirrors PanelState (the right
-// sidebar card) so bar/Chrome.qml can cut a matching notch out of the frame.
 Item {
     id: root
 

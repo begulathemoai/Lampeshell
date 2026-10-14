@@ -2,9 +2,6 @@ import QtQuick
 import qs.theme
 import qs.services
 
-// Compact now-playing card for the Dashboard tab, mirroring caelestia's
-// modules/dashboard/dash/Media.qml: cover art ringed by a 180° progress arc,
-// centred title/album/artist, and a transport row.
 Item {
     id: root
 

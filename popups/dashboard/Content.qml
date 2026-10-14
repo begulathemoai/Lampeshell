@@ -2,8 +2,6 @@ import QtQuick
 import qs.theme
 import qs.services
 
-// The dashboard body: tab bar on top, a horizontally sliding row of panes
-// below. All panes stay alive so switching is instant.
 Item {
     id: root
 

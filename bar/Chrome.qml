@@ -24,11 +24,6 @@ Variants {
         readonly property HyprlandMonitor monitor: Hyprland.monitorFor(screen)
         visible: !FullscreenState.isFullscreen(monitor)
 
-        // The card belongs to the screen the panel window is on, which
-        // follows the focused monitor. Everywhere else this delegate
-        // paints the frame alone, because a card drawn at this screen's
-        // own resolution on a screen that has no panel is a slab of
-        // surface floating over live desktop.
         readonly property bool hasCard: PanelState.screenName.length === 0
             || PanelState.screenName === modelData.name
 
@@ -49,12 +44,6 @@ Variants {
             right: true
         }
 
-        // The chrome is pure decoration, so every click must fall through to
-        // whatever is behind it - apps, the bars, the panel. A `Combine` mask
-        // on a full-window item is a full-window input region, which swallows
-        // the entire desktop; `Xor` inverts it, and an empty mask makes
-        // Quickshell mark the surface WindowTransparentForInput. This is what
-        // upstream's BezelsMask.qml did before the chrome was split out.
         mask: Region {
             item: chromeShape
             intersection: Intersection.Xor
@@ -158,8 +147,6 @@ Variants {
 
                 d += ` Q ${x1},${y1} ${x1},${y1 - r}`;
 
-                // Right edge, then traverse the top edge right-to-left,
-                // dipping around the sidebar card and/or the dashboard notch.
                 let cursor; // current x while walking the top edge leftwards
 
                 if (open) {

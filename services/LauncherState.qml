@@ -3,10 +3,6 @@ pragma Singleton
 import QtQuick
 import qs.theme
 
-// State for the bottom-centre launcher. Mirrors DashboardState (the top-centre
-// dashboard) so bar/Chrome.qml can cut a matching notch out of the bottom
-// bezel: the reveal grows the notch upwards from the bottom bar, the opposite
-// of the dashboard's downward notch.
 Item {
     id: root
 
