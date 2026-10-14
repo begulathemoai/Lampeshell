@@ -7,7 +7,8 @@ StackView {
     required property var nState
     default property list<Component> pages
 
-    readonly property real animMovement: 40
+    readonly property string currentTitle: currentItem ? (currentItem.title ?? "") : ""
+    readonly property string currentDescription: currentItem ? (currentItem.description ?? "") : ""
 
     function openSubPage(idx, immediate) {
         const page = pages[idx];
@@ -28,72 +29,74 @@ StackView {
     }
 
     pushEnter: Transition {
-        SequentialAnimation {
-            PropertyAction {
+        ParallelAnimation {
+            NumberAnimation {
                 property: "opacity"
-                value: 0
+                from: 0
+                to: 1
+                duration: 200
+                easing.type: Easing.OutCubic
             }
-            PauseAnimation {
-                duration: 90
-            }
-            ParallelAnimation {
-                NumberAnimation {
-                    property: "opacity"
-                    to: 1
-                    duration: 160
-                    easing.type: Easing.OutCubic
-                }
-                NumberAnimation {
-                    property: "x"
-                    from: root.animMovement
-                    to: 0
-                    duration: 200
-                    easing.type: Easing.OutCubic
-                }
+            NumberAnimation {
+                property: "scale"
+                from: 0.9
+                to: 1
+                duration: 200
+                easing.type: Easing.OutCubic
             }
         }
     }
 
     pushExit: Transition {
-        NumberAnimation {
-            property: "opacity"
-            to: 0
-            duration: 110
+        ParallelAnimation {
+            NumberAnimation {
+                property: "opacity"
+                to: 0
+                duration: 200
+                easing.type: Easing.OutCubic
+            }
+            NumberAnimation {
+                property: "scale"
+                to: 0.9
+                duration: 200
+                easing.type: Easing.OutCubic
+            }
         }
     }
 
     popEnter: Transition {
-        SequentialAnimation {
-            PropertyAction {
+        ParallelAnimation {
+            NumberAnimation {
                 property: "opacity"
-                value: 0
+                from: 0
+                to: 1
+                duration: 200
+                easing.type: Easing.OutCubic
             }
-            PauseAnimation {
-                duration: 90
-            }
-            ParallelAnimation {
-                NumberAnimation {
-                    property: "opacity"
-                    to: 1
-                    duration: 160
-                    easing.type: Easing.OutCubic
-                }
-                NumberAnimation {
-                    property: "x"
-                    from: -root.animMovement
-                    to: 0
-                    duration: 200
-                    easing.type: Easing.OutCubic
-                }
+            NumberAnimation {
+                property: "scale"
+                from: 0.9
+                to: 1
+                duration: 200
+                easing.type: Easing.OutCubic
             }
         }
     }
 
     popExit: Transition {
-        NumberAnimation {
-            property: "opacity"
-            to: 0
-            duration: 110
+        ParallelAnimation {
+            NumberAnimation {
+                property: "opacity"
+                to: 0
+                duration: 200
+                easing.type: Easing.OutCubic
+            }
+            NumberAnimation {
+                property: "scale"
+                to: 0.9
+                duration: 200
+                easing.type: Easing.OutCubic
+            }
         }
     }
 

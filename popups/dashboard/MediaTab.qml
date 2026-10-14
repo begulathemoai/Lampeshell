@@ -71,40 +71,16 @@ Item {
         spacing: Layout.s(28)
         visible: root.player !== null
 
-        Rectangle {
+        ShapeArt {
             id: artFrame
 
             width: Layout.s(280)
             height: Layout.s(280)
             anchors.verticalCenter: parent.verticalCenter
-            radius: Layout.s(24)
-            color: Theme.surface_container_high
-            clip: true
-
-            Rectangle {
-                anchors.fill: parent
-                visible: !artImage.visible
-                color: Theme.surface_container_high
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "music_note"
-                    color: Theme.on_surface_variant
-                    font {
-                        family: Layout.fontIcons
-                        pixelSize: Layout.s(64)
-                    }
-                }
-            }
-
-            Image {
-                id: artImage
-                anchors.fill: parent
-                source: root.player ? (root.player.trackArtUrl ?? "") : ""
-                fillMode: Image.PreserveAspectCrop
-                asynchronous: true
-                visible: status === Image.Ready
-            }
+            source: root.player ? (root.player.trackArtUrl ?? "") : ""
+            fallbackColor: Theme.surface_container_high
+            fallbackIconSize: Layout.s(64)
+            spinning: root.player ? root.player.isPlaying : false
         }
 
         Column {

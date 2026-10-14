@@ -6,71 +6,122 @@ Item {
 
     required property var nState
 
-    property Item currentItem: null
+    readonly property Item currentItem: currentWrapper ? currentWrapper.pageItem : null
+    readonly property string currentTitle: root.currentItem ? (root.currentItem.currentTitle ?? "") : ""
+    readonly property string currentDescription: root.currentItem ? (root.currentItem.currentDescription ?? "") : ""
 
-    function loadPage(idx) {
-        if (currentItem) {
-            currentItem.destroy();
-            currentItem = null;
-        }
+    property Item currentWrapper: null
+    property Item outgoingWrapper: null
 
+    function createPage(idx) {
         const comp = PageCompRegistry.pageComps[idx] ?? PageCompRegistry.placeholderComp;
-        const incubator = comp.incubateObject(container, { nState: root.nState });
+        const wrapper = wrapperComp.createObject(container);
+        const page = comp.createObject(wrapper, {
+            nState: root.nState
+        });
+        page.anchors.fill = wrapper;
+        wrapper.pageItem = page;
+        return wrapper;
+    }
 
-        const attach = () => {
-            incubator.object.anchors.fill = container;
-            currentItem = incubator.object;
-        };
+    function revealSetting(label) {
+        const stack = root.currentItem;
+        const page = stack ? stack.currentItem : null;
+        if (page && typeof page.revealByLabel === "function")
+            page.revealByLabel(label);
+    }
 
-        if (incubator.status === Component.Ready) {
-            attach();
+    function show(idx, animate) {
+        const next = createPage(idx);
+        const prev = root.currentWrapper;
+        root.currentWrapper = next;
+
+        if (animate && prev) {
+            if (root.outgoingWrapper) {
+                root.outgoingWrapper.destroy();
+                root.outgoingWrapper = null;
+            }
+            next.opacity = 0;
+            next.scale = 0.9;
+            root.outgoingWrapper = prev;
+            inOpacity.target = next;
+            inScale.target = next;
+            outOpacity.target = prev;
+            outScale.target = prev;
+            switchAnim.restart();
         } else {
-            incubator.onStatusChanged = status => {
-                if (status === Component.Ready)
-                    attach();
-            };
+            next.opacity = 1;
+            next.scale = 1;
+            if (prev)
+                prev.destroy();
+        }
+    }
+
+    Component {
+        id: wrapperComp
+
+        Item {
+            anchors.fill: parent
+            property Item pageItem
         }
     }
 
     Item {
         id: container
         anchors.fill: parent
+        clip: true
 
-        Component.onCompleted: root.loadPage(root.nState.currentPageIdx)
+        Component.onCompleted: root.show(root.nState.currentPageIdx, false)
     }
 
     Connections {
         target: root.nState
 
         function onCurrentPageIdxChanged() {
-
-            root.animOff = root.nState.currentPageIdx > root.lastPageIdx ? 1 : -1;
-            switchAnim.start();
-            root.lastPageIdx = root.nState.currentPageIdx;
+            root.show(root.nState.currentPageIdx, true);
         }
     }
 
-    property int animOff: 1
-    property int lastPageIdx: 0
-
-    SequentialAnimation {
+    ParallelAnimation {
         id: switchAnim
 
         NumberAnimation {
-            target: container
-            property: "opacity"
-            to: 0
-            duration: 90
-        }
-        ScriptAction {
-            script: root.loadPage(root.nState.currentPageIdx)
-        }
-        NumberAnimation {
-            target: container
+            id: inOpacity
             property: "opacity"
             to: 1
-            duration: 150
+            duration: 200
             easing.type: Easing.OutCubic
+        }
+
+        NumberAnimation {
+            id: inScale
+            property: "scale"
+            to: 1
+            duration: 200
+            easing.type: Easing.OutCubic
+        }
+
+        NumberAnimation {
+            id: outOpacity
+            property: "opacity"
+            to: 0
+            duration: 200
+            easing.type: Easing.OutCubic
+        }
+
+        NumberAnimation {
+            id: outScale
+            property: "scale"
+            to: 0.9
+            duration: 200
+            easing.type: Easing.OutCubic
+        }
+
+        onFinished: {
+            if (root.outgoingWrapper) {
+                root.outgoingWrapper.destroy();
+                root.outgoingWrapper = null;
+            }
         }
     }
 }

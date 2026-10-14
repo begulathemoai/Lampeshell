@@ -45,36 +45,16 @@ Item {
             bgColor: Theme.surface_container_highest
         }
 
-        Rectangle {
+        ShapeArt {
             id: cover
 
             anchors.centerIn: parent
             width: coverWrap.width
             height: width
-            radius: Layout.s(18)
-            color: Theme.surface_container_high
-            clip: true
-
-            Image {
-                id: art
-
-                anchors.fill: parent
-                source: root.player ? (root.player.trackArtUrl ?? "") : ""
-                fillMode: Image.PreserveAspectCrop
-                asynchronous: true
-                visible: status === Image.Ready
-            }
-
-            Text {
-                anchors.centerIn: parent
-                visible: !art.visible
-                text: "music_note"
-                color: Theme.on_surface_variant
-                font {
-                    family: Layout.fontIcons
-                    pixelSize: Layout.s(40)
-                }
-            }
+            source: root.player ? (root.player.trackArtUrl ?? "") : ""
+            fallbackColor: Theme.surface_container_high
+            fallbackIconSize: Layout.s(40)
+            spinning: root.player ? root.player.isPlaying : false
         }
     }
 
