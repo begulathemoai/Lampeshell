@@ -15,7 +15,6 @@ QtObject {
 
     property var selectedBtDevice: null
     property var selectedNetwork: null
-    property string selectedWallpaperCategory: ""
 
     signal subPageOpened(idx: int)
     signal subPageClosed

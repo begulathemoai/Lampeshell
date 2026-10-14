@@ -16,9 +16,6 @@ QtObject {
                 Component {
                     WallpaperSelectPage {}
                 }
-                Component {
-                    WallpaperCategoryPage {}
-                }
             }
         },
 

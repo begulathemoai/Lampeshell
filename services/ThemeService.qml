@@ -117,6 +117,44 @@ find "$dir" -maxdepth 3 -type f \\
 
     readonly property bool hasWallpaper: currentWallpaper.length > 0
 
+    function uniqueName(base) {
+        const taken = {};
+        for (const e of root.entries)
+            taken[e.name] = true;
+
+        if (!(base in taken))
+            return base;
+
+        const dot = base.lastIndexOf(".");
+        const stem = dot > 0 ? base.slice(0, dot) : base;
+        const ext = dot > 0 ? base.slice(dot) : "";
+
+        let n = 2;
+        while ((stem + "-" + n + ext) in taken)
+            n++;
+        return stem + "-" + n + ext;
+    }
+
+    function importImage(source) {
+        if (!source || source.length === 0) {
+            lastError = "no file chosen";
+            return;
+        }
+
+        const base = source.split("/").pop();
+        if (base.indexOf(".") <= 0) {
+            lastError = base + " has no extension, so it is not an image";
+            return;
+        }
+
+        root.busy = true;
+        root.lastError = "";
+        importDest = root.wallDir + "/" + root.uniqueName(base);
+
+        importProc.command = ["install", "-m", "644", "-T", source, importDest];
+        importProc.running = true;
+    }
+
     function applyWallpaper(path) {
         if (!path || path.length === 0) {
             lastError = "no path given";
@@ -149,6 +187,7 @@ find "$dir" -maxdepth 3 -type f \\
     property string pendingColorsJson: ""
     property string pendingAccentName: ""
     property string pendingAccentSource: ""
+    property string importDest: ""
 
     readonly property var directKeys: [
         "source_color",
@@ -653,6 +692,23 @@ printf '%s' "$px" | base64 -d >> "$out" || exit 1
         stdout: StdioCollector {
             id: listCollector
             onStreamFinished: root.parseListing(listCollector.text)
+        }
+    }
+
+    Process {
+        id: importProc
+        stderr: StdioCollector {}
+
+        onExited: {
+            root.busy = false;
+
+            if (exitCode !== 0) {
+                root.lastError = "could not copy that image into the wallpaper folder";
+                return;
+            }
+
+            root.refresh();
+            root.applyWallpaper(root.importDest);
         }
     }
 

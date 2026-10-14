@@ -121,6 +121,132 @@ PageBase {
     }
 
     SettingsCard {
+        title: "Wallpaper"
+        subtitle: ThemeService.hasWallpaper
+            ? ThemeService.currentWallpaper.split("/").pop()
+            : "No wallpaper applied"
+
+        Text {
+            width: parent.width
+            text: "The palette, and every app theme that follows it, is generated from this image."
+            color: Theme.on_surface_variant
+            wrapMode: Text.WordWrap
+            font {
+                family: "Google Sans"
+                pixelSize: 11
+            }
+        }
+
+        Rectangle {
+            width: parent.width
+            height: Math.round(width / 3.4)
+            radius: 14
+            color: Theme.surface_container_highest
+            clip: true
+            border.width: 1
+            border.color: Theme.outline_variant
+
+            Image {
+                id: wallpaperPreview
+
+                anchors.fill: parent
+                asynchronous: true
+                fillMode: Image.PreserveAspectCrop
+                sourceSize: Qt.size(640, 188)
+                source: ThemeService.hasWallpaper ? "file://" + ThemeService.currentWallpaper : ""
+                opacity: status === Image.Ready ? 1 : 0
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 160
+                    }
+                }
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                color: Theme.surface_container_highest
+                visible: wallpaperPreview.status !== Image.Ready
+
+                Text {
+                    anchors.centerIn: parent
+                    text: ThemeService.hasWallpaper ? "image" : "hide_image"
+                    color: Theme.on_surface_variant
+                    opacity: 0.45
+                    font {
+                        family: "Material Symbols Rounded"
+                        pixelSize: 26
+                    }
+                }
+            }
+
+            Rectangle {
+                visible: ThemeService.hasWallpaper
+                anchors.left: parent.left
+                anchors.bottom: parent.bottom
+                anchors.margins: 10
+                width: themeChip.implicitWidth + 20
+                height: 28
+                radius: 14
+                color: Qt.rgba(0, 0, 0, 0.45)
+
+                Text {
+                    id: themeChip
+                    anchors.centerIn: parent
+                    text: Theme.primary
+                    color: Theme.on_primary
+                    font {
+                        family: "Google Sans"
+                        pixelSize: 11
+                        weight: Font.Medium
+                    }
+                }
+            }
+        }
+
+        Row {
+            spacing: 10
+
+            ActionButton {
+                text: ThemeService.busy ? "Working..." : "Choose wallpaper"
+                icon: "image"
+                primary: true
+                enabled: !ThemeService.busy
+                onTriggered: root.nState.openSubPage(1)
+            }
+
+            ActionButton {
+                text: "Pick from image"
+                icon: "colorize"
+                enabled: ThemeService.hasWallpaper && !ThemeService.busy
+                onTriggered: {
+                    root.personalised = true;
+                    root.pickingFromWallpaper = true;
+                }
+            }
+
+            ActionButton {
+                text: "Revert"
+                icon: "undo"
+                enabled: ThemeService.hasWallpaper && !ThemeService.busy
+                onTriggered: ThemeService.revertTheme()
+            }
+        }
+
+        Text {
+            width: parent.width
+            visible: ThemeService.lastError.length > 0
+            text: ThemeService.lastError
+            color: Theme.critical
+            wrapMode: Text.WordWrap
+            font {
+                family: "Google Sans"
+                pixelSize: 11
+            }
+        }
+    }
+
+    SettingsCard {
         title: "Theme Colors"
         subtitle: root.personalised ? "Using custom color" : "Following wallpaper"
 
@@ -179,8 +305,9 @@ PageBase {
 
                     Text {
                         width: parent.width
-                        text: "Choose how to pick your custom color:"
+                        text: "Pick a color, or use Pick from image above to sample your wallpaper."
                         color: Theme.on_surface_variant
+                        wrapMode: Text.WordWrap
                         font {
                             family: "Google Sans"
                             pixelSize: 11
@@ -192,15 +319,7 @@ PageBase {
                         spacing: 10
 
                         ActionButton {
-                            width: (parent.width - 10) / 2
-                            text: "From Wallpaper"
-                            icon: "colorize"
-                            enabled: ThemeService.hasWallpaper && !ThemeService.busy
-                            onTriggered: root.pickingFromWallpaper = true
-                        }
-
-                        ActionButton {
-                            width: (parent.width - 10) / 2
+                            width: parent.width
                             text: "Color Picker"
                             icon: "palette"
                             enabled: !ThemeService.busy
@@ -267,19 +386,6 @@ PageBase {
                     }
                     }
                 }
-            }
-        }
-
-        Text {
-            id: errorText
-            width: parent.width
-            visible: ThemeService.lastError.length > 0
-            text: ThemeService.lastError
-            color: Theme.critical
-            wrapMode: Text.WordWrap
-            font {
-                family: "Google Sans"
-                pixelSize: 11
             }
         }
     }
