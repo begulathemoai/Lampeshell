@@ -114,6 +114,7 @@ Singleton {
         path: root.path
         printErrors: false
         watchChanges: true
+        atomicWrites: true
 
         onLoaded: root.parse(text())
 
@@ -122,6 +123,7 @@ Singleton {
                 ? "Keybinds file not found at " + root.path
                 : "Could not read the keybinds file";
             root.loaded = true;
+            root.checkRecovery();
         }
 
         onFileChanged: reload()
@@ -129,6 +131,70 @@ Singleton {
 
     Process {
         id: reloadProc
+    }
+
+    readonly property string backupPath: root.path + ".bak"
+
+    property string pendingText: ""
+
+    Process {
+        id: backupProc
+
+        property string from: ""
+        property string to: ""
+
+        command: ["sh", "-c", "test -f \"$1\" || exit 0; cp -f \"$1\" \"$2\"", "sh", backupProc.from, backupProc.to]
+        stderr: StdioCollector {}
+
+        onExited: (exitCode) => {
+            if (exitCode !== 0) {
+                root.lastError = "could not back up " + root.path;
+                return;
+            }
+
+            file.setText(root.pendingText);
+            root.original = root.pendingText;
+            root.pendingText = "";
+            root.lastError = "";
+
+            reloadProc.command = ["hyprctl", "reload", "config-only"];
+            reloadProc.running = true;
+        }
+    }
+
+    Process {
+        id: recoverProc
+
+        command: ["sh", "-c", "test -s \"$1\" || exit 1", "sh", root.backupPath]
+        stderr: StdioCollector {}
+
+        onExited: (exitCode) => {
+            if (exitCode !== 0)
+                return;
+
+            root.lastError = "keybinds were unreadable, restoring " + root.backupPath;
+            root.restoreBackup();
+        }
+    }
+
+    function checkRecovery() {
+        const text = root.original;
+
+        if (text.trim().length === 0) {
+            recoverProc.running = true;
+            return;
+        }
+
+        if (root.order.length === 0) {
+            root.lastError = "no keybinds were found in " + root.path
+                + "; if that is not expected, restore it from " + root.backupPath;
+        }
+    }
+
+    function restoreBackup() {
+        backupProc.from = root.backupPath;
+        backupProc.to = root.path;
+        backupProc.running = true;
     }
 
     readonly property var lineRe: /^(\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*=\s*)(.+?)(,?)(\s*)$/
@@ -156,6 +222,7 @@ Singleton {
         root.original = String(text);
         root.lastError = "";
         root.loaded = true;
+        root.checkRecovery();
     }
 
     function extractBinds(value) {
@@ -264,11 +331,24 @@ Singleton {
     }
 
     function save() {
+        if (!root.loaded || root.original.trim().length === 0) {
+            root.lastError = "refusing to save: " + root.path
+                + " could not be read, so there is nothing safe to rewrite";
+            return false;
+        }
+
         const text = root.buildText();
-        file.setText(text);
-        root.original = text;
-        reloadProc.command = ["hyprctl", "reload", "config-only"];
-        reloadProc.running = true;
+        if (text === root.original)
+            return false;
+
+        root.pendingText = text;
+        root.lastError = "";
+
+        backupProc.from = root.path;
+        backupProc.to = root.backupPath;
+        backupProc.running = true;
+
+        return true;
     }
 
     function revert() {
