@@ -24,20 +24,13 @@ Item {
         }
     }
 
-    function toggle() {
-        open = !open;
-    }
-
     Rectangle {
         anchors.fill: parent
         color: "transparent"
 
         MouseArea {
             anchors.fill: parent
-            onClicked: {
-                root.open = false;
-                root.dismissed();
-            }
+            onClicked: root.dismissed()
         }
     }
 
@@ -131,10 +124,7 @@ Item {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            root.open = false;
-                            root.chosen(modelData.key);
-                        }
+                        onClicked: root.chosen(modelData.key)
                     }
                 }
             }
@@ -155,10 +145,7 @@ Item {
                     anchors.fill: parent
                     anchors.margins: -10
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        root.open = false;
-                        root.dismissed();
-                    }
+                    onClicked: root.dismissed()
                 }
             }
         }
