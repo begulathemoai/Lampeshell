@@ -9,6 +9,8 @@ Singleton {
 
     property string image: ""
     property string monitor: ""
+    property bool freeze: false
+    property string outPath: ""
 
     property bool open: false
     property string state: ""
@@ -36,12 +38,32 @@ Singleton {
     function openPicker() {
         image = "";
         monitor = "";
+        freeze = false;
         state = "";
         reader.running = true;
     }
 
-    function accept(x, y, w, h) {
-        state = JSON.stringify({ x: x, y: y, w: w, h: h });
+    function applyJob(text) {
+        let job;
+        try {
+            job = JSON.parse(text);
+        } catch (e) {
+            root.state = "cancelled";
+            return;
+        }
+        if (!job) {
+            root.state = "cancelled";
+            return;
+        }
+        image = job.image || "";
+        monitor = job.monitor || "";
+        freeze = job.freeze === true;
+        outPath = job.out || "";
+        open = true;
+    }
+
+    function finish(payload) {
+        state = payload ? JSON.stringify(payload) : "cancelled";
         open = false;
     }
 
@@ -50,32 +72,11 @@ Singleton {
         open = false;
     }
 
-    function applyJob(text) {
-        let job;
-        try {
-            job = JSON.parse(text);
-        } catch (e) {
-            state = "cancelled";
-            return;
-        }
-        if (!job || !job.image) {
-            state = "cancelled";
-            return;
-        }
-        image = job.image;
-        monitor = job.monitor || "";
-        open = true;
-    }
-
     IpcHandler {
         target: "regionPicker"
 
         function open() {
             root.openPicker();
-        }
-
-        function accept(x: real, y: real, w: real, h: real) {
-            root.accept(x, y, w, h);
         }
 
         function cancel() {

@@ -60,6 +60,29 @@ PageBase {
         }
     }
 
+    SettingsGroup {
+        title: "Default keybinds"
+        description: "Keys the shell registers for itself. Anything you have already bound is left alone."
+
+        ToggleRow {
+            icon: "keyboard"
+            label: "Manage keybinds"
+            description: "Bind the launcher, panels, clipboard and screenshot keys on startup"
+            checked: Hypr.keybindsManaged
+            onToggled: checked => SettingsStore.set("keybindsManaged", checked)
+        }
+
+        InfoRow {
+            label: "Managed keys"
+            value: String(Hypr.keybindDefaults.length)
+        }
+
+        InfoRow {
+            label: "Dispatch"
+            value: Hyprland.usingLua ? "hl.bind" : "keyword bind"
+        }
+    }
+
     SectionHeader {
         text: "Fullscreen detection"
         description: "The bar reads fullscreen state from a 120 ms poll. HyprlandWorkspace.hasFullscreen does not emit a notify signal in quickshell 0.3.1, so a plain binding silently freezes at its first value."

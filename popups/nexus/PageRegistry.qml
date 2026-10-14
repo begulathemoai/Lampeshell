@@ -60,13 +60,20 @@ QtObject {
             description: "History, do-not-disturb and timeouts",
             category: "system"
         },
+
+        {
+            label: "Keybinds & shortcuts",
+            icon: "keyboard",
+            description: "Hyprland keys for the shell",
+            category: "system"
+        },
+
         {
             label: "Language & region",
             icon: "globe",
             description: "Locale, formats and timezone",
             category: "system"
         },
-
         {
             label: "About",
             icon: "info",
