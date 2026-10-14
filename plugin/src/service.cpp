@@ -24,4 +24,4 @@ int Service::refCount() const {
     return m_refs.size();
 }
 
-} // namespace lampshell::services
+}

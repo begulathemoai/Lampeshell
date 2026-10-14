@@ -345,7 +345,6 @@ Singleton {
                     if (name)
                         root.city = name;
                 } catch (e) {
-                    // City name is cosmetic; keep whatever we have.
                 }
             }
         }

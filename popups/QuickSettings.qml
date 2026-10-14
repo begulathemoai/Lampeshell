@@ -245,7 +245,6 @@ PanelWindow {
 
         onImplicitHeightChanged: quickSettingsWindow.publishGeometry()
 
-        // --- Notifications (top) -------------------------------------------
         Rectangle {
             id: notifCard
             width: parent.width
@@ -472,7 +471,6 @@ PanelWindow {
             }
         }
 
-        // --- Keep awake -----------------------------------------------------
         Rectangle {
             id: keepAwakeCard
             width: parent.width
@@ -618,7 +616,6 @@ PanelWindow {
             }
         }
 
-        // --- Volume and brightness -----------------------------------------
         Rectangle {
             width: parent.width
             implicitHeight: sliderCol.implicitHeight + 32
@@ -651,7 +648,6 @@ PanelWindow {
             }
         }
 
-        // --- Controls (quick toggles) --------------------------------------
         Rectangle {
             id: controlsCard
             width: parent.width

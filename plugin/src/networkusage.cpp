@@ -36,7 +36,6 @@ void NetworkUsage::tick() {
     if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return;
     }
-    // Skip headers
     f.readLine();
     f.readLine();
 
@@ -51,10 +50,9 @@ void NetworkUsage::tick() {
         }
         const QByteArray iface = line.left(splitIdx).trimmed();
         if (iface == QByteArrayView("lo")) {
-            continue; // Skip loopback interface
+            continue;
         }
 
-        // Parse every counter through tx bytes to validate the row
         const char* pos = line.constData() + splitIdx + 1;
         const char* const end = line.constData() + line.size();
 
@@ -106,4 +104,4 @@ void NetworkUsage::tick() {
     emit changed();
 }
 
-} // namespace lampshell::services
+}

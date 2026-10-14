@@ -44,7 +44,7 @@ QtObject {
     property string appIcon: ""
     property string appName: ""
     property string image: ""
-    property real expireTimeout: -1 // -1 = server default (fdo spec)
+    property real expireTimeout: -1
     property int urgency: NotificationUrgency.Normal
     property bool resident: false
     property bool hasActionIcons: false

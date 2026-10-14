@@ -12,7 +12,6 @@ Item {
     property real panelWidth: 0
     property real cardHeight: 0
 
-    // Which screen the window is on; the painted notch only goes there.
     property string screenName: ""
 
     property int tab: 0
@@ -36,7 +35,6 @@ Item {
     property real progress: 0
     property bool open: false
 
-    // The reveal grows the merged notch downwards from the top bar.
     readonly property real eased: Motion.ease(Motion.curve(Motion.defaultSpatial), progress)
     readonly property real revealHeight: cardHeight * eased
     readonly property bool merged: progress > 0.001

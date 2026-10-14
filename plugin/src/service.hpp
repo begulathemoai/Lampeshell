@@ -6,9 +6,6 @@
 
 namespace lampshell::services {
 
-// Reference counted service base. A service only runs while at least one
-// ServiceRef holds it, mirroring Caelestia so expensive probes (nvidia-smi,
-// /proc scans) stay idle when nothing is watching.
 class Service : public QObject {
     Q_OBJECT
     QML_ANONYMOUS
@@ -28,4 +25,4 @@ private:
     virtual void stop() = 0;
 };
 
-} // namespace lampshell::services
+}

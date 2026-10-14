@@ -12,7 +12,7 @@ Singleton {
 
     readonly property real defaultExpireTimeout: 5000
     readonly property real fullscreenExpireTimeout: 2000
-    readonly property bool expire: true // auto-retract to history on timer
+    readonly property bool expire: true
 
     property var list: []
     readonly property var notClosed: list.filter(n => !n.closed)

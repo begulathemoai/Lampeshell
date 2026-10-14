@@ -43,4 +43,4 @@ private:
     QElapsedTimer m_timer;
 };
 
-} // namespace lampshell::services
+}

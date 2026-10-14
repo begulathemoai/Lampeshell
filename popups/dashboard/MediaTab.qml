@@ -2,7 +2,6 @@ import QtQuick
 import qs.theme
 import qs.services
 
-// Now-playing view backed by the MPRIS Players service.
 Item {
     id: root
 
@@ -21,7 +20,6 @@ Item {
         return (h > 0 ? h + ":" : "") + mm + ":" + String(s).padStart(2, "0");
     }
 
-    // Empty state, mirroring caelestia's media tab placeholder.
     Column {
         anchors.centerIn: parent
         visible: !root.player
@@ -67,7 +65,6 @@ Item {
         }
     }
 
-    // Main playing view.
     Row {
         anchors.fill: parent
         anchors.margins: Layout.s(16)
@@ -159,7 +156,6 @@ Item {
                 }
             }
 
-            // Progress.
             Item {
                 width: parent.width
                 height: Layout.s(22)
@@ -214,7 +210,6 @@ Item {
                 }
             }
 
-            // Transport.
             Row {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.topMargin: Layout.s(8)

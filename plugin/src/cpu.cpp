@@ -116,4 +116,4 @@ QString Cpu::cleanName(QString s) {
     return s.trimmed();
 }
 
-} // namespace lampshell::services
+}

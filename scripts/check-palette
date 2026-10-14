@@ -1,17 +1,5 @@
 #!/usr/bin/env bash
 
-# Verifies that the running shell resolves every colour role Theme.qml declares
-# to a value taken from colors.json, and that applying contrast and chroma boost
-# to that value produces exactly what the shell reports.
-#
-#   scripts/check-palette            check the palette currently in use
-#   scripts/check-palette --fresh    seed from colors.default.json first, check
-#                                    that, then put the previous file back
-#
-# The check runs against the live shell on purpose. A copy started headless does
-# not reliably read colors.json, because Theme is a FileView and nothing renders
-# in a windowless ShellRoot, so an isolated run reports roles as unresolved when
-# they are in fact fine.
 
 set -uo pipefail
 

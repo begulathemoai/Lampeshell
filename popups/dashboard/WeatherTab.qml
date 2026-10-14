@@ -2,7 +2,6 @@ import QtQuick
 import qs.theme
 import qs.services
 
-// Forecast view backed by the Weather service.
 Item {
     id: root
 
@@ -18,7 +17,6 @@ Item {
         anchors.margins: Layout.s(16)
         spacing: Layout.s(14)
 
-        // Header: city + date + sunrise/sunset.
         Row {
             width: parent.width
 
@@ -123,7 +121,6 @@ Item {
             }
         }
 
-        // Big current conditions.
         Rectangle {
             width: parent.width
             height: Layout.s(150)
@@ -170,7 +167,6 @@ Item {
             }
         }
 
-        // Detail cards.
         Row {
             width: parent.width
             spacing: Layout.s(14)
@@ -232,7 +228,6 @@ Item {
             }
         }
 
-        // 7-day forecast.
         Text {
             visible: forecastRow.count > 0
             text: "7-day forecast"

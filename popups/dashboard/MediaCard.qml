@@ -12,7 +12,6 @@ Item {
     readonly property real progress: player && player.length > 0 ? (player.position % player.length) / player.length : 0
     readonly property color accent: Theme.primary
 
-    // MPRIS position only notifies on change; poll it while playing.
     Timer {
         running: root.player ? root.player.isPlaying : false
         interval: 1000

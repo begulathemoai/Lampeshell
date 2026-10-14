@@ -49,4 +49,4 @@ QString ImageSampler::sampleAtFraction(double fx, double fy) const {
     return sample(qRound(x), qRound(y));
 }
 
-} // namespace lampshell::services
+}

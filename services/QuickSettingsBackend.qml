@@ -272,7 +272,7 @@ Item {
             onStreamFinished: {
                 const fields = this.text.trim().split(",");
                 if (fields.length < 4)
-                    return; // no backlight device (DDC-only monitor)
+                    return;
                 const val = parseInt(fields[3].replace("%", ""));
                 if (!isNaN(val))
                     root.backlightLevel = val / 100.0;

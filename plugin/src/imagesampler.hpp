@@ -32,4 +32,4 @@ private:
     QImage m_image;
 };
 
-} // namespace lampshell::services
+}

@@ -39,7 +39,6 @@ Item {
                 width: root.tabCell
                 height: tabRow.height
 
-                // Hover-only state layer (caelestia's StateLayer shows 8% onSurface).
                 Rectangle {
                     anchors.left: parent.left
                     anchors.right: parent.right
@@ -116,7 +115,6 @@ Item {
         }
     }
 
-    // Indicator: 3px tall, width = active tab content, centred under the tab.
     Item {
         id: indicator
 
@@ -133,7 +131,6 @@ Item {
 
         clip: true
 
-        // Rounded top: a taller rounded rect clipped to the indicator height.
         Rectangle {
             anchors.top: parent.top
             anchors.left: parent.left

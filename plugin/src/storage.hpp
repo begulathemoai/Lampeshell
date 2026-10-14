@@ -43,7 +43,6 @@ protected:
     void tick() override;
 
 private:
-    // One physical disk (or zfs pool), accumulated across the filesystems on it
     struct Accum {
         quint64 usedBytes = 0;
         quint64 totalBytes = 0;
@@ -52,7 +51,6 @@ private:
 
     using AccumHash = QHash<QString, Accum>;
 
-    // Mounts sharing a backing filesystem report identical usage, so they are deduped by source device first
     struct DeviceEntry {
         quint64 totalBytes = 0;
         quint64 usedBytes = 0;
@@ -78,4 +76,4 @@ private:
     QFutureWatcher<AccumHash>* const m_futureWatcher;
 };
 
-} // namespace lampshell::services
+}

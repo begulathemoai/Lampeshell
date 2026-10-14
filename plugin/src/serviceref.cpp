@@ -26,4 +26,4 @@ void ServiceRef::setService(Service* service) {
     }
 }
 
-} // namespace lampshell::services
+}

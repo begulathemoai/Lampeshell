@@ -145,9 +145,6 @@ call() {
     "$QS" "${QS_ARGS[@]}" ipc call "$@"
 }
 
-# The native services live in a small C++ Qt QML module under plugin/. Build it
-# on demand (only when a source is newer than the built module) and point
-# QML_IMPORT_PATH at the build tree so qs can `import Lampshell.Services`.
 build_plugin() {
     local marker="$PLUGIN_QML/Lampshell/Services/liblampshell-servicesplugin.so"
     [ -f "$marker" ] || marker="$PLUGIN_QML/Lampshell/Services/qmldir"

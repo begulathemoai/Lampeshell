@@ -57,4 +57,4 @@ void Memory::tick() {
     emit changed();
 }
 
-} // namespace lampshell::services
+}

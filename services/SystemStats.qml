@@ -21,7 +21,6 @@ Singleton {
     property real cpuTemp: Cpu.temperature
     property bool hasCpuTemp: Cpu.temperature > 0
 
-    // Native services report KiB; the tabs work in bytes.
     property real memTotal: Memory.total * 1024
     property real memUsed: Memory.used * 1024
     property real memAvail: memTotal - memUsed
@@ -75,7 +74,6 @@ Singleton {
         return m + "m";
     }
 
-    // Uptime/load are cheap enough to read straight from procfs.
     FileView {
         id: uptimeView
         path: "/proc/uptime"

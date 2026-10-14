@@ -39,4 +39,4 @@ void TickingService::stop() {
     m_timer->stop();
 }
 
-} // namespace lampshell::services
+}

@@ -7,8 +7,6 @@
 
 namespace lampshell::services {
 
-// QML element that keeps a Service alive for as long as it exists. Bind its
-// `service` to a native singleton to start/stop polling with the UI.
 class ServiceRef : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -28,4 +26,4 @@ private:
     QPointer<Service> m_service;
 };
 
-} // namespace lampshell::services
+}

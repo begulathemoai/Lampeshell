@@ -32,4 +32,4 @@ private:
     bool m_running = false;
 };
 
-} // namespace lampshell::services
+}

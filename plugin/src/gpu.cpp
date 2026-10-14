@@ -120,7 +120,7 @@ const std::array<NameSource, 3>& nameSources() {
 
 constexpr int k_nvidiaSource = 0;
 
-} // namespace
+}
 
 Gpu::Gpu(QObject* parent)
     : TickingService(parent) {
@@ -187,7 +187,6 @@ void Gpu::tick() {
 }
 
 void Gpu::resolveGpu() {
-    // Supersede any chain still in flight so its callbacks cannot write stale state
     const int generation = ++m_generation;
 
     setName({});
@@ -204,11 +203,9 @@ void Gpu::tryNameSource(int index, int generation) {
 
 void Gpu::finishNameSource(int index, int generation, QString name) {
     if (generation != m_generation) {
-        return; // superseded by a newer resolution
+        return;
     }
 
-    // The NVIDIA name probe doubles as the type probe: a non-empty result means
-    // an NVIDIA GPU is present and queryable.
     if (index == k_nvidiaSource) {
         if (!name.isEmpty()) {
             setType(Type::Nvidia);
@@ -241,9 +238,6 @@ void Gpu::runProcess(const QString& program, const QStringList& args, std::funct
     auto* proc = new QProcess(this);
     proc->setStandardErrorFile(QProcess::nullDevice());
 
-    // Deliver the result exactly once, then tear the process down. A crash, a
-    // missing binary or a failed run yields empty output so the caller can fall
-    // through gracefully.
     const auto finish = [proc, callback = std::move(callback)](const QByteArray& out) {
         callback(out);
         proc->deleteLater();
@@ -339,4 +333,4 @@ void Gpu::resetUsage() {
     }
 }
 
-} // namespace lampshell::services
+}

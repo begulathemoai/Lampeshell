@@ -45,4 +45,4 @@ private:
     bool m_nameLoaded = false;
 };
 
-} // namespace lampshell::services
+}

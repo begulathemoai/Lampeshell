@@ -6,7 +6,7 @@ namespace {
 
 constexpr qreal k_kib = 1024.0;
 
-} // namespace
+}
 
 DiskInfo::DiskInfo(QString mount, quint64 usedBytes, quint64 totalBytes, bool hasRoot, QObject* parent)
     : QObject(parent)
@@ -64,4 +64,4 @@ void DiskInfo::update(quint64 usedBytes, quint64 totalBytes, bool hasRoot) {
     }
 }
 
-} // namespace lampshell::services
+}

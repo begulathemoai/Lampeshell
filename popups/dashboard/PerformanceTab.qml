@@ -2,7 +2,6 @@ import QtQuick
 import qs.theme
 import qs.services
 
-// System monitor built on the SystemStats service.
 Item {
     id: root
 
@@ -23,7 +22,6 @@ Item {
         readonly property real cardW: (grid.width - grid.columnSpacing) / 2
         readonly property real cardH: (grid.height - grid.rowSpacing) / 2
 
-        // CPU hero card.
         Rectangle {
             width: grid.cardW
             height: grid.cardH
@@ -123,7 +121,6 @@ Item {
             }
         }
 
-        // GPU hero card.
         Rectangle {
             width: grid.cardW
             height: grid.cardH
@@ -222,7 +219,6 @@ Item {
             }
         }
 
-        // Memory card.
         Rectangle {
             width: grid.cardW
             height: grid.cardH
@@ -307,7 +303,6 @@ Item {
             }
         }
 
-        // Storage card.
         Rectangle {
             width: grid.cardW
             height: grid.cardH
@@ -393,7 +388,6 @@ Item {
         }
     }
 
-    // Network + uptime footer.
     Row {
         anchors.left: parent.left
         anchors.right: parent.right

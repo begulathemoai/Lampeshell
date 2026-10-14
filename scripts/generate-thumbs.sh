@@ -4,7 +4,6 @@ set -euo pipefail
 WALL_DIR="${1:-}"
 THUMB_DIR="${2:-}"
 
-# Validate arguments
 if [[ -z "$WALL_DIR" || -z "$THUMB_DIR" ]]; then
     echo "Usage: $0 <wall_dir> <thumb_dir>" >&2
     exit 1
@@ -15,7 +14,6 @@ if [[ ! -d "$WALL_DIR" ]]; then
     exit 1
 fi
 
-# Check for ffmpeg
 if ! command -v ffmpeg >/dev/null 2>&1; then
     if command -v notify-send >/dev/null 2>&1; then
         notify-send -u critical "Wallpaper Widget" "ffmpeg is missing! Please install it to generate thumbnails."
@@ -25,15 +23,11 @@ fi
 
 mkdir -p "$THUMB_DIR" || exit 1
 
-# Lock to prevent concurrent runs
 exec 200>"$THUMB_DIR/.thumb_lock"
 flock -n 200 || exit 0
 
-# Clean up stale tmp files from crashed encodes
 find "$THUMB_DIR" -maxdepth 1 -name "*.tmp.jpg" -delete
 
-# Build a set of valid thumb names from current wall files,
-# then delete any .jpg in thumb dir that has no matching wallpaper.
 declare -A valid_thumbs
 
 while IFS= read -r -d '' wallfile; do
@@ -49,7 +43,6 @@ while IFS= read -r -d '' thumb; do
     fi
 done < <(find "$THUMB_DIR" -maxdepth 1 -name "*.jpg" -print0)
 
-# Generate thumbnails for missing entries
 export THUMB_DIR
 find "$WALL_DIR" -maxdepth 1 -type f \
     \( -iname "*.png" -o -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.webp" \) -print0 | \

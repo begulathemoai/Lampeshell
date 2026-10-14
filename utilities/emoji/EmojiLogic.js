@@ -4,13 +4,10 @@ function filterEmojis(baseItems, queryStr) {
 
   let results = [];
 
-  // Simple, fast iteration
   for (let i = 0; i < baseItems.length; i++) {
     let item = baseItems[i];
 
-    // Check if the query exists anywhere in the search string (name + tags)
     if (item.searchString.includes(query)) {
-      // Prioritize items that actually start with the query
       let displayLower = item.display.toLowerCase();
       item.score = displayLower.startsWith(query) ? 2 : 1;
 
@@ -18,13 +15,11 @@ function filterEmojis(baseItems, queryStr) {
     }
   }
 
-  // Sort by score (startsWith first), then by shortest display name
   results.sort((a, b) => {
     if (b.score !== a.score) return b.score - a.score;
     return a.display.length - b.display.length;
   });
 
-  // Cap results to keep rendering fast
   return results.slice(0, 50);
 }
 
@@ -40,7 +35,6 @@ function parseEmojiJson(textBody) {
     dynamicAllItems.push({
       emoji: key,
       display: displayDesc,
-      // Flatten display name and tags into one searchable string
       searchString: (displayDesc + " " + tags.join(" ")).toLowerCase(),
     });
   });

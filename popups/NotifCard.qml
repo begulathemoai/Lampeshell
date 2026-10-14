@@ -30,7 +30,7 @@ Item {
         if (!img)
             return "";
         if (img.startsWith("image://qsimage/"))
-            return ""; // process-local, dead on restart
+            return "";
         if (img.startsWith("/"))
             return "file://" + img;
         if (img.startsWith("file://"))

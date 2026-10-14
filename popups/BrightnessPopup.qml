@@ -36,7 +36,7 @@ Variants {
 
         onBrightnessLevelChanged: triggerOsd();
 
-        readonly property var quickSettingsBackend: QuickSettingsBackend  // for fallback only
+        readonly property var quickSettingsBackend: QuickSettingsBackend
 
         property bool isInitialized: false
         property bool showOsd: false

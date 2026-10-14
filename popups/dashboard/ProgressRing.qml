@@ -2,11 +2,10 @@ import QtQuick
 import QtQuick.Shapes
 import qs.theme
 
-// Circular progress ring used by the resource and performance cards.
 Item {
     id: root
 
-    property real value: 0 // 0..1
+    property real value: 0
     property color fgColor: Theme.primary
     property color bgColor: Theme.surface_container_high
     property real strokeWidth: Layout.s(6)

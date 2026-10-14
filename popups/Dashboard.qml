@@ -20,7 +20,6 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
     exclusiveZone: -1
 
-    // Top-only anchor makes wlr-layer-shell centre the surface horizontally.
     anchors.top: true
     margins.top: Layout.topBarHeight
 

@@ -89,7 +89,7 @@ QStringList resolveByDevt(uint major, uint minor, int depth) {
     return resolveAtNode(sysfsRealPath(major, minor), depth);
 }
 
-} // namespace
+}
 
 Storage::Storage(QObject* parent)
     : TickingService(parent)
@@ -237,8 +237,6 @@ Storage::AccumHash Storage::foldToDisks(const QHash<QByteArray, DeviceEntry>& by
         const auto disks = resolveToPhysicalDisks(QString::fromLocal8Bit(e.device));
 
         if (disks.isEmpty()) {
-            // ZFS has no /dev block device to resolve, its "device" is a
-            // "pool/dataset" name, so fall back to keying by the pool name.
             if (e.fsType != QByteArrayView("zfs"))
                 continue;
 
@@ -324,4 +322,4 @@ void Storage::applyDisks(const AccumHash& byDisk) {
         emit primaryDiskChanged();
 }
 
-} // namespace lampshell::services
+}

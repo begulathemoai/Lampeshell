@@ -74,4 +74,4 @@ private:
     bool m_nvidiaQuerying = false;
 };
 
-} // namespace lampshell::services
+}

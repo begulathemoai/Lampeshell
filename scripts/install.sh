@@ -129,8 +129,6 @@ install_aur_pkgs() {
     warn "cannot start: it requires the git build of quickshell."
 }
 
-# Deploy the fish dotfiles the same way caelestia does: put the files in
-# <config>/fish, replacing whatever is there, after keeping a backup.
 deploy_fish() {
     local src="$TARGET/extras/fish"
     local conf="${XDG_CONFIG_HOME:-$HOME/.config}"
