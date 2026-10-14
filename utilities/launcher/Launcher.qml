@@ -3,9 +3,13 @@ import Quickshell.Wayland
 import Quickshell.Hyprland
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Effects
 import "../../theme"
+import qs.services
 
+// Bottom-centre launcher, merged into the bottom bezel the same way the
+// dashboard is merged into the top bar: the window is transparent and
+// bar/Chrome.qml paints a matching notch under it, growing upwards from the
+// bottom. The body is clipped to the reveal so it slides up out of the bezel.
 PanelWindow {
     id: launcherWindow
 
@@ -19,12 +23,21 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
     exclusiveZone: -1
 
-    anchors {
-        top: true
-        bottom: true
-        left: true
-        right: true
+    // Bottom-only anchor: wlr-layer-shell centres the surface horizontally and
+    // hangs it off the bottom bezel. Mirrors the top-centre dashboard (opened
+    // by the clock) on the opposite side of the screen.
+    anchors.bottom: true
+    margins.bottom: Layout.bottomBarHeight
+
+    function screenForFocus() {
+        const active = Hyprland.focusedMonitor ?? null;
+        return active && active.name ? Quickshell.screens.find(s => s.name === active.name) ?? Quickshell.screens[0] : Quickshell.screens[0];
     }
+    property var targetScreen: screenForFocus()
+    screen: targetScreen
+
+    implicitWidth: Math.round(contentRoot.width)
+    implicitHeight: Math.round(contentRoot.height)
 
     function scoreMatch(text, query) {
         if (!text)
@@ -96,7 +109,6 @@ PanelWindow {
         var queryLower = query.toLowerCase();
 
         if (query === "") {
-
             return allApps.filter(app => !launcherWindow.isHiddenApp(app.name)).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
         }
 
@@ -157,273 +169,238 @@ PanelWindow {
         id: ctrl
 
         onOpenMenuRequested: {
-            if (launcherWindow.visible && !launcherWindow.closing) {
-                closeMenu();
-            } else {
-                openMenu();
-            }
+            if (launcherWindow.shown)
+                launcherWindow.closeMenu();
+            else
+                launcherWindow.openMenu();
         }
 
-        onCloseMenuRequested: closeMenu()
+        onCloseMenuRequested: launcherWindow.closeMenu()
     }
 
-    property bool closing: false
-    property bool pointerHeld: false
-    property bool closePending: false
+    property bool shown: false
+
+    function publishGeometry() {
+        LauncherState.screenName = launcherWindow.screen ? launcherWindow.screen.name : "";
+        LauncherState.setContentSize(Math.round(contentRoot.contentWidth), Math.round(contentRoot.contentHeight));
+    }
+
+    onWidthChanged: publishGeometry()
+    onHeightChanged: publishGeometry()
+    onTargetScreenChanged: publishGeometry()
+
+    onShownChanged: LauncherState.open = shown
 
     function openMenu() {
-        ctrl.searchText = "";
-        closing = false;
-        closePending = false;
-        closeWatchdog.stop();
-        launcherScrim.opacity = 0;
-        scrimAnim.restart();
+        launcherWindow.targetScreen = launcherWindow.screenForFocus();
+        launcherWindow.shown = true;
+        publishGeometry();
         launcherWindow.visible = true;
+        ctrl.searchText = "";
+        Qt.callLater(function() {
+            focusGrab.active = true;
+            contentRoot.focusSearch();
+        });
     }
 
     function closeMenu() {
-        if (pointerHeld) {
-            closePending = true;
+        if (!launcherWindow.shown && !launcherWindow.visible)
             return;
-        }
-        if (!launcherWindow.visible || launcherWindow.closing)
-            return;
-        launcherWindow.closing = true;
-        if (contentLoader.item) {
-            contentLoader.item.disarmGrab();
-            contentLoader.item.dismiss();
-            scrimAnimOut.restart();
-        } else {
-            launcherWindow.visible = false;
-        }
-        closeWatchdog.restart();
+        launcherWindow.shown = false;
+        focusGrab.active = false;
+        ctrl.searchText = "";
+        hideWhenDone.restart();
     }
 
-    function releasePointer() {
-        launcherWindow.pointerHeld = false;
-        if (launcherWindow.closePending) {
-            launcherWindow.closePending = false;
+    function toggle() {
+        if (launcherWindow.shown)
+            closeMenu();
+        else
+            openMenu();
+    }
+
+    Timer {
+        id: hideWhenDone
+        interval: Motion.duration(Motion.defaultSpatial) + 50
+        onTriggered: {
+            if (!launcherWindow.shown)
+                launcherWindow.visible = false;
+        }
+    }
+
+    Connections {
+        target: LauncherState
+
+        function onToggleRequested() {
+            launcherWindow.toggle();
+        }
+
+        function onOpenRequested() {
+            launcherWindow.openMenu();
+        }
+
+        function onCloseRequested() {
             launcherWindow.closeMenu();
         }
     }
 
-    Timer {
-        id: closeWatchdog
-        interval: 800
-        onTriggered: {
-            if (launcherWindow.visible) {
-                if (contentLoader.item)
-                    contentLoader.item.disarmGrab();
-                launcherWindow.closing = false;
-                launcherWindow.visible = false;
+    HyprlandFocusGrab {
+        id: focusGrab
+        windows: [launcherWindow]
+        active: false
+        onCleared: launcherWindow.closeMenu()
+    }
+
+    // Curtain: the window is fixed at the card size, the reveal grows the
+    // merged notch up from the bottom bar and this clips the body to match.
+    Item {
+        id: reveal
+
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: LauncherState.revealHeight
+        clip: true
+
+        Item {
+            id: contentRoot
+
+            anchors.bottom: parent.bottom
+            anchors.horizontalCenter: parent.horizontalCenter
+
+            width: card.width
+            height: card.height
+
+            readonly property real contentWidth: card.width
+            readonly property real contentHeight: card.height
+
+            onWidthChanged: launcherWindow.publishGeometry()
+            onHeightChanged: launcherWindow.publishGeometry()
+
+            function focusSearch() {
+                searchField.forceActiveFocus();
             }
-        }
-    }
 
-    Rectangle {
-        id: launcherScrim
-        z: -1
-        anchors.fill: parent
-        color: Theme.scrim
-        opacity: 0
+            Rectangle {
+                id: card
 
-        NumberAnimation {
-            id: scrimAnim
-            target: launcherScrim
-            property: "opacity"
-            from: 0
-            to: 0.35
-            duration: Motion.duration(Motion.slowEffects)
-            easing.type: Easing.OutCubic
-        }
+                width: Math.min(640, (launcherWindow.screen ? launcherWindow.screen.width : 640) - 96)
+                height: cardColumn.implicitHeight + 24
+                radius: Layout.panelRadius
+                color: "transparent"
 
-        NumberAnimation {
-            id: scrimAnimOut
-            target: launcherScrim
-            property: "opacity"
-            to: 0
-            duration: Motion.duration(Motion.standard)
-            easing.type: Easing.InCubic
-        }
-    }
-
-    LazyLoader {
-        id: contentLoader
-
-        activeAsync: launcherWindow.visible
-
-        function exit() {
-            if (item) {
-                item.disarmGrab();
-                item.dismiss();
-            } else
-                launcherWindow.visible = false;
-        }
-
-        component: Component {
-            Item {
-                id: lazyContentRoot
-
-                parent: launcherWindow.contentItem
-                anchors.fill: parent
-
-                HyprlandFocusGrab {
-                    id: focusGrab
-                    windows: [launcherWindow]
-                    onCleared: launcherWindow.closeMenu()
+                Behavior on height {
+                    NumberAnimation {
+                        duration: Motion.duration(Motion.standardSmall)
+                        easing.type: Easing.OutCubic
+                    }
                 }
 
-                function disarmGrab() {
-                    focusGrab.active = false;
-                }
+                Keys.onPressed: event => {
+                    if (searchField.activeFocus)
+                        return;
 
-                function dismiss() {
-                    exitAnim.start();
-                }
-
-                Component.onCompleted: {
-                    focusGrab.active = true;
-                    searchField.forceActiveFocus();
-                    enterAnim.start();
-                }
-
-                MouseArea {
-                    id: backdrop
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-                    onPressed: launcherWindow.pointerHeld = true
-                    onReleased: {
-                        launcherWindow.releasePointer();
+                    if (event.key === Qt.Key_Escape) {
                         launcherWindow.closeMenu();
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_Slash || event.key === Qt.Key_I) {
+                        searchField.forceActiveFocus();
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_J || event.key === Qt.Key_Down) {
+                        listView.incrementCurrentIndex();
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_K || event.key === Qt.Key_Up) {
+                        listView.decrementCurrentIndex();
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
+                        if (listView.currentItem)
+                            listView.currentItem.launch();
+                        event.accepted = true;
                     }
-                    onCanceled: launcherWindow.releasePointer()
                 }
 
-                Item {
-                    id: cardCenter
+                Column {
+                    id: cardColumn
 
-                    readonly property real maxWidth: 640
+                    x: 12
+                    y: 12
+                    width: parent.width - 24
 
-                    property real driftOffset: 12
+                    ListView {
+                        id: listView
 
-                    width: Math.min(maxWidth, lazyContentRoot.width - 48)
-
-                    height: cardColumn.implicitHeight
-                    x: (lazyContentRoot.width - width) / 2
-                    y: (lazyContentRoot.height - height) / 2 + driftOffset
-
-                    Behavior on height {
-                        NumberAnimation {
-                            duration: Motion.duration(Motion.standardSmall)
-                            easing.type: Easing.OutCubic
-                        }
-                    }
-
-                    opacity: 0
-                    scale: 0.86
-                    transformOrigin: Item.Center
-
-                    ParallelAnimation {
-                        id: enterAnim
-
-                        NumberAnimation {
-                            target: cardCenter
-                            property: "opacity"
-                            to: 1
-                            duration: Motion.duration(Motion.standard)
-                            easing.type: Easing.OutCubic
-                        }
-                        NumberAnimation {
-                            target: cardCenter
-                            property: "scale"
-                            to: 1
-                            duration: Motion.duration(Motion.slowSpatial)
-                            easing.type: Easing.OutBack
-                            easing.overshoot: 1.1
-                        }
-                        NumberAnimation {
-                            target: cardCenter
-                            property: "driftOffset"
-                            to: 0
-                            duration: Motion.duration(Motion.slowSpatial)
-                            easing.type: Easing.OutCubic
-                        }
-                    }
-
-                    SequentialAnimation {
-                        id: exitAnim
-
-                        ParallelAnimation {
-                            NumberAnimation {
-                                target: cardCenter
-                                property: "opacity"
-                                to: 0
-                                duration: Motion.duration(Motion.standard)
-                                easing.type: Easing.InCubic
-                            }
-                            NumberAnimation {
-                                target: cardCenter
-                                property: "scale"
-                                to: 0.94
-                                duration: Motion.duration(Motion.standard)
-                                easing.type: Easing.InCubic
-                            }
-                            NumberAnimation {
-                                target: cardCenter
-                                property: "driftOffset"
-                                to: 8
-                                duration: Motion.duration(Motion.standard)
-                                easing.type: Easing.InCubic
-                            }
-                        }
-                        ScriptAction {
-
-                            script: launcherWindow.visible = false
-                        }
-                    }
-
-                Rectangle {
-                    id: card
-
-                    anchors.fill: parent
-
-                    radius: 16
-
-                    color: Theme.surface_container_low
-                    border.width: 1
-                    border.color: Qt.rgba(Theme.outline_variant.r, Theme.outline_variant.g, Theme.outline_variant.b, 0.2)
-
-                    Keys.onPressed: event => {
-                        if (searchField.activeFocus)
-                            return;
-
-                        if (event.key === Qt.Key_Escape) {
-                            launcherWindow.closeMenu();
-                            event.accepted = true;
-                        } else if (event.key === Qt.Key_Slash || event.key === Qt.Key_I) {
-                            searchField.forceActiveFocus();
-                            event.accepted = true;
-                        } else if (event.key === Qt.Key_J || event.key === Qt.Key_Down) {
-                            listView.incrementCurrentIndex();
-                            event.accepted = true;
-                        } else if (event.key === Qt.Key_K || event.key === Qt.Key_Up) {
-                            listView.decrementCurrentIndex();
-                            event.accepted = true;
-                        } else if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
-                            if (listView.currentItem)
-                                listView.currentItem.launch();
-                            event.accepted = true;
-                        }
-                    }
-
-                    Column {
-                        id: cardColumn
                         width: parent.width
+                        height: Math.min(contentHeight, 300)
+                        visible: count > 0
+                        clip: true
+                        boundsBehavior: Flickable.StopAtBounds
 
-                        Item {
-                            id: searchRow
-                            width: parent.width
-                            height: 56
+                        topMargin: 6
+                        bottomMargin: 6
+                        leftMargin: 6
+                        rightMargin: 6
+
+                        spacing: 2
+                        highlightMoveDuration: 0
+                        currentIndex: 0
+
+                        model: ScriptModel {
+                            values: launcherWindow.buildFilteredList()
+                        }
+
+                        delegate: LauncherDelegate {}
+
+                        displaced: Transition {
+                            NumberAnimation {
+                                properties: "x,y"
+                                duration: 180
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+                        add: Transition {
+                            NumberAnimation {
+                                property: "opacity"
+                                from: 0
+                                to: 1
+                                duration: 140
+                            }
+                        }
+                    }
+
+                    Text {
+                        width: parent.width
+                        height: visible ? 72 : 0
+                        visible: listView.count === 0
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        text: "No matching applications"
+                        color: Theme.on_surface_variant
+                        opacity: 0.6
+                        font {
+                            family: "Google Sans"
+                            pixelSize: 15
+                        }
+                    }
+
+                    Rectangle {
+                        width: parent.width + 24
+                        x: -12
+                        height: 1
+                        color: Theme.outline_variant
+                        opacity: 0.2
+                        visible: listView.count > 0
+                    }
+
+                    Item {
+                        width: parent.width
+                        height: 56
+
+                        Rectangle {
+                            id: searchPill
+
+                            anchors.fill: parent
+                            radius: height / 2
+                            color: Theme.surface_container
 
                             Text {
                                 id: searchIcon
@@ -442,7 +419,7 @@ PanelWindow {
                             TextField {
                                 id: searchField
                                 anchors.left: searchIcon.right
-                                anchors.leftMargin: 16
+                                anchors.leftMargin: 12
                                 anchors.right: clearButton.left
                                 anchors.rightMargin: 8
                                 anchors.verticalCenter: parent.verticalCenter
@@ -502,7 +479,7 @@ PanelWindow {
                                 id: clearButton
                                 visible: false
                                 anchors.right: parent.right
-                                anchors.rightMargin: 12
+                                anchors.rightMargin: 8
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: 40
                                 height: 40
@@ -534,74 +511,9 @@ PanelWindow {
                                 }
                             }
                         }
-
-                        Rectangle {
-                            width: parent.width
-                            height: 1
-                            color: Theme.outline_variant
-                            opacity: 0.2
-                            visible: listView.count > 0
-                        }
-
-                        ListView {
-                            id: listView
-                            width: parent.width
-
-                            height: Math.min(contentHeight, 300)
-                            visible: count > 0
-                            clip: true
-                            boundsBehavior: Flickable.StopAtBounds
-
-                            topMargin: 6
-                            bottomMargin: 6
-                            leftMargin: 6
-                            rightMargin: 6
-
-                            spacing: 2
-                            highlightMoveDuration: 0
-                            currentIndex: 0
-
-                            model: ScriptModel {
-                                values: launcherWindow.buildFilteredList()
-                            }
-
-                            delegate: LauncherDelegate {}
-
-                            displaced: Transition {
-                                NumberAnimation {
-                                    properties: "x,y"
-                                    duration: 180
-                                    easing.type: Easing.OutCubic
-                                }
-                            }
-                            add: Transition {
-                                NumberAnimation {
-                                    property: "opacity"
-                                    from: 0
-                                    to: 1
-                                    duration: 140
-                                }
-                            }
-                        }
-
-                        Text {
-                            width: parent.width
-                            height: visible ? 72 : 0
-                            visible: listView.count === 0
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            text: "No matching applications"
-                            color: Theme.on_surface_variant
-                            opacity: 0.6
-                            font {
-                                family: "Google Sans"
-                                pixelSize: 15
-                            }
-                        }
                     }
                 }
             }
         }
-    }
     }
 }
