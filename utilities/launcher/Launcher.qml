@@ -66,7 +66,10 @@ PanelWindow {
             icon: entry.icon || "",
             id: entry.id || "",
             keywords: entry.keywords || [],
-            execString: entry.execString || ""
+            execString: entry.execString || "",
+            command: entry.command || [],
+            runInTerminal: !!entry.runInTerminal,
+            workingDirectory: entry.workingDirectory || ""
         };
     }
 
