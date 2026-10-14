@@ -790,13 +790,8 @@ property string lastMessage: ""
         stdout: StdioCollector {
             onStreamFinished: {
                 const text = String(this.text ?? "");
-                root.ddcPresent = /ddc=\S+/.test(text);
+                root.ddcPresent = false;
                 root.gammaPresent = /gamma=\S+/.test(text);
-                if (root.ddcPresent) {
-                    probeDdc.command = ["sh", "-c", "ddcutil capabilities 2>/dev/null || true"];
-                    probeDdc.running = false;
-                    probeDdc.running = true;
-                }
                 if (root.gammaPresent) {
                     probeGamma.command = ["gammastep", "-P", "-O", "6500"];
                     probeGamma.running = false;

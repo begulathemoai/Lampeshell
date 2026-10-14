@@ -25,7 +25,7 @@ Singleton {
     Process {
         id: detectProc
         command: ["sh", "-c", ddc("ddcutil detect --brief") + " 2>/dev/null || true"]
-        running: true
+        running: false
         stdout: StdioCollector {
             id: detectCollector
             onStreamFinished: {
