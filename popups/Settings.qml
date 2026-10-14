@@ -20,7 +20,10 @@ FloatingWindow {
     color: "transparent"
     visible: false
 
-    onClosed: settingsWindow.visible = false
+    onClosed: {
+        nexusState.overlayOpen = false;
+        settingsWindow.visible = false;
+    }
 
     property var targetScreen: Quickshell.screens[0]
 
@@ -47,6 +50,7 @@ FloatingWindow {
     }
 
     function close() {
+        nexusState.overlayOpen = false;
         settingsWindow.visible = false;
     }
 
@@ -179,6 +183,7 @@ FloatingWindow {
 
         Rectangle {
             id: closeButton
+            visible: !nexusState.overlayOpen
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.margins: 18

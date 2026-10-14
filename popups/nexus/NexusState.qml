@@ -8,6 +8,8 @@ QtObject {
     property var quickSettingsBackend
     property var targetScreen
 
+    property bool overlayOpen: false
+
     property int currentPageIdx: 0
     readonly property var subPageIdxStack: []
 

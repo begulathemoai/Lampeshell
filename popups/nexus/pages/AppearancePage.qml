@@ -20,6 +20,8 @@ PageBase {
 
     property bool personalised: AccentPalette.isCustom
 
+    property bool styleDialogOpen: false
+
     property bool pickingFromWallpaper: false
     property string pendingHex: ""
     property real sampleX: 0.5
@@ -66,6 +68,11 @@ PageBase {
         syncFromSource();
         root.loadSampler();
     }
+
+    onStyleDialogOpenChanged: nState.overlayOpen = root.styleDialogOpen || root.pickingFromWallpaper
+    onPickingFromWallpaperChanged: nState.overlayOpen = root.styleDialogOpen || root.pickingFromWallpaper
+
+    Component.onDestruction: nState.overlayOpen = false
 
     Connections {
         target: AccentPalette
@@ -281,7 +288,7 @@ PageBase {
             icon: "palette"
             label: "Theme Style"
             description: ThemeService.styleLabel
-            onClicked: root.styleDialog.open = true
+            onClicked: root.styleDialogOpen = true
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
@@ -373,12 +380,14 @@ PageBase {
         anchors.fill: parent
 
         ChoiceDialog {
-            id: styleDialog
             anchors.fill: parent
+            open: root.styleDialogOpen
             title: "Theme Style"
             model: ThemeService.styles
             current: ThemeService.effectiveStyleKey
+            onDismissed: root.styleDialogOpen = false
             onChosen: function(key) {
+                root.styleDialogOpen = false;
                 if (key === ThemeService.styleKey && !ThemeService.fidelity)
                     return;
                 ThemeService.fidelity = false;
