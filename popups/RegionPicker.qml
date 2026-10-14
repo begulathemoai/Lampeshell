@@ -32,6 +32,8 @@ Variants {
         property bool dragging: false
         property bool onClient: false
         property bool releaseCaptureActive: false
+        property bool aiming: false
+        property bool captured: false
 
         readonly property real rsx: Math.min(sx, ex)
         readonly property real rsy: Math.min(sy, ey)
@@ -89,6 +91,18 @@ Variants {
             picker.ey = h / 2 + 100;
         }
 
+        function beginCapture() {
+            picker.aiming = false;
+            captureDelay.restart();
+        }
+
+        function captureNow() {
+            if (RegionPick.freeze)
+                frozenLoader.active = true;
+            else
+                liveLoader.active = true;
+        }
+
         function save() {
             const rx = Math.ceil(picker.rsx);
             const ry = Math.ceil(picker.rsy);
@@ -143,14 +157,24 @@ Variants {
             picker.dragging = false;
             picker.releaseCaptureActive = false;
             liveLoader.active = false;
-            frozenLoader.active = RegionPick.freeze;
+            frozenLoader.active = false;
+            picker.aiming = !RegionPick.freeze;
+            picker.captured = false;
             picker.resetSelection();
             Qt.callLater(function() {
                 surface.forceActiveFocus();
                 cursorProc.running = true;
             });
 
+            if (RegionPick.freeze)
+                captureFallback.restart();
+        }
 
+        onVisibleChanged: {
+            if (!visible) {
+                captureDelay.stop();
+                captureFallback.stop();
+            }
         }
 
         Process {
@@ -184,10 +208,36 @@ Variants {
                 paintCursor: false
 
                 onHasContentChanged: {
-                    if (hasContent && picker.releaseCaptureActive)
+                    if (!hasContent)
+                        return;
+
+                    picker.aiming = true;
+                    if (picker.releaseCaptureActive)
                         picker.save();
                 }
             }
+        }
+
+        Timer {
+            id: captureDelay
+            interval: 140
+            repeat: false
+
+            onTriggered: {
+                if (picker.captured)
+                    return;
+
+                picker.captured = true;
+                picker.captureNow();
+            }
+        }
+
+        Timer {
+            id: captureFallback
+            interval: 600
+            repeat: false
+
+            onTriggered: picker.beginCapture();
         }
 
         Loader {
@@ -204,7 +254,11 @@ Variants {
                 paintCursor: false
 
                 onHasContentChanged: {
-                    if (hasContent && picker.releaseCaptureActive)
+                    if (!hasContent)
+                        return;
+
+                    picker.aiming = true;
+                    if (picker.releaseCaptureActive)
                         picker.save();
                 }
             }
@@ -281,7 +335,14 @@ Variants {
                 id: dragArea
                 anchors.fill: parent
                 hoverEnabled: true
-                cursorShape: Qt.CrossCursor
+                cursorShape: picker.aiming ? Qt.CrossCursor : Qt.BlankCursor
+
+                onEntered: {
+                    if (RegionPick.freeze && !picker.captured) {
+                        captureFallback.stop();
+                        picker.beginCapture();
+                    }
+                }
                 acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
 
                 onPressed: function(event) {
@@ -324,7 +385,7 @@ Variants {
                         if (frozenLoader.item && frozenLoader.item.hasContent)
                             picker.save();
                     } else {
-                        liveLoader.active = true;
+                        picker.beginCapture();
                     }
                 }
             }
