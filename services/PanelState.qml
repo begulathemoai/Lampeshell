@@ -38,14 +38,25 @@ Item {
     function setContentSize(w, h) {
         if (panelWidth !== w)
             panelWidth = w;
-        if (cardHeight !== h)
-            cardHeight = h;
+        if (Math.abs(cardHeight - h) < 0.5)
+            return;
+        cardHeightAnim.from = cardHeight;
+        cardHeightAnim.to = h;
+        cardHeightAnim.restart();
     }
 
     onOpenChanged: {
         panelAnim.from = progress;
         panelAnim.to = open ? 1 : 0;
         panelAnim.restart();
+    }
+
+    NumberAnimation {
+        id: cardHeightAnim
+        target: root
+        property: "cardHeight"
+        duration: Motion.duration(Motion.standardSmall)
+        easing.type: Easing.OutCubic
     }
 
     NumberAnimation {
