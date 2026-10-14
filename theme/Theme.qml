@@ -116,15 +116,6 @@ FileView {
         let sat = c.hsvSaturation;
         let value = c.hsvValue;
 
-        if (root.fidelity && key === "primary") {
-            const s = root.toColor(colors.source_color);
-            if (s) {
-                hue = s.hsvHue < 0 ? hue : s.hsvHue;
-                sat = s.hsvSaturation;
-                value = Math.max(0.6, Math.min(0.95, s.hsvValue));
-            }
-        }
-
         if (root.chromaBoost > 0.001 && !root.fidelity && root.accentRoles.indexOf(key) >= 0)
             sat = Math.min(1, sat * (1 + root.chromaBoost));
 

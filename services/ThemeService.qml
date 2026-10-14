@@ -130,7 +130,7 @@ find "$dir" -maxdepth 3 -type f \\
         matugenProc.command = [
             "matugen", "image", path,
             "-j", "hex",
-            "--type", root.styleKey,
+            "--type", root.effectiveStyleKey,
             "--prefer", root.matugenPrefer,
             "--mode", root.matugenMode,
             "--contrast", String(root.contrast),
@@ -230,10 +230,10 @@ find "$dir" -maxdepth 3 -type f \\
 
     readonly property string styleLabel: {
         for (const s of root.styles) {
-            if (s.key === root.styleKey)
+            if (s.key === root.effectiveStyleKey)
                 return s.label;
         }
-        return "Smart";
+        return root.fidelity ? "Fidelity" : "Smart";
     }
 
     readonly property string contrastLabel: root.contrast < -0.33
@@ -241,6 +241,8 @@ find "$dir" -maxdepth 3 -type f \\
         : (root.contrast > 0.33 ? "High" : "Normal")
 
     readonly property int chromaPercent: Math.round(Math.max(0, root.chromaBoost) * 100)
+
+    readonly property string effectiveStyleKey: root.fidelity ? "scheme-fidelity" : root.styleKey
 
     function loadTunables() {
         if (!SettingsStore.loaded)
@@ -560,7 +562,7 @@ printf '%s' "$px" | base64 -d >> "$out" || exit 1
             accentMatugenProc.command = [
                 "matugen", "image", root.stateBase + "/swatch.ppm",
                 "-j", "hex",
-                "--type", root.styleKey,
+                "--type", root.effectiveStyleKey,
                 "--prefer", "saturation",
                 "--mode", root.matugenMode,
                 "--contrast", String(root.contrast),

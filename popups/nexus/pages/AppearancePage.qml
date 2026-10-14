@@ -269,10 +269,11 @@ PageBase {
         ToggleRow {
             icon: "tune"
             label: "Fidelity"
-            description: "Keep the source colour's hue and saturation"
+            description: "Use the source colour as the accent"
             checked: ThemeService.fidelity
             onToggled: function(checked) {
                 ThemeService.fidelity = checked;
+                ThemeService.regenerate(root.personalised ? root.currentSource : "");
             }
         }
 
@@ -345,6 +346,9 @@ PageBase {
             model: ThemeService.styles
             current: ThemeService.styleKey
             onChosen: function(key) {
+                if (key === ThemeService.styleKey && !ThemeService.fidelity)
+                    return;
+                ThemeService.fidelity = false;
                 ThemeService.styleKey = key;
                 ThemeService.regenerate(root.personalised ? root.currentSource : "");
             }
