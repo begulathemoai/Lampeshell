@@ -389,7 +389,7 @@ PageBase {
                 anchors.centerIn: parent
                 readonly property real innerWidth: width - 24
                 readonly property real bodyHeight: root.pickingColor
-                    ? Math.min(Math.round(innerWidth), 190) + 24
+                    ? Math.max(1, Math.min(innerWidth, 190)) + 32
                     : Math.max(1, innerWidth / root.cardAspect)
                 width: Math.min(parent.width - 64, 780)
                 height: Math.min(parent.height - 40, 56 + bodyHeight + 96)
@@ -445,8 +445,10 @@ PageBase {
                         color: root.pendingHex
                         border.width: 3
                         border.color: Theme.on_surface
-                        x: (wallImage.width - wallImage.drawW) / 2 + root.sampleX * Math.max(0, wallImage.drawW - width)
-                        y: (wallImage.height - wallImage.drawH) / 2 + root.sampleY * Math.max(0, wallImage.drawH - height)
+                        x: Math.max(0, Math.min(wallImage.width - width,
+                            (wallImage.width - wallImage.drawW) / 2 + root.sampleX * Math.max(0, wallImage.drawW - width)))
+                        y: Math.max(0, Math.min(wallImage.height - height,
+                            (wallImage.height - wallImage.drawH) / 2 + root.sampleY * Math.max(0, wallImage.drawH - height)))
                     }
 
                     MouseArea {

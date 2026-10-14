@@ -1,7 +1,7 @@
 import QtQuick
 import qs.theme
 
-Column {
+Item {
     id: root
 
     property real hue: 0
@@ -13,15 +13,17 @@ Column {
     readonly property color value: Qt.hsva(hue / 360, saturation, lightness, 1)
 
     width: parent ? parent.width : 0
-    spacing: 8
+    height: side + 8 + 24
 
-    readonly property real side: Math.min(Math.round(width), 190)
+    readonly property real side: Math.max(1, Math.min(width, 190))
+    readonly property real inset: (width - side) / 2
 
     Rectangle {
         id: square
+        x: root.inset
+        y: 0
         width: root.side
         height: root.side
-        anchors.horizontalCenter: parent.horizontalCenter
         radius: 12
         clip: true
         border.width: 1
@@ -45,7 +47,7 @@ Column {
         Rectangle {
             anchors.fill: parent
             gradient: Gradient {
-                orientation: Gradient.TopBottom
+                orientation: Gradient.Vertical
                 GradientStop {
                     position: 0.0
                     color: "#00000000"
@@ -63,7 +65,7 @@ Column {
             height: 1
             color: Theme.on_surface
             opacity: 0.5
-            y: (square.height - height) * (1 - root.lightness)
+            y: Math.max(0, Math.min(square.height - height, square.height * (1 - root.lightness) - height / 2))
         }
 
         Rectangle {
@@ -72,18 +74,18 @@ Column {
             width: 1
             color: Theme.on_surface
             opacity: 0.5
-            x: (square.width - width) * root.saturation
+            x: Math.max(0, Math.min(square.width - width, square.width * root.saturation - width / 2))
         }
 
         Rectangle {
+            x: Math.max(0, Math.min(square.width - width, square.width * root.saturation - width / 2))
+            y: Math.max(0, Math.min(square.height - height, square.height * (1 - root.lightness) - height / 2))
             width: 15
             height: 15
             radius: 7.5
             color: "transparent"
             border.width: 3
             border.color: Theme.on_surface
-            x: (square.width - width) * root.saturation - width / 2
-            y: (square.height - height) * (1 - root.lightness) - height / 2
         }
 
         MouseArea {
@@ -102,9 +104,10 @@ Column {
 
     Rectangle {
         id: strip
+        x: root.inset
+        y: root.side + 8
         width: root.side
         height: 24
-        anchors.horizontalCenter: parent.horizontalCenter
         radius: 12
         clip: true
         border.width: 1
@@ -143,14 +146,14 @@ Column {
         }
 
         Rectangle {
+            x: Math.max(0, Math.min(strip.width - width, strip.width * (root.hue / 360) - width / 2))
+            y: (strip.height - height) / 2
             width: 15
             height: 15
             radius: 7.5
             color: "transparent"
             border.width: 3
             border.color: Theme.on_surface
-            x: (strip.width - width) * (root.hue / 360) - width / 2
-            y: (strip.height - height) / 2
         }
 
         MouseArea {
