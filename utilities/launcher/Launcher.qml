@@ -192,6 +192,7 @@ PanelWindow {
         if (contentLoader.item) {
             contentLoader.item.disarmGrab();
             contentLoader.item.dismiss();
+            scrimAnimOut.restart();
         } else {
             launcherWindow.visible = false;
         }
@@ -232,8 +233,17 @@ PanelWindow {
             property: "opacity"
             from: 0
             to: 0.35
-            duration: Motion.duration(Motion.fastEffects)
+            duration: Motion.duration(Motion.slowEffects)
             easing.type: Easing.OutCubic
+        }
+
+        NumberAnimation {
+            id: scrimAnimOut
+            target: launcherScrim
+            property: "opacity"
+            to: 0
+            duration: Motion.duration(Motion.standard)
+            easing.type: Easing.InCubic
         }
     }
 
@@ -294,11 +304,13 @@ PanelWindow {
 
                     readonly property real maxWidth: 640
 
+                    property real driftOffset: 12
+
                     width: Math.min(maxWidth, lazyContentRoot.width - 48)
 
                     height: cardColumn.implicitHeight
                     x: (lazyContentRoot.width - width) / 2
-                    y: (lazyContentRoot.height - height) / 2
+                    y: (lazyContentRoot.height - height) / 2 + driftOffset
 
                     Behavior on height {
                         NumberAnimation {
@@ -308,7 +320,7 @@ PanelWindow {
                     }
 
                     opacity: 0
-                    scale: 0.94
+                    scale: 0.86
                     transformOrigin: Item.Center
 
                     ParallelAnimation {
@@ -318,16 +330,23 @@ PanelWindow {
                             target: cardCenter
                             property: "opacity"
                             to: 1
-                            duration: Motion.duration(Motion.standardSmall)
+                            duration: Motion.duration(Motion.standard)
                             easing.type: Easing.OutCubic
                         }
                         NumberAnimation {
                             target: cardCenter
                             property: "scale"
                             to: 1
-                            duration: Motion.duration(Motion.fastSpatial)
+                            duration: Motion.duration(Motion.slowSpatial)
                             easing.type: Easing.OutBack
                             easing.overshoot: 1.1
+                        }
+                        NumberAnimation {
+                            target: cardCenter
+                            property: "driftOffset"
+                            to: 0
+                            duration: Motion.duration(Motion.slowSpatial)
+                            easing.type: Easing.OutCubic
                         }
                     }
 
@@ -339,14 +358,21 @@ PanelWindow {
                                 target: cardCenter
                                 property: "opacity"
                                 to: 0
-                                duration: Motion.duration(Motion.fastEffects)
+                                duration: Motion.duration(Motion.standard)
                                 easing.type: Easing.InCubic
                             }
                             NumberAnimation {
                                 target: cardCenter
                                 property: "scale"
-                                to: 0.96
-                                duration: Motion.duration(Motion.fastEffects)
+                                to: 0.94
+                                duration: Motion.duration(Motion.standard)
+                                easing.type: Easing.InCubic
+                            }
+                            NumberAnimation {
+                                target: cardCenter
+                                property: "driftOffset"
+                                to: 8
+                                duration: Motion.duration(Motion.standard)
                                 easing.type: Easing.InCubic
                             }
                         }
