@@ -51,6 +51,7 @@ Item {
     opacity: enabled ? 1.0 : 0.38
 
     Row {
+        id: row
         anchors.left: parent.left
         anchors.leftMargin: 16
         anchors.right: parent.right
@@ -59,6 +60,7 @@ Item {
         spacing: 12
 
         Text {
+            id: iconText
             anchors.verticalCenter: parent.verticalCenter
             width: 22
             text: root.icon
@@ -70,6 +72,7 @@ Item {
         }
 
         Text {
+            id: labelText
             anchors.verticalCenter: parent.verticalCenter
             width: 92
             text: root.label
@@ -83,7 +86,7 @@ Item {
         Rectangle {
             id: track
             anchors.verticalCenter: parent.verticalCenter
-            width: parent.width - 22 - 92 - 66 - 36
+            width: Math.max(0, row.width - iconText.width - labelText.width - trailing.width - row.spacing * 3)
             height: 8
             radius: 4
             color: Theme.surface_container_highest
@@ -146,6 +149,7 @@ Item {
         }
 
         Text {
+            id: valueText
             anchors.verticalCenter: parent.verticalCenter
             width: 44
             horizontalAlignment: Text.AlignRight
@@ -160,6 +164,7 @@ Item {
         }
 
         Rectangle {
+            id: valueBadge
             anchors.verticalCenter: parent.verticalCenter
             width: 62
             height: 26
@@ -168,7 +173,6 @@ Item {
             color: Theme.secondary_container
 
             Text {
-                id: valueBadge
                 anchors.centerIn: parent
                 text: root.valueLabel
                 color: Theme.on_secondary_container
@@ -178,6 +182,12 @@ Item {
                     weight: Font.Medium
                 }
             }
+        }
+
+        Item {
+            id: trailing
+            width: Math.max(valueText.width, valueBadge.width)
+            height: 1
         }
     }
 }
