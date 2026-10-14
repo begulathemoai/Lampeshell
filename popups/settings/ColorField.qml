@@ -8,6 +8,8 @@ Item {
     property real saturation: 0
     property real lightness: 0
 
+    property real maxSide: 190
+
     signal picked(real hue, real saturation, real lightness)
 
     readonly property color value: Qt.hsva(hue / 360, saturation, lightness, 1)
@@ -15,7 +17,7 @@ Item {
     width: parent ? parent.width : 0
     height: side + 8 + 24
 
-    readonly property real side: Math.max(1, Math.min(width, 190))
+    readonly property real side: Math.max(1, Math.min(width, maxSide))
     readonly property real inset: (width - side) / 2
 
     Rectangle {
