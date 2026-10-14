@@ -2,8 +2,15 @@
 
 set -euo pipefail
 
+if [ -z "${BASH_VERSION:-}" ]; then
+    printf 'install.sh: needs bash, re-executing\n' >&2
+    if [ -f "$0" ] && head -c 2 "$0" 2>/dev/null | grep -q '#!'; then
+        exec bash "$0" "$@"
+    fi
+    exec bash /dev/stdin "$@"
+fi
+
 REPO_URL="https://github.com/l6t9/lampshell.git"
-SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 CONFIG_NAME="lampshell"
 QS_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell"
 TARGET="$QS_DIR/$CONFIG_NAME"
@@ -264,8 +271,13 @@ install_update_hook() {
         return 0
     fi
 
-    as_root install -Dm755 "$SCRIPT_DIR/lampshell-git-update" "$updater"
-    as_root install -Dm644 "$SCRIPT_DIR/lampshell-pacman-hook.hook" "$hook"
+    if [ ! -f "$TARGET/scripts/lampshell-git-update" ] || [ ! -f "$TARGET/scripts/lampshell-pacman-hook.hook" ]; then
+        warn "updater or hook missing from $TARGET/scripts, skipping"
+        return 0
+    fi
+
+    as_root install -Dm755 "$TARGET/scripts/lampshell-git-update" "$updater"
+    as_root install -Dm644 "$TARGET/scripts/lampshell-pacman-hook.hook" "$hook"
 
     say "every pacman transaction will now pull and rebuild Lampshell"
     printf '  that covers %s and %s\n' "cachy-update" "paru -Syu"

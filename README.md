@@ -23,6 +23,10 @@ It will ask for your password when it needs to install packages. Add
 `--dry-run` to see everything it would do first, or `--no-start` to build
 without launching the shell. Add `--no-fish` to leave your fish config alone.
 
+It is a bash script, but piping it to zsh or another shell is fine, it
+re-executes itself under bash rather than failing on `mapfile` or
+`BASH_SOURCE`.
+
 It also drops a fish config into `~/.config/fish`: a `config.fish` plus a
 `fish_greeting` that prints the Lampshell logo and, if you have it,
 `fastfetch`. Your old `~/.config/fish` is copied to `~/.config/fish.bak`
