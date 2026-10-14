@@ -165,7 +165,7 @@ PanelWindow {
                         }
                     }
                     ScriptAction {
-                        script: emojiWindow.visible = false
+                        script: ctrl.commitRecents(), emojiWindow.visible = false
                     }
                 }
 

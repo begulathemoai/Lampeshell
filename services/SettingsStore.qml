@@ -28,7 +28,8 @@ Singleton {
         barPosition: "top",
         dashboardEnabled: true,
         weatherLocation: "",
-        weatherUnits: "metric"
+        weatherUnits: "metric",
+        overlayEffectsManaged: true
     })
 
     property var values: root.defaults

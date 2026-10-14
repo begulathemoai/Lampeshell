@@ -15,7 +15,6 @@ ShellRoot {
 
     readonly property bool idleServiceUp: Idle.caffeine !== undefined
     readonly property bool gameModeUp: GameMode.enabled !== undefined
-
     readonly property bool hyprUp: Hypr.usingLua !== undefined
 
     WallpaperLayer {

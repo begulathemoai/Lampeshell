@@ -198,4 +198,18 @@ PageBase {
         text: "How the accent is chosen"
         description: "matugen extracts a source colour from the image (the most saturated of the dominant colours), builds a Material 3 scheme from it in dark mode, and the tokens are written into theme/colors.json. Theme.qml watches that file, so the change applies live without reloading the shell."
     }
+
+    SettingsGroup {
+        title: "Overlay effects"
+        description: "Applies the shell's own blur and fade to its overlay windows. Turn off to let your compositor's rules decide instead."
+
+        ToggleRow {
+            icon: "animation"
+            label: "Managed by Lampshell"
+            checked: SettingsStore.get("overlayEffectsManaged") === true
+            onToggled: function(checked) {
+                SettingsStore.set("overlayEffectsManaged", checked);
+            }
+        }
+    }
 }
