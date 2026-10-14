@@ -37,7 +37,12 @@ PanelWindow {
     screen: targetScreen
 
     implicitWidth: Math.round(contentRoot.width)
-    implicitHeight: Math.round(contentRoot.height)
+
+    // Fixed surface, exactly like the dashboard: the card grows and shrinks
+    // inside a constant-size window while the reveal clips it. Resizing the
+    // layer surface every frame is what made the height change stutter.
+    readonly property real maxContentHeight: 16 + ((57 + 8) * 7 - 8) + 16 + searchField.height + 6
+    implicitHeight: Math.round(maxContentHeight)
 
     function scoreMatch(text, query) {
         if (!text)
@@ -284,17 +289,10 @@ PanelWindow {
             Rectangle {
                 id: card
 
-                width: Math.min(640, (launcherWindow.screen ? launcherWindow.screen.width : 640) - 96)
-                height: cardColumn.implicitHeight + 24
+                width: Math.min(632, (launcherWindow.screen ? launcherWindow.screen.width : 632) - 96)
+                height: 16 + listArea.height + 16 + searchField.height + 6
                 radius: Layout.panelRadius
                 color: "transparent"
-
-                Behavior on height {
-                    NumberAnimation {
-                        duration: Motion.duration(Motion.standardSmall)
-                        easing.type: Easing.OutCubic
-                    }
-                }
 
                 Keys.onPressed: event => {
                     if (searchField.activeFocus)
@@ -319,196 +317,254 @@ PanelWindow {
                     }
                 }
 
-                Column {
-                    id: cardColumn
+                Item {
+                    id: listArea
 
-                    x: 12
-                    y: 12
-                    width: parent.width - 24
+                    // Single animated quantity: the list area height drives the
+                    // card, the merged notch and the window, so they move as one.
+                    // A monotonic OutCubic (no overshoot) keeps retargeting while
+                    // typing smooth instead of bouncing.
+                    readonly property real targetHeight: listView.count > 0 ? listView.implicitHeight : emptyState.implicitHeight
+
+                    width: parent.width - 32
+                    height: targetHeight
+                    anchors.top: parent.top
+                    anchors.topMargin: 16
+                    anchors.horizontalCenter: parent.horizontalCenter
+
+                    Behavior on height {
+                        enabled: launcherWindow.shown
+
+                        NumberAnimation {
+                            duration: 200
+                            easing.type: Easing.OutCubic
+                        }
+                    }
 
                     ListView {
                         id: listView
 
                         width: parent.width
-                        height: Math.min(contentHeight, 300)
+                        height: parent.height
                         visible: count > 0
                         clip: true
                         boundsBehavior: Flickable.StopAtBounds
 
-                        topMargin: 6
-                        bottomMargin: 6
-                        leftMargin: 6
-                        rightMargin: 6
-
-                        spacing: 2
-                        highlightMoveDuration: 0
+                        spacing: 8
                         currentIndex: 0
+                        highlightFollowsCurrentItem: false
+                        highlightRangeMode: ListView.ApplyRange
+                        preferredHighlightBegin: 0
+                        preferredHighlightEnd: height
+
+                        implicitHeight: (57 + 8) * Math.min(7, count) - 8
 
                         model: ScriptModel {
                             values: launcherWindow.buildFilteredList()
+                            onValuesChanged: listView.currentIndex = 0
                         }
 
                         delegate: LauncherDelegate {}
 
+                        highlight: Rectangle {
+                            radius: 16
+                            color: Theme.on_surface
+                            opacity: 0.08
+                            y: listView.currentItem ? listView.currentItem.y : 0
+                            width: listView.width
+                            height: listView.currentItem ? listView.currentItem.height : 0
+
+                            Behavior on y {
+                                NumberAnimation {
+                                    duration: Motion.duration(Motion.standard)
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
+                        }
+
                         displaced: Transition {
                             NumberAnimation {
                                 properties: "x,y"
-                                duration: 180
+                                duration: Motion.duration(Motion.defaultSpatial)
                                 easing.type: Easing.OutCubic
                             }
                         }
+
                         add: Transition {
                             NumberAnimation {
                                 property: "opacity"
                                 from: 0
                                 to: 1
-                                duration: 140
+                                duration: Motion.duration(Motion.defaultEffects)
+                                easing.type: Easing.OutCubic
                             }
+                        }
+                    }
+
+                    Row {
+                        id: emptyState
+
+                        anchors.centerIn: parent
+                        spacing: 12
+                        opacity: listView.count === 0 ? 1 : 0
+                        scale: listView.count === 0 ? 1 : 0.5
+
+                        Behavior on opacity {
+                            NumberAnimation {
+                                duration: Motion.duration(Motion.defaultEffects)
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+
+                        Behavior on scale {
+                            NumberAnimation {
+                                duration: Motion.duration(Motion.defaultEffects)
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "manage_search"
+                            color: Theme.on_surface_variant
+
+                            font {
+                                family: "Material Symbols Rounded"
+                                pointSize: 36
+                                weight: Font.Normal
+                            }
+                        }
+
+                        Column {
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            Text {
+                                text: "No results"
+                                color: Theme.on_surface_variant
+
+                                font {
+                                    family: "Google Sans"
+                                    pointSize: 16
+                                    weight: Font.Medium
+                                }
+                            }
+
+                            Text {
+                                text: "Try searching for something else"
+                                color: Theme.on_surface_variant
+
+                                font {
+                                    family: "Google Sans"
+                                    pointSize: 14
+                                    weight: Font.Normal
+                                }
+                            }
+                        }
+                    }
+                }
+
+                TextField {
+                    id: searchField
+
+                    width: parent.width - 32
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 6
+                    anchors.horizontalCenter: parent.horizontalCenter
+
+                    topPadding: 14
+                    bottomPadding: 14
+                    leftPadding: searchIcon.width + 16 + 12
+                    rightPadding: clearIcon.width + 12 + 12
+
+                    font {
+                        family: "Google Sans"
+                        pointSize: 12
+                        weight: Font.Normal
+                    }
+
+                    color: Theme.on_surface
+                    selectionColor: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.4)
+                    selectedTextColor: color
+                    verticalAlignment: TextInput.AlignVCenter
+
+                    placeholderText: "Search apps..."
+                    placeholderTextColor: Theme.on_surface_variant
+
+                    background: Rectangle {
+                        radius: height / 2
+                        color: Theme.surface_container
+                    }
+
+                    onTextChanged: {
+                        ctrl.searchText = text;
+                        listView.currentIndex = 0;
+                    }
+
+                    Keys.onEscapePressed: launcherWindow.closeMenu()
+
+                    Keys.onPressed: event => {
+                        if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
+                            if (listView.currentItem)
+                                listView.currentItem.launch();
+                            event.accepted = true;
+                        } else if (event.key === Qt.Key_Down) {
+                            listView.incrementCurrentIndex();
+                            event.accepted = true;
+                        } else if (event.key === Qt.Key_Up) {
+                            listView.decrementCurrentIndex();
+                            event.accepted = true;
                         }
                     }
 
                     Text {
-                        width: parent.width
-                        height: visible ? 72 : 0
-                        visible: listView.count === 0
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        text: "No matching applications"
+                        id: searchIcon
+
+                        anchors.left: parent.left
+                        anchors.leftMargin: 16
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        text: "search"
                         color: Theme.on_surface_variant
-                        opacity: 0.6
+
                         font {
-                            family: "Google Sans"
-                            pixelSize: 15
+                            family: "Material Symbols Rounded"
+                            pointSize: 16
+                            weight: Font.Normal
                         }
                     }
 
-                    Rectangle {
-                        width: parent.width + 24
-                        x: -12
-                        height: 1
-                        color: Theme.outline_variant
-                        opacity: 0.2
-                        visible: listView.count > 0
-                    }
+                    Text {
+                        id: clearIcon
 
-                    Item {
-                        width: parent.width
-                        height: 56
+                        anchors.right: parent.right
+                        anchors.rightMargin: 12
+                        anchors.verticalCenter: parent.verticalCenter
 
-                        Rectangle {
-                            id: searchPill
+                        text: "clear"
+                        color: Theme.on_surface_variant
+                        opacity: searchField.text.length > 0 ? 1 : 0
 
+                        font {
+                            family: "Material Symbols Rounded"
+                            pointSize: 18
+                            weight: Font.Normal
+                        }
+
+                        Behavior on opacity {
+                            NumberAnimation {
+                                duration: Motion.duration(Motion.defaultEffects)
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+
+                        MouseArea {
                             anchors.fill: parent
-                            radius: height / 2
-                            color: Theme.surface_container
-
-                            Text {
-                                id: searchIcon
-                                anchors.left: parent.left
-                                anchors.leftMargin: 16
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "search"
-                                color: Theme.on_surface_variant
-                                opacity: 0.7
-                                font {
-                                    family: "Material Symbols Rounded"
-                                    pixelSize: 24
-                                }
-                            }
-
-                            TextField {
-                                id: searchField
-                                anchors.left: searchIcon.right
-                                anchors.leftMargin: 12
-                                anchors.right: clearButton.left
-                                anchors.rightMargin: 8
-                                anchors.verticalCenter: parent.verticalCenter
-                                height: 48
-
-                                font {
-                                    family: "Google Sans"
-                                    pixelSize: 22
-                                    weight: Font.Normal
-                                }
-                                color: Theme.on_surface
-                                selectionColor: Theme.primary_container
-                                selectedTextColor: Theme.on_primary_container
-
-                                placeholderText: "Search apps..."
-                                placeholderTextColor: Qt.rgba(
-                                    Theme.on_surface_variant.r,
-                                    Theme.on_surface_variant.g,
-                                    Theme.on_surface_variant.b,
-                                    0.4
-                                )
-
-                                background: Item {}
-
-                                leftPadding: 0
-                                rightPadding: 8
-
-                                onTextChanged: {
-                                    ctrl.searchText = text;
-                                    listView.currentIndex = 0;
-                                    clearButton.visible = text.length > 0;
-                                }
-
-                                Keys.onPressed: event => {
-                                    if (event.key === Qt.Key_Escape) {
-                                        if (text.length > 0) {
-                                            text = "";
-                                        } else {
-                                            launcherWindow.closeMenu();
-                                        }
-                                        event.accepted = true;
-                                    } else if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
-                                        if (listView.currentItem)
-                                            listView.currentItem.launch();
-                                        event.accepted = true;
-                                    } else if (event.key === Qt.Key_Down) {
-                                        listView.incrementCurrentIndex();
-                                        event.accepted = true;
-                                    } else if (event.key === Qt.Key_Up) {
-                                        listView.decrementCurrentIndex();
-                                        event.accepted = true;
-                                    }
-                                }
-                            }
-
-                            Rectangle {
-                                id: clearButton
-                                visible: false
-                                anchors.right: parent.right
-                                anchors.rightMargin: 8
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 40
-                                height: 40
-                                radius: 20
-                                color: clearMouse.containsMouse
-                                    ? Qt.rgba(Theme.on_surface.r, Theme.on_surface.g, Theme.on_surface.b, 0.08)
-                                    : "transparent"
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "close"
-                                    color: Theme.on_surface_variant
-                                    opacity: 0.6
-                                    font {
-                                        family: "Material Symbols Rounded"
-                                        pixelSize: 18
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: clearMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        searchField.text = "";
-                                        searchField.forceActiveFocus();
-                                    }
-                                }
+                            anchors.margins: -8
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                searchField.text = "";
+                                searchField.forceActiveFocus();
                             }
                         }
                     }
