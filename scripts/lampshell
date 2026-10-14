@@ -589,13 +589,14 @@ case "${1:-help}" in
     screenshot)
         dir="${HOME}/Pictures/Screenshots"
         mkdir -p "$dir"
-        mode="full"; output=""; use_swappy=0; use_clipboard=1; use_freeze=0
+        mode="full"; output=""; use_swappy=0; use_clipboard=1; use_freeze=1
         shift
         while [ $# -gt 0 ]; do
             case "$1" in
                 --full)      mode="full" ;;
                 --region)    mode="region" ;;
                 --freeze)    use_freeze=1 ;;
+                --no-freeze) use_freeze=0 ;;
                 --slurp)     mode="slurp" ;;
                 --output)    output="$2"; shift ;;
                 --swappy)    use_swappy=1 ;;

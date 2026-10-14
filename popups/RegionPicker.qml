@@ -172,7 +172,12 @@ Variants {
             visible: RegionPick.freeze && picker.active
             captureSource: picker.screen
             live: false
-            paintCursor: true
+            paintCursor: false
+
+            onHasContentChanged: {
+                if (hasContent && picker.releaseCaptureActive)
+                    picker.save();
+            }
         }
 
         Loader {
@@ -303,10 +308,12 @@ Variants {
                         RegionPick.cancel();
                         return;
                     }
+                    picker.releaseCaptureActive = true;
+
                     if (RegionPick.freeze) {
-                        picker.save();
+                        if (frozen.hasContent)
+                            picker.save();
                     } else {
-                        picker.releaseCaptureActive = true;
                         liveLoader.active = true;
                     }
                 }
