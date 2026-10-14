@@ -176,6 +176,8 @@ PanelWindow {
         closing = false;
         closePending = false;
         closeWatchdog.stop();
+        launcherScrim.opacity = 0;
+        scrimAnim.restart();
         launcherWindow.visible = true;
     }
 
@@ -217,6 +219,24 @@ PanelWindow {
         }
     }
 
+    Rectangle {
+        id: launcherScrim
+        z: -1
+        anchors.fill: parent
+        color: Theme.scrim
+        opacity: 0
+
+        NumberAnimation {
+            id: scrimAnim
+            target: launcherScrim
+            property: "opacity"
+            from: 0
+            to: 0.35
+            duration: Motion.duration(Motion.fastEffects)
+            easing.type: Easing.OutCubic
+        }
+    }
+
     LazyLoader {
         id: contentLoader
 
@@ -248,7 +268,7 @@ PanelWindow {
                 }
 
                 function dismiss() {
-                    cardCenter.dismiss();
+                    exitAnim.start();
                 }
 
                 Component.onCompleted: {
@@ -282,17 +302,33 @@ PanelWindow {
 
                     Behavior on height {
                         NumberAnimation {
-                            duration: 240
+                            duration: Motion.duration(Motion.standardSmall)
                             easing.type: Easing.OutCubic
                         }
                     }
 
                     opacity: 0
-                    scale: 0.90
+                    scale: 0.94
                     transformOrigin: Item.Center
 
-                    function dismiss() {
-                        exitAnim.start();
+                    ParallelAnimation {
+                        id: enterAnim
+
+                        NumberAnimation {
+                            target: cardCenter
+                            property: "opacity"
+                            to: 1
+                            duration: Motion.duration(Motion.standardSmall)
+                            easing.type: Easing.OutCubic
+                        }
+                        NumberAnimation {
+                            target: cardCenter
+                            property: "scale"
+                            to: 1
+                            duration: Motion.duration(Motion.fastSpatial)
+                            easing.type: Easing.OutBack
+                            easing.overshoot: 1.1
+                        }
                     }
 
                     SequentialAnimation {
@@ -303,14 +339,14 @@ PanelWindow {
                                 target: cardCenter
                                 property: "opacity"
                                 to: 0
-                                duration: 180
+                                duration: Motion.duration(Motion.fastEffects)
                                 easing.type: Easing.InCubic
                             }
                             NumberAnimation {
                                 target: cardCenter
                                 property: "scale"
                                 to: 0.96
-                                duration: 180
+                                duration: Motion.duration(Motion.fastEffects)
                                 easing.type: Easing.InCubic
                             }
                         }
@@ -330,25 +366,6 @@ PanelWindow {
                     color: Theme.surface_container_low
                     border.width: 1
                     border.color: Qt.rgba(Theme.outline_variant.r, Theme.outline_variant.g, Theme.outline_variant.b, 0.2)
-
-                    ParallelAnimation {
-                        id: enterAnim
-
-                        NumberAnimation {
-                            target: cardCenter
-                            property: "opacity"
-                            to: 1
-                            duration: 220
-                            easing.type: Easing.OutCubic
-                        }
-                        NumberAnimation {
-                            target: cardCenter
-                            property: "scale"
-                            to: 1
-                            duration: 340
-                            easing.type: Easing.OutBack
-                        }
-                    }
 
                     Keys.onPressed: event => {
                         if (searchField.activeFocus)
