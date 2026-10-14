@@ -12,8 +12,12 @@ Singleton {
     readonly property var activeSink: Pipewire.defaultAudioSink
     readonly property var activeSource: Pipewire.defaultAudioSource
 
-    readonly property var sinks: root.allNodes.filter(n => n.isSink && !n.isStream)
-    readonly property var sources: root.allNodes.filter(n => !n.isSink && !n.isStream)
+    function nodeKind(node) {
+        return PwNodeType.toString(node.type);
+    }
+
+    readonly property var sinks: root.allNodes.filter(n => root.nodeKind(n) === "AudioSink")
+    readonly property var sources: root.allNodes.filter(n => root.nodeKind(n) === "AudioSource")
     readonly property var streams: root.allNodes.filter(n => n.isStream && n.isSink)
 
     readonly property var audibleStreams: root.streams.filter(s => (s.audio?.volume ?? 0) > 0.001 || s.audio?.muted === false)
