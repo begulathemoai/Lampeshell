@@ -19,7 +19,7 @@ Variants {
         readonly property bool isMine: RegionPick.monitor.length === 0
             || RegionPick.monitor === modelData.name
 
-        readonly property bool active: RegionPick.open && picker.isMine
+        readonly property bool picking: RegionPick.open && picker.isMine
 
         readonly property real pxScale: screen.scale > 0 ? screen.scale : 1
 
@@ -129,15 +129,15 @@ Variants {
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "region_picker"
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
-        WlrLayershell.keyboardFocus: picker.active ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+        WlrLayershell.keyboardFocus: picker.picking ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
         color: "transparent"
 
         anchors { top: true; bottom: true; left: true; right: true }
 
-        visible: picker.active
+        visible: picker.picking
 
-        onActiveChanged: {
-            if (!picker.active)
+        onPickingChanged: {
+            if (!RegionPick.open)
                 return;
             picker.onClient = false;
             picker.dragging = false;
@@ -148,6 +148,12 @@ Variants {
                 surface.forceActiveFocus();
                 cursorProc.running = true;
             });
+
+            if (RegionPick.freeze) {
+                Qt.callLater(function() {
+                    frozen.captureFrame();
+                });
+            }
         }
 
         Process {
@@ -169,7 +175,7 @@ Variants {
         ScreencopyView {
             id: frozen
             anchors.fill: parent
-            visible: RegionPick.freeze && picker.active
+            visible: RegionPick.freeze && picker.picking
             captureSource: picker.screen
             live: false
             paintCursor: false
@@ -345,9 +351,9 @@ Variants {
         }
 
         Component.onCompleted: {
-            grab.active = picker.active;
-            if (picker.active)
-                picker.onActiveChanged();
+            grab.active = picker.picking;
+            if (picker.picking)
+                picker.onPickingChanged();
         }
     }
 }
