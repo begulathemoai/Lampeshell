@@ -384,7 +384,7 @@ PageBase {
             open: root.styleDialogOpen
             title: "Theme Style"
             model: ThemeService.styles
-            current: ThemeService.effectiveStyleKey
+            current: ThemeService.styleKey
             onDismissed: root.styleDialogOpen = false
             onChosen: function(key) {
                 root.styleDialogOpen = false;

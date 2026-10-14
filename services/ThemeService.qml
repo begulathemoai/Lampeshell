@@ -215,7 +215,6 @@ find "$dir" -maxdepth 3 -type f \\
         { key: "scheme-tonal-spot", label: "Tonal Spot" },
         { key: "scheme-vibrant", label: "Vibrant" },
         { key: "scheme-expressive", label: "Expressive" },
-        { key: "scheme-fidelity", label: "Fidelity" },
         { key: "scheme-fruit-salad", label: "Fruit Salad" },
         { key: "scheme-rainbow", label: "Rainbow" },
         { key: "scheme-monochrome", label: "Monochrome" },
