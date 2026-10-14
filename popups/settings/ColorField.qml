@@ -15,10 +15,13 @@ Column {
     width: parent ? parent.width : 0
     spacing: 8
 
+    readonly property real side: Math.min(Math.round(width), 190)
+
     Rectangle {
         id: square
-        width: root.width
-        height: Math.min(Math.round(width), 190)
+        width: root.side
+        height: root.side
+        anchors.horizontalCenter: parent.horizontalCenter
         radius: 12
         clip: true
         border.width: 1
@@ -101,8 +104,9 @@ Column {
 
     Rectangle {
         id: strip
-        width: root.width
+        width: root.side
         height: 24
+        anchors.horizontalCenter: parent.horizontalCenter
         radius: 12
         clip: true
         border.width: 1
