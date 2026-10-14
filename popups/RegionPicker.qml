@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
+import Quickshell.Io
 import qs.theme
 import qs.services
 
@@ -18,78 +19,178 @@ Variants {
         readonly property bool isMine: RegionPick.monitor.length === 0
             || RegionPick.monitor === modelData.name
 
-        readonly property real pxScale: {
-            const shot = shotImage;
-            if (shot.sourceSize.width <= 0 || picker.width <= 0)
-                return 1;
-            return shot.sourceSize.width / picker.width;
+        readonly property bool active: RegionPick.open && picker.isMine
+
+        readonly property real pxScale: screen.scale > 0 ? screen.scale : 1
+
+        property real anchorX: 0
+        property real anchorY: 0
+        property real sx: 0
+        property real sy: 0
+        property real ex: 0
+        property real ey: 0
+        property bool dragging: false
+        property bool onClient: false
+        property bool releaseCaptureActive: false
+
+        readonly property real rsx: Math.min(sx, ex)
+        readonly property real rsy: Math.min(sy, ey)
+        readonly property real sw: Math.abs(sx - ex)
+        readonly property real sh: Math.abs(sy - ey)
+
+        readonly property string shotPath: "/tmp/lampshell-picker-"
+            + Quickshell.processId + "-" + Date.now() + ".png"
+
+        readonly property var clients: {
+            const mon = Hyprland.monitorFor(screen);
+            if (!mon)
+                return [];
+            const aw = mon.activeWorkspace;
+            if (!aw)
+                return [];
+            const values = aw.toplevels ? aw.toplevels.values : [];
+            const result = [];
+            for (const t of values) {
+                const ipc = t.lastIpcObject;
+                if (!ipc || !ipc.at || !ipc.size)
+                    continue;
+                result.push({
+                    x: ipc.at[0] - screen.x,
+                    y: ipc.at[1] - screen.y,
+                    w: ipc.size[0],
+                    h: ipc.size[1]
+                });
+            }
+            return result;
         }
 
-        property real selX: 0
-        property real selY: 0
-        property real selW: 0
-        property real selH: 0
-        property point anchorPoint: Qt.point(0, 0)
-
-        readonly property real selRight: selX + selW
-        readonly property real selBottom: selY + selH
-
-        function beginDrag(point) {
-            picker.anchorPoint = point;
-            picker.selX = point.x;
-            picker.selY = point.y;
-            picker.selW = 0;
-            picker.selH = 0;
+        function snapTo(x, y) {
+            for (const c of picker.clients) {
+                if (x >= c.x && y >= c.y && x <= c.x + c.w && y <= c.y + c.h) {
+                    picker.onClient = true;
+                    picker.sx = c.x;
+                    picker.sy = c.y;
+                    picker.ex = c.x + c.w;
+                    picker.ey = c.y + c.h;
+                    return;
+                }
+            }
+            picker.onClient = false;
         }
 
-        function updateDrag(point) {
-            picker.selX = Math.min(picker.anchorPoint.x, point.x);
-            picker.selY = Math.min(picker.anchorPoint.y, point.y);
-            picker.selW = Math.abs(point.x - picker.anchorPoint.x);
-            picker.selH = Math.abs(point.y - picker.anchorPoint.y);
+        function resetSelection() {
+            const w = picker.width;
+            const h = picker.height;
+            if (w <= 0 || h <= 0)
+                return;
+            picker.sx = w / 2 - 100;
+            picker.sy = h / 2 - 100;
+            picker.ex = w / 2 + 100;
+            picker.ey = h / 2 + 100;
         }
 
-        function finishDrag() {
-            if (picker.selW < 12 || picker.selH < 12) {
-                RegionPick.cancel();
+        function save() {
+            const rect = Qt.rect(Math.ceil(picker.rsx), Math.ceil(picker.rsy),
+                Math.floor(picker.sw), Math.floor(picker.sh));
+            const target = RegionPick.freeze ? frozen : liveLoader.item;
+            if (!target) {
+                RegionPick.finish(null);
                 return;
             }
-            RegionPick.accept(
-                Math.round(picker.selX * picker.pxScale),
-                Math.round(picker.selY * picker.pxScale),
-                Math.round(picker.selW * picker.pxScale),
-                Math.round(picker.selH * picker.pxScale)
-            );
+            target.grabToImage(function(result) {
+                if (!result || result.image.width <= 0) {
+                    RegionPick.finish(null);
+                    return;
+                }
+                const img = result.image;
+                const sx = img.width / Math.max(1, target.width);
+                const sy = img.height / Math.max(1, target.height);
+                const crop = Qt.rect(
+                    Math.round(rect.x * sx),
+                    Math.round(rect.y * sy),
+                    Math.round(rect.width * sx),
+                    Math.round(rect.height * sy));
+                result.saveToFile("file://" + picker.shotPath);
+                RegionPick.finish({
+                    path: picker.shotPath,
+                    out: RegionPick.outPath,
+                    x: crop.x,
+                    y: crop.y,
+                    w: crop.width,
+                    h: crop.height,
+                    imgW: img.width,
+                    imgH: img.height
+                });
+            });
         }
 
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "region_picker"
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
-        WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+        WlrLayershell.keyboardFocus: picker.active ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
         color: "transparent"
 
         anchors { top: true; bottom: true; left: true; right: true }
 
-        visible: RegionPick.open && picker.isMine
+        visible: picker.active
 
-        onVisibleChanged: {
-            if (!visible)
+        onActiveChanged: {
+            if (!picker.active)
                 return;
-            picker.selX = 0;
-            picker.selY = 0;
-            picker.selW = 0;
-            picker.selH = 0;
-            Qt.callLater(function() { surface.forceActiveFocus(); });
+            picker.onClient = false;
+            picker.dragging = false;
+            picker.releaseCaptureActive = false;
+            liveLoader.active = false;
+            picker.resetSelection();
+            Qt.callLater(function() {
+                surface.forceActiveFocus();
+                cursorProc.running = true;
+            });
         }
 
-        Image {
-            id: shotImage
+        Process {
+            id: cursorProc
+            command: ["hyprctl", "cursorpos", "-j"]
+
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    try {
+                        const pos = JSON.parse(text);
+                        picker.snapTo(pos.x, pos.y);
+                    } catch (e) {
+                        picker.onClient = false;
+                    }
+                }
+            }
+        }
+
+        ScreencopyView {
+            id: frozen
             anchors.fill: parent
-            source: RegionPick.image.length > 0 ? "file://" + RegionPick.image : ""
-            fillMode: Image.PreserveAspectFit
-            cache: true
+            visible: RegionPick.freeze && picker.active
+            captureSource: picker.screen
+            live: false
+            paintCursor: true
+        }
+
+        Loader {
+            id: liveLoader
+            anchors.fill: parent
+            active: false
             asynchronous: true
-            smooth: true
+            visible: false
+
+            sourceComponent: ScreencopyView {
+                anchors.fill: parent
+                captureSource: picker.screen
+                live: false
+                paintCursor: false
+
+                onHasContentChanged: {
+                    if (hasContent && picker.releaseCaptureActive)
+                        picker.save();
+                }
+            }
         }
 
         Item {
@@ -100,38 +201,37 @@ Variants {
             Rectangle {
                 x: 0; y: 0
                 width: surface.width
-                height: Math.max(0, picker.selY)
+                height: Math.max(0, picker.rsy)
                 color: Theme.scrim
                 opacity: 0.55
             }
             Rectangle {
-                x: 0; y: picker.selBottom
+                x: 0; y: picker.rsy + picker.sh
                 width: surface.width
-                height: Math.max(0, surface.height - picker.selBottom)
+                height: Math.max(0, surface.height - picker.rsy - picker.sh)
                 color: Theme.scrim
                 opacity: 0.55
             }
             Rectangle {
-                x: 0; y: picker.selY
-                width: Math.max(0, picker.selX)
-                height: picker.selH
+                x: 0; y: picker.rsy
+                width: Math.max(0, picker.rsx)
+                height: picker.sh
                 color: Theme.scrim
                 opacity: 0.55
             }
             Rectangle {
-                x: picker.selRight; y: picker.selY
-                width: Math.max(0, surface.width - picker.selRight)
-                height: picker.selH
+                x: picker.rsx + picker.sw; y: picker.rsy
+                width: Math.max(0, surface.width - picker.rsx - picker.sw)
+                height: picker.sh
                 color: Theme.scrim
                 opacity: 0.55
             }
 
             Rectangle {
-                x: picker.selX
-                y: picker.selY
-                width: picker.selW
-                height: picker.selH
-                visible: picker.selW > 0 && picker.selH > 0
+                x: picker.rsx
+                y: picker.rsy
+                width: picker.sw
+                height: picker.sh
                 color: "transparent"
                 border.color: Theme.primary
                 border.width: 2
@@ -148,48 +248,13 @@ Variants {
                     Text {
                         id: sizeText
                         anchors.centerIn: parent
-                        text: Math.round(picker.selW * picker.pxScale) + " x " + Math.round(picker.selH * picker.pxScale)
+                        text: Math.round(picker.sw * picker.pxScale)
+                            + " x " + Math.round(picker.sh * picker.pxScale)
                         color: Theme.on_primary
                         font {
-                            family: "Google Sans"
+                            family: Layout.fontSans
                             pixelSize: 13
                             weight: Font.Medium
-                        }
-                    }
-                }
-            }
-
-            Rectangle {
-                anchors.centerIn: parent
-                visible: picker.selW <= 0 && picker.selH <= 0
-                width: hintRow.implicitWidth + 32
-                height: 44
-                radius: 22
-                color: Qt.rgba(0, 0, 0, 0.62)
-
-                Row {
-                    id: hintRow
-                    anchors.centerIn: parent
-                    spacing: 12
-
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "Drag to select"
-                        color: "white"
-                        font {
-                            family: "Google Sans"
-                            pixelSize: 14
-                            weight: Font.Medium
-                        }
-                    }
-
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "Esc to cancel"
-                        color: Qt.rgba(1, 1, 1, 0.65)
-                        font {
-                            family: "Google Sans"
-                            pixelSize: 13
                         }
                     }
                 }
@@ -198,19 +263,51 @@ Variants {
             MouseArea {
                 id: dragArea
                 anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.CrossCursor
                 acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+
                 onPressed: function(event) {
                     if (event.button === Qt.RightButton || event.button === Qt.MiddleButton) {
                         RegionPick.cancel();
                         return;
                     }
-                    picker.beginDrag(Qt.point(event.x, event.y));
+                    picker.dragging = true;
+                    picker.onClient = false;
+                    picker.anchorX = event.x;
+                    picker.anchorY = event.y;
+                    picker.sx = event.x;
+                    picker.sy = event.y;
+                    picker.ex = event.x;
+                    picker.ey = event.y;
                 }
+
                 onPositionChanged: function(event) {
-                    if (pressed)
-                        picker.updateDrag(Qt.point(event.x, event.y));
+                    if (picker.dragging) {
+                        picker.sx = picker.anchorX;
+                        picker.sy = picker.anchorY;
+                        picker.ex = event.x;
+                        picker.ey = event.y;
+                    } else {
+                        picker.snapTo(event.x, event.y);
+                    }
                 }
-                onReleased: picker.finishDrag()
+
+                onReleased: {
+                    if (!picker.dragging)
+                        return;
+                    picker.dragging = false;
+                    if (picker.sw < 12 || picker.sh < 12) {
+                        RegionPick.cancel();
+                        return;
+                    }
+                    if (RegionPick.freeze) {
+                        picker.save();
+                    } else {
+                        picker.releaseCaptureActive = true;
+                        liveLoader.active = true;
+                    }
+                }
             }
 
             Keys.onEscapePressed: function(event) {
@@ -222,14 +319,26 @@ Variants {
         HyprlandFocusGrab {
             id: grab
             windows: [picker]
-            onCleared: RegionPick.cancel()
+            onCleared: if (RegionPick.open)
+                RegionPick.cancel()
         }
-        Component.onCompleted: grab.active = RegionPick.open
+
         Connections {
             target: RegionPick
+
             function onOpenChanged() {
-                grab.active = RegionPick.open;
+                if (RegionPick.open) {
+                    grab.active = true;
+                } else {
+                    grab.active = false;
+                }
             }
+        }
+
+        Component.onCompleted: {
+            grab.active = picker.active;
+            if (picker.active)
+                picker.onActiveChanged();
         }
     }
 }

@@ -259,6 +259,42 @@ QtObject {
         },
 
         {
+            page: "Keybinds & shortcuts",
+            title: "Hyprland keybinds",
+            desc: "Edit keys saved to variables.lua",
+            icon: "keyboard",
+            keywords: "keybind keybinding hotkey shortcut hyprland bind key combo"
+        },
+        {
+            page: "Keybinds & shortcuts",
+            title: "Open launcher key",
+            desc: "Key that opens the app launcher",
+            icon: "keyboard",
+            keywords: "launcher keybind hotkey bind super"
+        },
+        {
+            page: "Keybinds & shortcuts",
+            title: "Lock screen key",
+            desc: "Key that locks the session",
+            icon: "lock",
+            keywords: "lock screen keybind hyprlock bind"
+        },
+        {
+            page: "Keybinds & shortcuts",
+            title: "Workspace keys",
+            desc: "Go to and move windows between workspaces",
+            icon: "view_week",
+            keywords: "workspace keybind hotkey bind move window"
+        },
+        {
+            page: "Keybinds & shortcuts",
+            title: "App shortcuts",
+            desc: "Terminal, browser, editor and file manager keys",
+            icon: "apps",
+            keywords: "terminal browser editor file manager keybind shortcut"
+        },
+
+        {
             page: "Language & region",
             title: "Locale",
             desc: "Language and formats",

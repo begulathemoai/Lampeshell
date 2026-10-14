@@ -86,6 +86,14 @@ QtObject {
         Component {
             StackPage {
                 Component {
+                    KeybindsPage {}
+                }
+            }
+        },
+
+        Component {
+            StackPage {
+                Component {
                     LanguageAndRegionPage {}
                 }
             }

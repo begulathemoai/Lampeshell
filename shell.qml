@@ -51,6 +51,7 @@ ShellRoot {
         id: qtColorsAnchor
         Component.onCompleted: {
             QtColors.writeScheme();
+            Keybinds.file.reload();
             Targets.refresh();
         }
     }

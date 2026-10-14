@@ -589,12 +589,13 @@ case "${1:-help}" in
     screenshot)
         dir="${HOME}/Pictures/Screenshots"
         mkdir -p "$dir"
-        mode="full"; output=""; use_swappy=0; use_clipboard=1
+        mode="full"; output=""; use_swappy=0; use_clipboard=1; use_freeze=0
         shift
         while [ $# -gt 0 ]; do
             case "$1" in
                 --full)      mode="full" ;;
                 --region)    mode="region" ;;
+                --freeze)    use_freeze=1 ;;
                 --slurp)     mode="slurp" ;;
                 --output)    output="$2"; shift ;;
                 --swappy)    use_swappy=1 ;;
@@ -620,24 +621,20 @@ case "${1:-help}" in
                 grim -o "$output" "$outfile" || { err "grim failed"; exit 1; }
                 ;;
             region)
-                need grim "region screenshots" || exit 1
                 need jq "region screenshots" || exit 1
-                need magick "region screenshots" imagemagick || exit 1
 
                 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/lampshell"
                 job="$state_dir/region-job.json"
                 mkdir -p "$state_dir" \
                     || { err "could not create $state_dir"; exit 1; }
-                staging=$(mktemp "${TMPDIR:-/tmp}/lampshell-region-XXXXXX.png") \
-                    || { err "could not create a staging file"; exit 1; }
                 cleanup_region() {
-                    rm -f "$staging" "$job" 2>/dev/null
+                    rm -f "$job" 2>/dev/null
                     call regionPicker cancel >/dev/null 2>&1
                 }
                 trap cleanup_region EXIT
 
-                grim -o "$output" "$staging" || { err "grim failed"; exit 1; }
-                printf '{"image":"%s","monitor":"%s"}\n' "$staging" "$output" > "$job" \
+                printf '{"image":"","monitor":"%s","freeze":%s,"out":"%s"}\n' \
+                    "$output" "$([ "$use_freeze" = 1 ] && echo true || echo false)" "$outfile" > "$job" \
                     || { err "could not write the picker job to $job"; exit 1; }
                 call regionPicker open >/dev/null 2>&1
 
@@ -662,13 +659,21 @@ case "${1:-help}" in
                     exit 1
                 fi
 
-                read -r sx sy sw sh <<<"$(printf '%s' "$sel" | jq -r '"\(.x) \(.y) \(.w) \(.h)"')"
-                if [ -z "$sw" ] || [ "$sw" -le 0 ] || [ "$sh" -le 0 ]; then
+                shot=$(printf '%s' "$sel" | jq -r '.path // empty')
+                read -r cx cy cw ch <<<"$(printf '%s' "$sel" | jq -r '"\(.x) \(.y) \(.w) \(.h)"')"
+                if [ -z "$shot" ] || [ -z "$cw" ] || [ "$cw" -le 0 ] || [ "$ch" -le 0 ]; then
                     err "empty selection"
                     exit 1
                 fi
-                magick "$staging" -crop "${sw}x${sh}+${sx}+${sy}" +repage "$outfile" \
+                if [ ! -f "$shot" ]; then
+                    err "the shell did not return a capture"
+                    exit 1
+                fi
+
+                need magick "cropping screenshots" imagemagick || exit 1
+                magick "$shot" -crop "${cw}x${ch}+${cx}+${cy}" +repage "$outfile" \
                     || { err "crop failed"; exit 1; }
+                rm -f "$shot" 2>/dev/null
                 ;;
             slurp)
                 geom=$(slurp -f "%x %y %w %h" 2>/dev/null) || { err "region selection cancelled"; exit 1; }
