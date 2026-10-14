@@ -34,7 +34,11 @@ PanelWindow {
             ctrl.selectionBuffer = "";
             ctrl.currentCategory = "Recents";
 
+            emojiWindow.closing = false;
+            closeWatchdog.stop();
             emojiWindow.visible = true;
+            if (contentLoader.item)
+                contentLoader.item.playEnter();
         }
 
         onCloseMenuRequested: {
@@ -42,8 +46,19 @@ PanelWindow {
         }
     }
 
+    property bool closing: false
+
     function closeMenu() {
-        disarmGrab();
+        if (!emojiWindow.visible || emojiWindow.closing)
+            return;
+        emojiWindow.closing = true;
+        if (contentLoader.item) {
+            contentLoader.item.disarmGrab();
+            contentLoader.item.dismiss();
+        } else {
+            emojiWindow.visible = false;
+        }
+        closeWatchdog.restart();
         ctrl.commitRecents();
     }
 
@@ -51,6 +66,19 @@ PanelWindow {
         if (contentLoader.item)
             contentLoader.item.disarmGrab();
         emojiWindow.visible = false;
+    }
+
+    Timer {
+        id: closeWatchdog
+        interval: 800
+        onTriggered: {
+            if (emojiWindow.visible) {
+                if (contentLoader.item)
+                    contentLoader.item.disarmGrab();
+                emojiWindow.closing = false;
+                emojiWindow.visible = false;
+            }
+        }
     }
 
     function processSelection(emojiChar, isShift) {
@@ -67,8 +95,90 @@ PanelWindow {
                 id: delegateContainer
 
                 parent: emojiWindow.contentItem
-                anchors.fill: parent
-                anchors.margins: 30
+
+                property real driftOffset: 12
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                anchors.leftMargin: 30
+                anchors.rightMargin: 30
+                anchors.topMargin: 30 + driftOffset
+                anchors.bottomMargin: 30 - driftOffset
+
+                opacity: 0
+                scale: 0.86
+                transformOrigin: Item.Bottom
+
+                ParallelAnimation {
+                    id: enterAnim
+
+                    NumberAnimation {
+                        target: delegateContainer
+                        property: "opacity"
+                        to: 1
+                        duration: Motion.duration(Motion.standard)
+                        easing.type: Easing.OutCubic
+                    }
+                    NumberAnimation {
+                        target: delegateContainer
+                        property: "scale"
+                        to: 1
+                        duration: Motion.duration(Motion.slowSpatial)
+                        easing.type: Easing.OutBack
+                        easing.overshoot: 1.1
+                    }
+                    NumberAnimation {
+                        target: delegateContainer
+                        property: "driftOffset"
+                        to: 0
+                        duration: Motion.duration(Motion.slowSpatial)
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                SequentialAnimation {
+                    id: exitAnim
+
+                    ParallelAnimation {
+                        NumberAnimation {
+                            target: delegateContainer
+                            property: "opacity"
+                            to: 0
+                            duration: Motion.duration(Motion.standard)
+                            easing.type: Easing.InCubic
+                        }
+                        NumberAnimation {
+                            target: delegateContainer
+                            property: "scale"
+                            to: 0.94
+                            duration: Motion.duration(Motion.standard)
+                            easing.type: Easing.InCubic
+                        }
+                        NumberAnimation {
+                            target: delegateContainer
+                            property: "driftOffset"
+                            to: 8
+                            duration: Motion.duration(Motion.standard)
+                            easing.type: Easing.InCubic
+                        }
+                    }
+                    ScriptAction {
+                        script: emojiWindow.visible = false
+                    }
+                }
+
+                function playEnter() {
+                    delegateContainer.opacity = 0;
+                    delegateContainer.scale = 0.86;
+                    delegateContainer.driftOffset = 12;
+                    enterAnim.restart();
+                }
+
+                function dismiss() {
+                    exitAnim.start();
+                }
 
                 function updateEmojiLabel() {
                     ctrl.currentEmojiName = gridView.currentItem ? gridView.currentItem.emojiName : "";
@@ -111,7 +221,6 @@ PanelWindow {
                     mainUi.forceActiveFocus();
                     updateEmojiLabel();
                 }
-
                 Rectangle {
                     id: shadowCaster
                     anchors.fill: mainUi

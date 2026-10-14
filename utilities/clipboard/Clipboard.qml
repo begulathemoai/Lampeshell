@@ -33,6 +33,8 @@ PanelWindow {
                 ctrl.triggerRefresh();
                 ctrl.searchText = "";
                 ctrl.currentTab = 0;
+                clipboardWindow.closing = false;
+                closeWatchdog.stop();
                 clipboardWindow.visible = true;
             }
         }
@@ -48,8 +50,32 @@ PanelWindow {
         clipboardWindow.visible = false;
     }
 
+    property bool closing: false
+
     function closeMenu() {
-        disarmGrab();
+        if (!clipboardWindow.visible || clipboardWindow.closing)
+            return;
+        clipboardWindow.closing = true;
+        if (contentLoader.item) {
+            contentLoader.item.disarmGrab();
+            contentLoader.item.dismiss();
+        } else {
+            clipboardWindow.visible = false;
+        }
+        closeWatchdog.restart();
+    }
+
+    Timer {
+        id: closeWatchdog
+        interval: 800
+        onTriggered: {
+            if (clipboardWindow.visible) {
+                if (contentLoader.item)
+                    contentLoader.item.disarmGrab();
+                clipboardWindow.closing = false;
+                clipboardWindow.visible = false;
+            }
+        }
     }
 
     LazyLoader {
@@ -62,8 +88,79 @@ PanelWindow {
                 id: delegateContainer
 
                 parent: clipboardWindow.contentItem
-                anchors.fill: parent
-                anchors.margins: 30
+
+                property real driftOffset: 12
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                anchors.leftMargin: 30
+                anchors.rightMargin: 30
+                anchors.topMargin: 30 + driftOffset
+                anchors.bottomMargin: 30 - driftOffset
+
+                opacity: 0
+                scale: 0.86
+                transformOrigin: Item.Bottom
+
+                ParallelAnimation {
+                    id: enterAnim
+
+                    NumberAnimation {
+                        target: delegateContainer
+                        property: "opacity"
+                        to: 1
+                        duration: Motion.duration(Motion.standard)
+                        easing.type: Easing.OutCubic
+                    }
+                    NumberAnimation {
+                        target: delegateContainer
+                        property: "scale"
+                        to: 1
+                        duration: Motion.duration(Motion.slowSpatial)
+                        easing.type: Easing.OutBack
+                        easing.overshoot: 1.1
+                    }
+                    NumberAnimation {
+                        target: delegateContainer
+                        property: "driftOffset"
+                        to: 0
+                        duration: Motion.duration(Motion.slowSpatial)
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                SequentialAnimation {
+                    id: exitAnim
+
+                    ParallelAnimation {
+                        NumberAnimation {
+                            target: delegateContainer
+                            property: "opacity"
+                            to: 0
+                            duration: Motion.duration(Motion.standard)
+                            easing.type: Easing.InCubic
+                        }
+                        NumberAnimation {
+                            target: delegateContainer
+                            property: "scale"
+                            to: 0.94
+                            duration: Motion.duration(Motion.standard)
+                            easing.type: Easing.InCubic
+                        }
+                        NumberAnimation {
+                            target: delegateContainer
+                            property: "driftOffset"
+                            to: 8
+                            duration: Motion.duration(Motion.standard)
+                            easing.type: Easing.InCubic
+                        }
+                    }
+                    ScriptAction {
+                        script: clipboardWindow.visible = false
+                    }
+                }
 
                 HyprlandFocusGrab {
                     id: focusGrab
@@ -75,9 +172,14 @@ PanelWindow {
                     focusGrab.active = false;
                 }
 
+                function dismiss() {
+                    exitAnim.start();
+                }
+
                 Component.onCompleted: {
                     focusGrab.active = true;
                     mainUi.forceActiveFocus();
+                    enterAnim.start();
                 }
 
                 Rectangle {
