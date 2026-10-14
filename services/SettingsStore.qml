@@ -33,6 +33,7 @@ Singleton {
         themeTargetgtk4: false,
         themeTargetgtk3: false,
         themeTargethypr: true,
+        themeTargethyprScheme: false,
         favouriteApps: []
     })
 

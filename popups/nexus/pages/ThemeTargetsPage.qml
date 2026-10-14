@@ -21,7 +21,6 @@ PageBase {
             delegate: ToggleRow {
                 required property var modelData
 
-                width: parent.width
                 label: modelData.label
                 description: modelData.key === "hypr"
                     ? modelData.description
