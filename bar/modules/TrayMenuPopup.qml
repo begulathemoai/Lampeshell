@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Wayland
 import Quickshell.Widgets
 import qs.services
@@ -38,6 +39,18 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "lampshell_tray_menu"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
+
+    HyprlandFocusGrab {
+        id: focusGrab
+
+        windows: [root]
+        active: root.visible
+
+        onCleared: {
+            if (root.visible)
+                root.close();
+        }
+    }
 
     function publishGeometry() {
         if (!visible)
