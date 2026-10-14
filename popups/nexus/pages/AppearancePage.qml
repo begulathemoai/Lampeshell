@@ -201,7 +201,7 @@ PageBase {
 
     SettingsGroup {
         title: "Overlay effects"
-        description: "Applies the shell's own blur and fade to its overlay windows. Turn off to let your compositor's rules decide instead."
+        description: "Applies the shell's own blur and fade to its overlay windows. Turn off to stop the shell touching those layers; your compositor's own rules take over once it reloads."
 
         ToggleRow {
             icon: "animation"

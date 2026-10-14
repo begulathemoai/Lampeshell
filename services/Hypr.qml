@@ -52,17 +52,12 @@ Singleton {
 
     signal configReloaded
 
-    property bool neutralApplied: false
-
     function applyOverlayRules(): void {
-        const managed = SettingsStore.get("overlayEffectsManaged") === true;
-
-        if (!managed && root.neutralApplied)
+        if (!SettingsStore.loaded)
             return;
-        if (managed)
-            root.neutralApplied = false;
+        if (SettingsStore.get("overlayEffectsManaged") !== true)
+            return;
 
-        const animation = managed ? "fade" : "none";
         const namespaces = [
             { ns: "launcher_overlay", blur: true },
             { ns: "clipboard_overlay", blur: false },
@@ -71,17 +66,13 @@ Singleton {
 
         for (let i = 0; i < namespaces.length; i++) {
             const entry = namespaces[i];
-            const blur = managed && entry.blur;
-            const rule = `no_anim = false, blur = ${blur}, animation = "${animation}"`;
+            const rule = `no_anim = false, blur = ${entry.blur}, animation = "fade"`;
 
             if (usingLua)
                 Quickshell.execDetached(["hyprctl", "eval", `hl.layer_rule({ match = { namespace = "${entry.ns}" }, ${rule} })`]);
             else
-                Quickshell.execDetached(["hyprctl", "keyword", `layerrule blur, ${blur ? 1 : 0}, animation, ${animation}, match:namespace ${entry.ns}`]);
+                Quickshell.execDetached(["hyprctl", "keyword", `layerrule blur, ${entry.blur ? 1 : 0}, animation, fade, match:namespace ${entry.ns}`]);
         }
-
-        if (!managed)
-            root.neutralApplied = true;
     }
 
     onUsingLuaChanged: root.applyOverlayRules()
@@ -90,6 +81,10 @@ Singleton {
         target: SettingsStore
 
         function onValuesChanged(): void {
+            root.applyOverlayRules();
+        }
+
+        function onLoadedChanged(): void {
             root.applyOverlayRules();
         }
     }
