@@ -9,8 +9,6 @@ Singleton {
 
     readonly property string path: (Quickshell.env("HOME") || "") + "/.config/hypr/variables.lua"
 
-    readonly property alias file: keybindsFile
-
     property var bindings: ({})
     property var order: []
     property bool loaded: false
@@ -112,7 +110,7 @@ Singleton {
     })
 
     FileView {
-        id: keybindsFile
+        id: file
         path: root.path
         printErrors: false
         watchChanges: true
@@ -281,7 +279,7 @@ Singleton {
         target: "keybinds"
 
         function reload(): void {
-            root.file.reload();
+            root.reload();
         }
 
         function list(): string {
