@@ -44,7 +44,9 @@ Item {
     Row {
         id: row
         anchors.left: parent.left
+        anchors.leftMargin: 16
         anchors.right: parent.right
+        anchors.rightMargin: 16
         anchors.verticalCenter: parent.verticalCenter
         spacing: 12
 

@@ -36,8 +36,9 @@ Item {
 
     Text {
         anchors.left: parent.left
+        anchors.leftMargin: 16
         anchors.verticalCenter: parent.verticalCenter
-        width: parent.width * 0.4
+        width: Math.max(0, parent.width * 0.4 - 16)
         text: root.label
         color: Theme.on_surface_variant
         font {
@@ -48,6 +49,7 @@ Item {
 
     Row {
         anchors.right: parent.right
+        anchors.rightMargin: 16
         anchors.verticalCenter: parent.verticalCenter
         spacing: 6
 
