@@ -23,6 +23,7 @@ PageBase {
     property bool styleDialogOpen: false
 
     property bool pickingFromWallpaper: false
+    property bool pickingColor: false
     property string pendingHex: ""
     property real sampleX: 0.5
     property real sampleY: 0.5
@@ -70,7 +71,8 @@ PageBase {
     }
 
     onStyleDialogOpenChanged: nState.overlayOpen = root.styleDialogOpen || root.pickingFromWallpaper
-    onPickingFromWallpaperChanged: nState.overlayOpen = root.styleDialogOpen || root.pickingFromWallpaper
+    onPickingFromWallpaperChanged: nState.overlayOpen = root.styleDialogOpen || root.pickingFromWallpaper || root.pickingColor
+    onPickingColorChanged: nState.overlayOpen = root.styleDialogOpen || root.pickingFromWallpaper || root.pickingColor
 
     Component.onDestruction: nState.overlayOpen = false
 
@@ -172,7 +174,10 @@ PageBase {
                             text: "Color Picker"
                             icon: "palette"
                             enabled: !ThemeService.busy
-                            onTriggered: root.personalised = true
+                            onTriggered: {
+                                root.personalised = true;
+                                root.pickingColor = true;
+                            }
                         }
                     }
 
@@ -219,22 +224,17 @@ PageBase {
                             }
                         }
 
-                        ActionButton {
-                            anchors.right: parent.right
-                            anchors.rightMargin: 12
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: ThemeService.busy ? "..." : "Apply"
-                            primary: true
-                            enabled: !ThemeService.busy
-                            onTriggered: AccentPalette.applyCustom(root.customColor)
+                    ActionButton {
+                        anchors.right: parent.right
+                        anchors.rightMargin: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: ThemeService.busy ? "..." : "Edit"
+                        enabled: !ThemeService.busy
+                        onTriggered: {
+                            root.personalised = true;
+                            root.pickingColor = true;
                         }
                     }
-
-                    ColorField {
-                        width: parent.width
-                        hue: root.hue
-                        saturation: root.saturation
-                        lightness: root.lightness
                     }
                 }
             }
@@ -372,7 +372,7 @@ PageBase {
         Rectangle {
             id: wallpaperPicker
             anchors.fill: parent
-            visible: root.pickingFromWallpaper
+            visible: root.pickingFromWallpaper || root.pickingColor
             color: "transparent"
 
             MouseArea {
@@ -380,6 +380,7 @@ PageBase {
                 onClicked: {
                     root.pendingHex = "";
                     root.pickingFromWallpaper = false;
+                    root.pickingColor = false;
                 }
             }
 
@@ -387,9 +388,11 @@ PageBase {
                 id: pickerCard
                 anchors.centerIn: parent
                 readonly property real innerWidth: width - 24
-                readonly property real imageHeight: Math.max(1, innerWidth / root.cardAspect)
+                readonly property real bodyHeight: root.pickingColor
+                    ? Math.min(Math.round(innerWidth), 190) + 24
+                    : Math.max(1, innerWidth / root.cardAspect)
                 width: Math.min(parent.width - 64, 780)
-                height: Math.min(parent.height - 40, 56 + imageHeight + 96)
+                height: Math.min(parent.height - 40, 56 + bodyHeight + 96)
                 radius: 26
                 color: Theme.surface_container
                 border.width: 1
@@ -407,7 +410,7 @@ PageBase {
                         anchors.left: parent.left
                         anchors.leftMargin: 18
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "Pick from Wallpaper"
+                        text: root.pickingColor ? "Choose Seed Color" : "Pick from Wallpaper"
                         color: Theme.on_surface
                         font {
                             family: "Google Sans"
@@ -424,7 +427,7 @@ PageBase {
                     anchors.top: pickerHeader.bottom
                     anchors.leftMargin: 12
                     anchors.rightMargin: 12
-                    height: pickerCard.imageHeight
+                    height: root.pickingColor ? 0 : pickerCard.bodyHeight
                     clip: true
                     source: ThemeService.hasWallpaper ? "file://" + ThemeService.currentWallpaper : ""
                     asynchronous: true
@@ -469,10 +472,29 @@ PageBase {
                 }
 
                 Item {
+                    id: colorBody
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: pickerHeader.bottom
+                    height: root.pickingColor ? pickerCard.bodyHeight : 0
+                    visible: root.pickingColor
+
+                    ColorField {
+                        anchors.top: parent.top
+                        anchors.topMargin: 12
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width - 24
+                        hue: root.hue
+                        saturation: root.saturation
+                        lightness: root.lightness
+                    }
+                }
+
+                Item {
                     id: pickerFooter
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.top: wallImage.bottom
+                    anchors.top: root.pickingColor ? colorBody.bottom : wallImage.bottom
                     height: 96
 
                     Rectangle {
@@ -483,7 +505,9 @@ PageBase {
                         width: 42
                         height: 42
                         radius: 13
-                        color: root.pendingHex.length > 0 ? root.pendingHex : Theme.surface_container_highest
+                        color: root.pickingColor
+                            ? root.customColor
+                            : (root.pendingHex.length > 0 ? root.pendingHex : Theme.surface_container_highest)
                         border.width: 2
                         border.color: Theme.on_surface
                     }
@@ -492,8 +516,10 @@ PageBase {
                         anchors.left: pickedChip.right
                         anchors.leftMargin: 12
                         anchors.verticalCenter: parent.verticalCenter
-                        text: root.pendingHex.length > 0 ? root.pendingHex : "Pick a point"
-                        color: root.pendingHex.length > 0 ? Theme.on_surface : Theme.on_surface_variant
+                        text: root.pickingColor
+                            ? root.customColor
+                            : (root.pendingHex.length > 0 ? root.pendingHex : "Pick a point")
+                        color: root.pickingColor || root.pendingHex.length > 0 ? Theme.on_surface : Theme.on_surface_variant
                         font {
                             family: "Google Sans"
                             pixelSize: 14
@@ -512,17 +538,22 @@ PageBase {
                             onTriggered: {
                                 root.pendingHex = "";
                                 root.pickingFromWallpaper = false;
+                                root.pickingColor = false;
                             }
                         }
 
                         ActionButton {
                             text: "Apply"
                             primary: true
-                            enabled: root.pendingHex.length > 0
+                            enabled: root.pickingColor || root.pendingHex.length > 0
                             onTriggered: {
-                                AccentPalette.applyCustom(root.pendingHex);
+                                if (root.pickingColor)
+                                    AccentPalette.applyCustom(root.customColor);
+                                else
+                                    AccentPalette.applyCustom(root.pendingHex);
                                 root.pendingHex = "";
                                 root.pickingFromWallpaper = false;
+                                root.pickingColor = false;
                             }
                         }
                     }
