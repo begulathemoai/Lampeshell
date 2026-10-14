@@ -78,18 +78,28 @@ Item {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
 
-            source: {
-                if (!modelData.icon || modelData.icon === "")
+            readonly property string resolved: {
+                if (!modelData || !modelData.icon || modelData.icon === "")
                     return "image://icon/application-x-executable";
                 if (modelData.icon.startsWith("/"))
                     return "file://" + modelData.icon;
                 return "image://icon/" + modelData.icon;
             }
 
-            onStatusChanged: {
-                if (status === Image.Error)
-                    source = "image://icon/application-x-executable";
-            }
+            source: appIcon.resolved
+            opacity: status === Image.Error ? 0 : 1
+        }
+
+        IconImage {
+            id: iconFallback
+
+            visible: appIcon.status === Image.Error
+            width: rowContent.height * 0.8
+            height: rowContent.height * 0.8
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+
+            source: "image://icon/application-x-executable"
         }
 
         Text {

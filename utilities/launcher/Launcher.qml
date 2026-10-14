@@ -58,6 +58,18 @@ PanelWindow {
         return -1;
     }
 
+    function toListEntry(entry) {
+        return {
+            name: entry.name || "",
+            comment: entry.comment || "",
+            genericName: entry.genericName || "",
+            icon: entry.icon || "",
+            id: entry.id || "",
+            keywords: entry.keywords || [],
+            execString: entry.execString || ""
+        };
+    }
+
     function isHiddenApp(name) {
         if (!name)
             return false;
@@ -104,7 +116,10 @@ PanelWindow {
         var queryLower = query.toLowerCase();
 
         if (query === "") {
-            return allApps.filter(app => !launcherWindow.isHiddenApp(app.name)).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+            return allApps
+                .filter(app => !launcherWindow.isHiddenApp(app.name))
+                .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+                .map(app => launcherWindow.toListEntry(app));
         }
 
         var isSearchingHidden = hiddenKeywords.some(keyword => queryLower.includes(keyword));
@@ -157,7 +172,7 @@ PanelWindow {
             return (a.entry.name || "").localeCompare(b.entry.name || "");
         });
 
-        return scored.map(s => s.entry);
+        return scored.map(s => launcherWindow.toListEntry(s.entry));
     }
 
     LauncherBackend {
