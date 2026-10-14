@@ -490,6 +490,11 @@ PageBase {
                         hue: root.hue
                         saturation: root.saturation
                         lightness: root.lightness
+                        onPicked: function(h, sat, light) {
+                            root.hue = h;
+                            root.saturation = sat;
+                            root.lightness = light;
+                        }
                     }
                 }
 

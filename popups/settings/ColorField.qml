@@ -8,7 +8,7 @@ Column {
     property real saturation: 0
     property real lightness: 0
 
-    signal moved()
+    signal picked(real hue, real saturation, real lightness)
 
     readonly property color value: Qt.hsva(hue / 360, saturation, lightness, 1)
 
@@ -60,7 +60,6 @@ Column {
         Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
             height: 1
             color: Theme.on_surface
             opacity: 0.5
@@ -70,7 +69,6 @@ Column {
         Rectangle {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            anchors.horizontalCenter: parent.horizontalCenter
             width: 1
             color: Theme.on_surface
             opacity: 0.5
@@ -170,13 +168,13 @@ Column {
     }
 
     function apply(mouse) {
-        root.saturation = Math.max(0, Math.min(1, mouse.x / Math.max(1, square.width)));
-        root.lightness = Math.max(0, Math.min(1, 1 - mouse.y / Math.max(1, square.height)));
-        root.moved();
+        const s = Math.max(0, Math.min(1, mouse.x / Math.max(1, square.width)));
+        const l = Math.max(0, Math.min(1, 1 - mouse.y / Math.max(1, square.height)));
+        root.picked(root.hue, s, l);
     }
 
     function setHue(mouse) {
-        root.hue = Math.max(0, Math.min(360, (mouse.x / Math.max(1, strip.width)) * 360));
-        root.moved();
+        const h = Math.max(0, Math.min(360, (mouse.x / Math.max(1, strip.width)) * 360));
+        root.picked(h, root.saturation, root.lightness);
     }
 }
