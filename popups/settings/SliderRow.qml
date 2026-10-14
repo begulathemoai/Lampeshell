@@ -74,7 +74,8 @@ Item {
         Text {
             id: labelText
             anchors.verticalCenter: parent.verticalCenter
-            width: 92
+            width: Math.min(Math.max(92, implicitWidth), 150)
+            elide: Text.ElideRight
             text: root.label
             color: Theme.on_surface
             font {
@@ -86,7 +87,7 @@ Item {
         Rectangle {
             id: track
             anchors.verticalCenter: parent.verticalCenter
-            width: Math.max(0, row.width - iconText.width - labelText.width - trailing.width - row.spacing * 3)
+            width: Math.max(0, row.width - iconText.width - labelText.width - valueText.width - valueBadge.width - row.spacing * 4)
             height: 8
             radius: 4
             color: Theme.surface_container_highest
@@ -182,12 +183,6 @@ Item {
                     weight: Font.Medium
                 }
             }
-        }
-
-        Item {
-            id: trailing
-            width: Math.max(valueText.width, valueBadge.width)
-            height: 1
         }
     }
 }
