@@ -20,13 +20,8 @@ curl -fsSL https://raw.githubusercontent.com/l6t9/lampshell/main/scripts/install
 ```
 
 It will ask for your password when it needs to install packages. Add
-`--dry-run` to see everything it would do first, `--no-start` to build
-without launching the shell, or `--no-link` to skip putting `lampshell` on
-your `PATH`.
-
-The command is linked into `~/.local/bin` when that is on your `PATH`, and
-into `/usr/local/bin` otherwise, so `lampshell status` and `lampshell update`
-work straight after installing.
+`--dry-run` to see everything it would do first, or `--no-start` to build
+without launching the shell.
 
 Re-running it is safe: packages are only installed when missing, and an
 existing checkout is left alone.

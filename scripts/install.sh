@@ -34,20 +34,17 @@ AUR_PKGS=(
 
 DRY_RUN=0
 AUTO_START=1
-LINK_BIN=1
 
 for arg in "$@"; do
     case "$arg" in
         --dry-run) DRY_RUN=1 ;;
         --no-start) AUTO_START=0 ;;
-        --no-link) LINK_BIN=0 ;;
         -h | --help)
             cat <<EOF
 usage: install.sh [options]
 
   --dry-run   print what would happen without changing anything
   --no-start  install and build, but do not launch the shell
-  --no-link   do not put the lampshell command on PATH
 EOF
             exit 0
             ;;
@@ -174,11 +171,8 @@ link_command() {
     local script="$TARGET/scripts/lampshell"
     local user_bin="$HOME/.local/bin"
 
-    # Prefer the user-local directory when it is on PATH: no password needed
-    # and no root-owned files. Fall back to /usr/local/bin otherwise.
     case ":$PATH:" in
         *":$user_bin:"*)
-            say "linking the lampshell command into $user_bin"
             if [ "$DRY_RUN" -eq 1 ]; then
                 printf '  [dry-run] ln -sf %s %s\n' "$script" "$user_bin/lampshell"
             else
@@ -189,14 +183,11 @@ link_command() {
             ;;
     esac
 
-    say "linking the lampshell command into /usr/local/bin"
     run as_root ln -sf "$script" /usr/local/bin/lampshell
 }
 
-if [ "$LINK_BIN" -eq 1 ]; then
-    printf '\n'
-    link_command
-fi
+printf '\n'
+link_command
 
 if [ "$AUTO_START" -eq 1 ]; then
     printf '\n'
@@ -210,7 +201,6 @@ fi
 
 printf '\n'
 say "done"
-if [ "$DRY_RUN" -eq 0 ] && [ "$LINK_BIN" -eq 1 ]; then
-    printf '  the shell is now driven with \033[1mlampshell <command>\033[0m\n'
+if [ "$DRY_RUN" -eq 0 ]; then
     printf '  \033[1mlampshell status\033[0m to check on it, \033[1mlampshell update\033[0m to pull changes\n'
 fi
