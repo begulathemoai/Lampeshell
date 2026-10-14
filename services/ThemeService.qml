@@ -201,6 +201,8 @@ find "$dir" -maxdepth 3 -type f \\
         if (out.primary === null)
             throw new Error("matugen returned no usable primary colour");
 
+        root.unclipPrimary(out, accentSource ?? "");
+
         for (const key of Object.keys(out)) {
             if (out[key] !== null)
                 continue;
@@ -244,6 +246,24 @@ find "$dir" -maxdepth 3 -type f \\
     readonly property int chromaPercent: Math.round(Math.max(0, root.chromaBoost) * 100)
 
     readonly property string effectiveStyleKey: root.fidelity ? "scheme-fidelity" : root.styleKey
+
+    function unclipPrimary(out, accentSource) {
+        const src = accentSource.length > 0 ? accentSource : out.source_color;
+        if (!src)
+            return;
+
+        const source = root.hexToColor(src);
+        if (source.hslSaturation < 0.05)
+            return;
+
+        const primary = root.hexToColor(out.primary);
+        if (primary.hslLightness <= 0.95)
+            return;
+
+        const hue = source.hslHue;
+        const sat = Math.max(primary.hslSaturation, source.hslSaturation);
+        out.primary = Qt.hsla(hue, sat, 0.82, 1).toString().slice(0, 7);
+    }
 
     function loadTunables() {
         if (!SettingsStore.loaded)
