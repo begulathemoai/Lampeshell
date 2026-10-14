@@ -11,6 +11,7 @@ Item {
     implicitHeight: 0
 
     readonly property string colorsPath: Quickshell.shellPath("theme/colors.json")
+    readonly property string accentBackupPath: colorsPath + ".accent.bak"
 
     readonly property var swatches: [
         { name: "Blue",   primary: "#b4c5ff", on: "#1a2e60", container: "#324478", onContainer: "#dbe1ff" },
@@ -59,7 +60,7 @@ Item {
         const script = `
 set -u
 f="${colorsPath}"
-backup="$f.bak"
+backup="${accentBackupPath}"
 if [ ! -f "$f" ]; then
   echo "colors.json not found at $f" >&2
   exit 1
@@ -102,7 +103,7 @@ rm -f "$tmp"
 
     Process {
         id: revertProc
-        command: ["sh", "-c", 'cp "' + root.colorsPath + '.bak" "' + root.colorsPath + '" || true']
+        command: ["sh", "-c", 'cp "' + root.accentBackupPath + '" "' + root.colorsPath + '" || true']
         stdout: StdioCollector {}
         stderr: StdioCollector {
             id: revertErr
