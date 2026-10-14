@@ -169,8 +169,12 @@ case "${1:-help}" in
             echo "lampshell: already running"
             exit 0
         fi
-        colors="$REPO_DIR/theme/colors.json"
-        [ -f "$colors" ] || cp "$REPO_DIR/theme/colors.default.json" "$colors" 2>/dev/null
+        colors="${LAMP_SHELL_COLORS:-$REPO_DIR/theme/colors.json}"
+        if [ ! -f "$colors" ]; then
+            mkdir -p "$(dirname "$colors")" 2>/dev/null
+            cp "$REPO_DIR/theme/colors.default.json" "$colors" 2>/dev/null \
+                || warn "could not create $colors; colours may not save"
+        fi
         bootlog="${XDG_STATE_HOME:-$HOME/.local/state}/lampshell/last-boot.log"
         mkdir -p "$(dirname "$bootlog")"
         scheme="$HOME/.config/qtengine/lampshell.colors"

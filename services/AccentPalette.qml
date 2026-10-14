@@ -10,7 +10,7 @@ Item {
     implicitWidth: 0
     implicitHeight: 0
 
-    readonly property string colorsPath: Quickshell.shellPath("theme/colors.json")
+    readonly property string colorsPath: Theme.colorsPath
     readonly property string accentBackupPath: colorsPath + ".accent.bak"
 
     readonly property var swatches: [

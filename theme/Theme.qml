@@ -5,7 +5,9 @@ import Quickshell.Io
 
 FileView {
     id: root
-    path: Quickshell.shellPath("theme/colors.json")
+    readonly property string colorsPath: Quickshell.env("LAMP_SHELL_COLORS")
+        || Quickshell.shellPath("theme/colors.json")
+    path: root.colorsPath
     watchChanges: true
     onFileChanged: reload()
 

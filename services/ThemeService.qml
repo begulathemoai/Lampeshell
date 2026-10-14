@@ -13,7 +13,7 @@ Item {
 
     readonly property string homeDir: Quickshell.env("HOME")
     readonly property string wallDir: homeDir + "/Pictures/walls"
-    readonly property string colorsPath: Quickshell.shellPath("theme/colors.json")
+    readonly property string colorsPath: Theme.colorsPath
     readonly property string stateBase: (Quickshell.env("XDG_STATE_HOME") || (homeDir + "/.local/state")) + "/lampshell"
     readonly property string sequencesPath: stateBase + "/sequences.txt"
     readonly property string kittyThemePath: stateBase + "/kitty-theme.conf"

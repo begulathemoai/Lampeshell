@@ -8,7 +8,7 @@ import qs.theme
 Singleton {
     id: root
 
-    readonly property string colorsPath: Quickshell.shellPath("theme/colors.json")
+    readonly property string colorsPath: Theme.colorsPath
 
     readonly property string configHome: Quickshell.env("XDG_CONFIG_HOME")
         || (Quickshell.env("HOME") + "/.config")

@@ -69,6 +69,7 @@ package() {
         '#!/bin/sh' \
         'LAMP_SHELL_ROOT=/usr/share/lampshell \' \
         'LAMP_SHELL_PLUGIN_DIR=/usr/lib/lampshell/qml \' \
+        'LAMP_SHELL_COLORS="${XDG_STATE_HOME:-$HOME/.local/state}/lampshell/colors.json" \' \
         'exec /usr/lib/lampshell/lampshell "$@"' \
         > "$srcdir/lampshell-wrapper"
     install -Dm755 "$srcdir/lampshell-wrapper" "$pkgdir/usr/bin/lampshell"
