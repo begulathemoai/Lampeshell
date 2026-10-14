@@ -48,8 +48,7 @@ Item {
         id: content
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.margins: 12
+        anchors.verticalCenter: parent.verticalCenter
         anchors.leftMargin: 16
         anchors.rightMargin: 16
         spacing: 16
@@ -57,6 +56,7 @@ Item {
         Item {
             width: 32
             height: 32
+            anchors.verticalCenter: parent.verticalCenter
 
             Text {
                 anchors.centerIn: parent
