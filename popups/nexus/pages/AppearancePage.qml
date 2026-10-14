@@ -380,7 +380,7 @@ PageBase {
             id: wallpaperPicker
             anchors.fill: parent
             visible: root.pickingFromWallpaper
-            color: Qt.rgba(0, 0, 0, 0.78)
+            color: Qt.rgba(0, 0, 0, 0.8)
 
             MouseArea {
                 anchors.fill: parent
@@ -393,21 +393,71 @@ PageBase {
             Rectangle {
                 id: pickerCard
                 anchors.centerIn: parent
+                readonly property real innerWidth: width - 24
+                readonly property real imageHeight: Math.max(1, innerWidth / root.cardAspect)
                 width: Math.min(parent.width - 64, 780)
-                height: Math.min(parent.height - 48, width / root.cardAspect + 116)
-                radius: 24
-                color: Theme.surface_container_low
+                height: Math.min(parent.height - 40, 56 + imageHeight + 96)
+                radius: 26
+                color: Theme.surface_container
                 border.width: 1
                 border.color: Theme.outline_variant
                 clip: true
+
+                Item {
+                    id: pickerHeader
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    height: 56
+
+                    Text {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 18
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Pick from Wallpaper"
+                        color: Theme.on_surface
+                        font {
+                            family: "Google Sans"
+                            pixelSize: 16
+                            weight: Font.Medium
+                        }
+                    }
+
+                    MouseArea {
+                        id: closeArea
+                        anchors.right: parent.right
+                        anchors.rightMargin: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 38
+                        height: 38
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            root.pendingHex = "";
+                            root.pickingFromWallpaper = false;
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "close"
+                            color: closeArea.containsMouse ? Theme.on_surface : Theme.on_surface_variant
+                            font {
+                                family: "Material Symbols Rounded"
+                                pixelSize: 20
+                            }
+                        }
+                    }
+                }
 
                 Image {
                     id: wallImage
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.top: parent.top
-                    height: Math.max(1, width / root.cardAspect)
-                    anchors.margins: 0
+                    anchors.top: pickerHeader.bottom
+                    anchors.leftMargin: 12
+                    anchors.rightMargin: 12
+                    height: pickerCard.imageHeight
+                    clip: true
                     source: ThemeService.hasWallpaper ? "file://" + ThemeService.currentWallpaper : ""
                     asynchronous: true
                     fillMode: Image.PreserveAspectFit
@@ -450,80 +500,62 @@ PageBase {
                     }
                 }
 
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.bottom: wallImage.bottom
-                    anchors.bottomMargin: 20
-                    text: "Pick from Wallpaper"
-                    color: Theme.on_surface
-                    font {
-                        family: "Google Sans"
-                        pixelSize: 17
-                        weight: Font.Medium
-                    }
-                }
-
-            }
-
-            Rectangle {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: pickerCard.bottom
-                anchors.topMargin: 16
-                width: Math.min(parent.width - 72, 430)
-                height: 76
-                radius: 20
-                color: Theme.surface_container
-                border.width: 1
-                border.color: Theme.outline_variant
-
-                Rectangle {
-                    id: pickedChip
+                Item {
+                    id: pickerFooter
                     anchors.left: parent.left
-                    anchors.leftMargin: 14
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 42
-                    height: 42
-                    radius: 13
-                    color: root.pendingHex.length > 0 ? root.pendingHex : Theme.surface_container_highest
-                    border.width: 2
-                    border.color: Theme.on_surface
-                }
-
-                Text {
-                    anchors.left: pickedChip.right
-                    anchors.leftMargin: 12
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: root.pendingHex.length > 0 ? root.pendingHex : "Pick a point"
-                    color: root.pendingHex.length > 0 ? Theme.on_surface : Theme.on_surface_variant
-                    font {
-                        family: "Google Sans"
-                        pixelSize: 14
-                        weight: Font.Medium
-                    }
-                }
-
-                Row {
                     anchors.right: parent.right
-                    anchors.rightMargin: 12
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 8
+                    anchors.top: wallImage.bottom
+                    height: 96
 
-                    ActionButton {
-                        text: "Cancel"
-                        onTriggered: {
-                            root.pendingHex = "";
-                            root.pickingFromWallpaper = false;
+                    Rectangle {
+                        id: pickedChip
+                        anchors.left: parent.left
+                        anchors.leftMargin: 18
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 42
+                        height: 42
+                        radius: 13
+                        color: root.pendingHex.length > 0 ? root.pendingHex : Theme.surface_container_highest
+                        border.width: 2
+                        border.color: Theme.on_surface
+                    }
+
+                    Text {
+                        anchors.left: pickedChip.right
+                        anchors.leftMargin: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: root.pendingHex.length > 0 ? root.pendingHex : "Pick a point"
+                        color: root.pendingHex.length > 0 ? Theme.on_surface : Theme.on_surface_variant
+                        font {
+                            family: "Google Sans"
+                            pixelSize: 14
+                            weight: Font.Medium
                         }
                     }
 
-                    ActionButton {
-                        text: "Apply"
-                        primary: true
-                        enabled: root.pendingHex.length > 0
-                        onTriggered: {
-                            AccentPalette.applyCustom(root.pendingHex);
-                            root.pendingHex = "";
-                            root.pickingFromWallpaper = false;
+                    Row {
+                        anchors.right: parent.right
+                        anchors.rightMargin: 18
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 8
+
+                        ActionButton {
+                            text: "Cancel"
+                            onTriggered: {
+                                root.pendingHex = "";
+                                root.pickingFromWallpaper = false;
+                            }
+                        }
+
+                        ActionButton {
+                            text: "Apply"
+                            primary: true
+                            enabled: root.pendingHex.length > 0
+                            onTriggered: {
+                                AccentPalette.applyCustom(root.pendingHex);
+                                root.pendingHex = "";
+                                root.pickingFromWallpaper = false;
+                            }
                         }
                     }
                 }
