@@ -11,6 +11,12 @@ QtObject {
             category: "personal"
         },
         {
+            label: "Theme targets",
+            icon: "extension",
+            description: "Carry the palette into other apps",
+            category: "personal"
+        },
+        {
             label: "Display",
             icon: "brightness_6",
             description: "Brightness per output",

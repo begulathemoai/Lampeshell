@@ -30,6 +30,8 @@ Singleton {
         weatherLocation: "",
         weatherUnits: "metric",
         overlayEffectsManaged: true,
+        themeTargetgtk4: false,
+        themeTargetgtk3: false,
         favouriteApps: []
     })
 

@@ -49,7 +49,10 @@ ShellRoot {
 
     Item {
         id: qtColorsAnchor
-        Component.onCompleted: QtColors.writeScheme()
+        Component.onCompleted: {
+            QtColors.writeScheme();
+            Targets.refresh();
+        }
     }
 
     RegionPicker {

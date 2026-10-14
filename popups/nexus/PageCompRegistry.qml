@@ -25,6 +25,14 @@ QtObject {
         Component {
             StackPage {
                 Component {
+                    ThemeTargetsPage {}
+                }
+            }
+        },
+
+        Component {
+            StackPage {
+                Component {
                     DisplayPage {}
                 }
             }

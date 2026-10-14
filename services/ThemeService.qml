@@ -144,6 +144,8 @@ find "$dir" -maxdepth 3 -type f \\
     }
 
     property string pendingWallpaper: ""
+    signal paletteApplied
+
     property string pendingColorsJson: ""
     property string pendingAccentName: ""
     property string pendingAccentSource: ""
@@ -676,6 +678,8 @@ printf '%s' "$px" | base64 -d >> "$out" || exit 1
             root.pendingColorsJson = "";
             root.busy = false;
             QtColors.sync();
+            if (exitCode === 0)
+                root.paletteApplied();
         }
     }
 
