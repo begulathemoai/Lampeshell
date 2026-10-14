@@ -277,7 +277,7 @@ Variants {
                 id: dragArea
                 anchors.fill: parent
                 hoverEnabled: true
-                cursorShape: Qt.CrossCursor
+                cursorShape: RegionPick.freeze ? Qt.BlankCursor : Qt.CrossCursor
                 acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
 
                 onPressed: function(event) {
