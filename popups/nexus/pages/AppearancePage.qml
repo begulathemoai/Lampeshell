@@ -433,6 +433,9 @@ PageBase {
                     asynchronous: true
                     fillMode: Image.PreserveAspectFit
 
+                    readonly property real drawW: paintedWidth > 0 ? paintedWidth : width
+                    readonly property real drawH: paintedHeight > 0 ? paintedHeight : height
+
                     Rectangle {
                         id: sampleMark
                         visible: wallImage.status === Image.Ready && root.pendingHex.length > 0
@@ -442,8 +445,8 @@ PageBase {
                         color: root.pendingHex
                         border.width: 3
                         border.color: Theme.on_surface
-                        x: root.sampleX * Math.max(0, wallImage.paintedWidth - width)
-                        y: root.sampleY * Math.max(0, wallImage.paintedHeight - height)
+                        x: (wallImage.width - wallImage.drawW) / 2 + root.sampleX * Math.max(0, wallImage.drawW - width)
+                        y: (wallImage.height - wallImage.drawH) / 2 + root.sampleY * Math.max(0, wallImage.drawH - height)
                     }
 
                     MouseArea {
@@ -451,8 +454,8 @@ PageBase {
                         enabled: wallImage.status === Image.Ready
                         cursorShape: Qt.CrossCursor
                         onClicked: function(mouse) {
-                            const w = wallImage.paintedWidth;
-                            const h = wallImage.paintedHeight;
+                            const w = wallImage.drawW;
+                            const h = wallImage.drawH;
                             const fx = (mouse.x - (wallImage.width - w) / 2) / Math.max(1, w);
                             const fy = (mouse.y - (wallImage.height - h) / 2) / Math.max(1, h);
                             if (fx < 0 || fx > 1 || fy < 0 || fy > 1)
