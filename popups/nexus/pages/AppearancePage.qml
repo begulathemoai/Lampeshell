@@ -22,6 +22,8 @@ PageBase {
 
     property bool pickingFromWallpaper: false
     property string pendingHex: ""
+    property real sampleX: 0.5
+    property real sampleY: 0.5
 
     readonly property color customColor: Qt.hsva(hue / 360, saturation, lightness, 1)
 
@@ -338,13 +340,14 @@ PageBase {
     }
 
     overlay: Item {
+        anchors.fill: parent
+
         ChoiceDialog {
             id: styleDialog
-            width: parent.width
-            height: parent.height
+            anchors.fill: parent
             title: "Theme Style"
             model: ThemeService.styles
-            current: ThemeService.styleKey
+            current: ThemeService.effectiveStyleKey
             onChosen: function(key) {
                 if (key === ThemeService.styleKey && !ThemeService.fidelity)
                     return;
@@ -358,98 +361,159 @@ PageBase {
             id: wallpaperPicker
             anchors.fill: parent
             visible: root.pickingFromWallpaper
-            color: Qt.rgba(0, 0, 0, 0.72)
+            color: Qt.rgba(0, 0, 0, 0.78)
 
-            Image {
-                id: wallImage
+            Rectangle {
                 anchors.fill: parent
-                anchors.margins: 28
-                source: ThemeService.hasWallpaper ? "file://" + ThemeService.currentWallpaper : ""
-                asynchronous: true
-                fillMode: Image.PreserveAspectFit
+                anchors.margins: 24
+                radius: 24
+                color: Theme.surface_container_low
+                clip: true
 
-                Rectangle {
-                    id: sampleMark
-                    visible: wallImage.status === Image.Ready && root.pendingHex.length > 0
-                    width: 34
-                    height: 34
-                    radius: 17
-                    color: "transparent"
-                    border.width: 3
-                    border.color: Theme.on_surface
-                    x: (wallImage.paintedWidth - width) / 2
-                    y: (wallImage.paintedHeight - height) / 2
+                Image {
+                    id: wallImage
+                    anchors.fill: parent
+                    anchors.margins: 12
+                    source: ThemeService.hasWallpaper ? "file://" + ThemeService.currentWallpaper : ""
+                    asynchronous: true
+                    fillMode: Image.PreserveAspectFit
+
+                    Rectangle {
+                        id: sampleMark
+                        visible: wallImage.status === Image.Ready && root.pendingHex.length > 0
+                        width: 30
+                        height: 30
+                        radius: 15
+                        color: "transparent"
+                        border.width: 3
+                        border.color: Theme.on_surface
+                        x: root.sampleX * Math.max(0, wallImage.paintedWidth - width)
+                        y: root.sampleY * Math.max(0, wallImage.paintedHeight - height)
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: wallImage.status === Image.Ready
+                        cursorShape: Qt.CrossCursor
+                        onClicked: function(mouse) {
+                            const w = wallImage.paintedWidth;
+                            const h = wallImage.paintedHeight;
+                            const fx = (mouse.x - (wallImage.width - w) / 2) / Math.max(1, w);
+                            const fy = (mouse.y - (wallImage.height - h) / 2) / Math.max(1, h);
+                            if (fx < 0 || fx > 1 || fy < 0 || fy > 1)
+                                return;
+                            const hex = ImageSampler.sampleAtFraction(fx, fy);
+                            if (hex.length !== 7)
+                                return;
+                            root.sampleX = fx;
+                            root.sampleY = fy;
+                            root.pendingHex = hex;
+                            const c = Qt.color(hex);
+                            root.hue = c.hsvHue < 0 ? root.hue : c.hsvHue * 360;
+                            root.saturation = c.hsvSaturation;
+                            root.lightness = c.hsvValue;
+                        }
+                    }
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top
+                    anchors.topMargin: 22
+                    text: "Pick from Wallpaper"
+                    color: Theme.on_surface
+                    font {
+                        family: "Google Sans"
+                        pixelSize: 17
+                        weight: Font.Medium
+                    }
                 }
 
                 MouseArea {
-                    anchors.fill: parent
-                    enabled: wallImage.status === Image.Ready
-                    cursorShape: Qt.CrossCursor
-                    onClicked: function(mouse) {
-                        const w = wallImage.paintedWidth;
-                        const h = wallImage.paintedHeight;
-                        const fx = (mouse.x - (wallImage.width - w) / 2) / Math.max(1, w);
-                        const fy = (mouse.y - (wallImage.height - h) / 2) / Math.max(1, h);
-                        if (fx < 0 || fx > 1 || fy < 0 || fy > 1)
-                            return;
-                        const hex = ImageSampler.sampleAtFraction(fx, fy);
-                        if (hex.length !== 7)
-                            return;
-                        root.pendingHex = hex;
-                        const c = Qt.color(hex);
-                        root.hue = c.hsvHue < 0 ? root.hue : c.hsvHue * 360;
-                        root.saturation = c.hsvSaturation;
-                        root.lightness = c.hsvValue;
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: 10
+                    width: 38
+                    height: 38
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        root.pendingHex = "";
+                        root.pickingFromWallpaper = false;
+                    }
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "close"
+                        color: Theme.on_surface_variant
+                        font {
+                            family: "Material Symbols Rounded"
+                            pixelSize: 20
+                        }
                     }
                 }
             }
 
-            Text {
-                anchors.centerIn: parent
-                text: "Pick from Wallpaper"
-                color: Theme.on_surface
-                font {
-                    family: "Google Sans"
-                    pixelSize: 20
-                    weight: Font.Medium
-                }
-            }
-
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: parent.top
-                anchors.topMargin: 40
-                visible: root.pendingHex.length > 0
-                text: "Selected Color:  " + root.pendingHex
-                color: Theme.on_surface
-                font {
-                    family: "Google Sans"
-                    pixelSize: 14
-                }
-            }
-
-            ActionButton {
+            Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
-                anchors.bottomMargin: 36
-                text: "Cancel"
-                onTriggered: {
-                    root.pendingHex = "";
-                    root.pickingFromWallpaper = false;
-                }
-            }
+                anchors.bottomMargin: 34
+                width: Math.min(parent.width - 72, 430)
+                height: 76
+                radius: 20
+                color: Theme.surface_container
+                border.width: 1
+                border.color: Theme.outline_variant
 
-            ActionButton {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 36
-                visible: root.pendingHex.length > 0
-                text: "Apply"
-                primary: true
-                onTriggered: {
-                    AccentPalette.applyCustom(root.pendingHex);
-                    root.pendingHex = "";
-                    root.pickingFromWallpaper = false;
+                Rectangle {
+                    id: pickedChip
+                    anchors.left: parent.left
+                    anchors.leftMargin: 14
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 42
+                    height: 42
+                    radius: 13
+                    color: root.pendingHex.length > 0 ? root.pendingHex : Theme.surface_container_highest
+                    border.width: 2
+                    border.color: Theme.on_surface
+                }
+
+                Text {
+                    anchors.left: pickedChip.right
+                    anchors.leftMargin: 12
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: root.pendingHex.length > 0 ? root.pendingHex : "Pick a point"
+                    color: root.pendingHex.length > 0 ? Theme.on_surface : Theme.on_surface_variant
+                    font {
+                        family: "Google Sans"
+                        pixelSize: 14
+                        weight: Font.Medium
+                    }
+                }
+
+                Row {
+                    anchors.right: parent.right
+                    anchors.rightMargin: 12
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 8
+
+                    ActionButton {
+                        text: "Cancel"
+                        onTriggered: {
+                            root.pendingHex = "";
+                            root.pickingFromWallpaper = false;
+                        }
+                    }
+
+                    ActionButton {
+                        text: "Apply"
+                        primary: true
+                        enabled: root.pendingHex.length > 0
+                        onTriggered: {
+                            AccentPalette.applyCustom(root.pendingHex);
+                            root.pendingHex = "";
+                            root.pickingFromWallpaper = false;
+                        }
+                    }
                 }
             }
         }
