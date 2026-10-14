@@ -65,18 +65,3 @@ provides `QtQuick.Shapes`), `hyprland`, `matugen`, `wl-clipboard`,
 Build, needed once: `cmake`, `ninja` and a C++20 compiler. Arch ships the Qt6
 headers inside `qt6-base` and `qt6-declarative` themselves, so there are no
 separate `-devel` packages to install.
-
-####  packaging
-
-`packaging/PKGBUILD` builds the same shell as a normal Arch package, putting a
-`lampshell` command on your `PATH` and the config in `/usr/share/lampshell`.
-It is not published to the AUR yet, so build it locally:
-
-```bash
-cd ~/.config/quickshell/lampshell && makepkg -si
-```
-
-A packaged install is not a git checkout, so `lampshell update` points you at
-your package manager instead.
-
----

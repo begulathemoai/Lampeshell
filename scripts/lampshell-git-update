@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Runs at the end of arch-update / cachy-update. Pulls and rebuilds a git
-# checkout of Lampshell, then restarts it. A packaged install has no checkout
-# and exits immediately: pacman updates that itself.
 
 set -uo pipefail
 
@@ -11,19 +8,5 @@ script="$repo/scripts/lampshell"
 [ -x "$script" ] || exit 0
 [ -d "$repo/.git" ] || exit 0
 
-before=$(git -C "$repo" rev-parse HEAD 2>/dev/null) || exit 0
-
-if ! "$script" update; then
-    printf 'lampshell: update failed, leaving the shell as it was\n' >&2
-    exit 0
-fi
-
-after=$(git -C "$repo" rev-parse HEAD 2>/dev/null)
-
-if [ "$before" != "$after" ]; then
-    printf 'lampshell: updated %s -> %s\n' "${before:0:7}" "${after:0:7}"
-else
-    printf 'lampshell: already up to date\n'
-fi
-
+"$script" update 2>&1 | tee /dev/stderr
 exit 0
