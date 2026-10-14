@@ -1,0 +1,75 @@
+
+pkgname=lampshell
+pkgdesc="A Material 3 desktop shell for Quickshell"
+pkgver=r0.0.0
+pkgrel=1
+pkgver() {
+    cd "$srcdir/lampshell"
+    printf '%s.r%s.g%s\n' \
+        "$(date +%Y%m%d)" \
+        "$(git rev-list --count HEAD)" \
+        "$(git rev-parse --short HEAD)"
+}
+arch=('x86_64' 'aarch64')
+url="https://github.com/l6t9/lampshell"
+license=('GPL-3.0-only')
+depends=(
+    'quickshell-git'
+    'qt6-base'
+    'qt6-declarative'
+    'matugen'
+    'wl-clipboard'
+    'brightnessctl'
+    'slurp'
+    'ttf-google-sans'
+    'ttf-material-symbols-variable'
+    'ttf-noto-color-emoji'
+)
+makedepends=('cmake' 'ninja' 'gcc')
+optdepends=(
+    'ddcutil: alternative to brightnessctl for backlight control'
+    'hyprland: compositor integration through hyprctl'
+    'hyprlock: lock screen action'
+)
+source=("git+https://github.com/l6t9/lampshell.git")
+sha256sums=('SKIP')
+
+_pkgdir=/usr/share/lampshell
+_plugindir=/usr/lib/lampshell
+
+build() {
+    cmake -S "$srcdir/lampshell/plugin" -B "$srcdir/lampshell/plugin/build" \
+        -G Ninja -DCMAKE_BUILD_TYPE=Release
+    cmake --build "$srcdir/lampshell/plugin/build"
+}
+
+package() {
+    local d="$srcdir/lampshell"
+
+    install -Dm644 "$d/shell.qml" "$pkgdir$_pkgdir/shell.qml"
+    for dir in bar popups services theme utilities assets; do
+        [ -d "$d/$dir" ] || continue
+        mkdir -p "$pkgdir$_pkgdir/$dir"
+        cp -r "$d/$dir/." "$pkgdir$_pkgdir/$dir/"
+    done
+    install -Dm644 "$d/LICENSE" "$pkgdir$_pkgdir/LICENSE"
+    install -Dm644 "$d/README.md" "$pkgdir$_pkgdir/README.md"
+
+    # Compiled QML module.
+    local mod="$d/plugin/build/qml/Lampshell/Services"
+    install -Dm644 "$mod/qmldir" "$pkgdir$_plugindir/qml/Lampshell/Services/qmldir"
+    install -Dm755 "$mod/liblampshell-servicesplugin.so" \
+        "$pkgdir$_plugindir/qml/Lampshell/Services/liblampshell-servicesplugin.so"
+    install -Dm644 "$mod/lampshell-services.qmltypes" \
+        "$pkgdir$_plugindir/qml/Lampshell/Services/lampshell-services.qmltypes"
+
+    install -Dm755 "$d/scripts/lampshell" "$pkgdir$_plugindir/lampshell"
+
+    printf '%s\n' \
+        '#!/bin/sh' \
+        'LAMP_SHELL_ROOT=/usr/share/lampshell \' \
+        'LAMP_SHELL_PLUGIN_DIR=/usr/lib/lampshell/qml \' \
+        'exec /usr/lib/lampshell/lampshell "$@"' \
+        > "$srcdir/lampshell-wrapper"
+    install -Dm755 "$srcdir/lampshell-wrapper" "$pkgdir/usr/bin/lampshell"
+}

@@ -12,39 +12,70 @@ very WIP, dont expect anything to work perfectly (yet)
 
 ###  how to run this
 
-The shell needs quickshell and a C++ toolchain. `scripts/lampshell start`
-builds the native services plugin on first run, seeds a default colour
-palette, and launches the shell detached.
+One command. It installs the dependencies, clones the repo, builds the native
+services plugin, seeds a default colour palette and starts the shell:
 
-**Runtime dependencies**
+```bash
+curl -fsSL https://raw.githubusercontent.com/l6t9/lampshell/main/scripts/install.sh | bash
+```
 
-- `quickshell-git` — the git version, not a tagged release
-- `qt6-base`, `qt6-declarative` (this also provides `QtQuick.Shapes`)
-- `hyprland` — supplies `hyprctl` and `hyprlock`
-- `matugen` — derives the colour scheme from the wallpaper
-- `wl-clipboard` — clipboard history
-- `brightnessctl` or `ddcutil` — backlight control
-- `slurp` — region selection
-- fonts: `ttf-google-sans`, `ttf-material-symbols-variable`, `ttf-noto-color-emoji`
+It will ask for your password when it needs to install packages. Add
+`--dry-run` to see everything it would do first, `--no-start` to leave the
+shell stopped, or `--link` to also put a `lampshell` command on your `PATH`.
 
-**Build dependencies** — needed once, for the plugin
+Re-running it is safe: packages are only installed when missing, and an
+existing checkout is left alone.
 
-- `cmake`, `ninja`, a C++20 compiler
-- `qt6-base-devel`, `qt6-declarative-devel`
+####  updating
 
-Then:
+```bash
+lampshell update
+```
+
+Pulls new commits, rebuilds the plugin only when the plugin sources actually
+changed, and restarts the shell if it was running. It refuses to guess when
+your local checkout has diverged and leaves it alone.
+
+####  doing it by hand
+
+Clone, then use `scripts/lampshell`, which builds the plugin on first run and
+launches detached:
 
 ```bash
 git clone https://github.com/l6t9/lampshell.git ~/.config/quickshell
 ~/.config/quickshell/lampshell/scripts/lampshell start
 ```
 
-Put `scripts/` on your `PATH` if you want to drive it as `lampshell
-<command>` — `restart`, `stop`, `status`, `logs`, `plugin`, and toggles for
-the launcher, clipboard, emoji picker and panels.
+`scripts/lampshell` also drives `restart`, `stop`, `status`, `logs`,
+`plugin`, and toggles for the launcher, clipboard, emoji picker and panels.
+Put `scripts/` on your `PATH` to call it as `lampshell <command>`.
 
-Note that running `qs` directly against the config will fail with `module
+Running `qs` directly against the config fails with `module
 "Lampshell.Services" is not installed`, because the plugin build output is
 gitignored and `QML_IMPORT_PATH` is only set by the launcher script.
+
+####  dependencies
+
+Runtime: `quickshell-git` (the git version, not a tagged release),
+`qt6-base`, `qt6-declarative` (this also provides `QtQuick.Shapes`),
+`hyprland`, `matugen`, `wl-clipboard`, `brightnessctl` or `ddcutil`, `slurp`,
+and the fonts `ttf-google-sans`, `ttf-material-symbols-variable`,
+`ttf-noto-color-emoji`.
+
+Build, needed once: `cmake`, `ninja`, a C++20 compiler, `qt6-base-devel`,
+`qt6-declarative-devel`.
+
+####  packaging
+
+`packaging/PKGBUILD` builds the same shell as a normal Arch package, putting a
+`lampshell` command on your `PATH` and the config in `/usr/share/lampshell`.
+It is not published to the AUR yet, so build it locally:
+
+```bash
+cd ~/.config/quickshell/lampshell && makepkg -si
+```
+
+A packaged install is not a git checkout, so `lampshell update` points you at
+your package manager instead.
 
 ---
