@@ -230,38 +230,11 @@ PageBase {
                         }
                     }
 
-                    SliderRow {
-                        icon: "palette"
-                        label: "Hue"
-                        from: 0
-                        to: 359
-                        suffix: "°"
-                        value: root.hue
-                        onMoved: function(v) {
-                            root.setHue(v);
-                        }
-                    }
-
-                    SliderRow {
-                        icon: "gradient"
-                        label: "Saturation"
-                        from: 0
-                        to: 100
-                        value: root.saturation * 100
-                        onMoved: function(v) {
-                            root.saturation = v / 100;
-                        }
-                    }
-
-                    SliderRow {
-                        icon: "light_mode"
-                        label: "Brightness"
-                        from: 25
-                        to: 80
-                        value: root.lightness * 100
-                        onMoved: function(v) {
-                            root.lightness = v / 100;
-                        }
+                    ColorField {
+                        width: parent.width
+                        hue: root.hue
+                        saturation: root.saturation
+                        lightness: root.lightness
                     }
                 }
             }
