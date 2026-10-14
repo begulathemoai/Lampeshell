@@ -175,13 +175,10 @@ find "$dir" -maxdepth 3 -type f \\
             "outline", "outline_variant", "shadow", "scrim"
         ];
 
-        let missing = 0;
         for (const key of direct) {
             const v = hex(key);
             if (v === null) {
-
                 out[key] = null;
-                missing++;
             } else {
                 out[key] = v;
             }
@@ -190,18 +187,18 @@ find "$dir" -maxdepth 3 -type f \\
         out.critical = hex("error") ?? out.critical ?? null;
         out.on_critical = hex("on_error") ?? out.on_critical ?? null;
 
+        if (out.primary === null) {
+            lastError = "matugen returned no usable primary colour";
+            busy = false;
+            return;
+        }
+
         for (const key of Object.keys(out)) {
             if (out[key] !== null)
                 continue;
             const current = Theme[key];
             if (typeof current === "string" && current.length > 0)
                 out[key] = current;
-        }
-
-        if (out.primary === null) {
-            lastError = "matugen returned no usable primary colour";
-            busy = false;
-            return;
         }
 
         root.pendingColorsJson = JSON.stringify(out, null, 4) + "\n";

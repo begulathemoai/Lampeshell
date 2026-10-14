@@ -9,7 +9,8 @@ Item {
     default property alias content: body.data
 
     width: parent ? parent.width : 0
-    implicitHeight: body.implicitHeight + (title ? 34 : 0) + 34
+    readonly property int margin: 16
+    implicitHeight: body.implicitHeight + margin * 2
 
     Rectangle {
         anchors.fill: parent
@@ -26,7 +27,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.margins: 16
+        anchors.margins: root.margin
         spacing: 12
 
         Column {
