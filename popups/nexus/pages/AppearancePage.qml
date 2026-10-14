@@ -417,14 +417,15 @@ PageBase {
             Rectangle {
                 id: pickerCard
                 anchors.centerIn: parent
-                readonly property real innerWidth: width - 24
+                readonly property real innerWidth: Math.max(0, width - 24)
                 readonly property real chrome: 56 + 96
-                readonly property real maxHeight: Math.max(200, parent.height - 40)
-                readonly property real bodyAvail: Math.max(120, maxHeight - chrome)
+                readonly property real maxHeight: Math.max(0, parent.height - 40)
+                readonly property real bodyAvail: Math.max(0, maxHeight - chrome)
+                readonly property real sideAvail: Math.max(1, bodyAvail - 32)
                 readonly property real bodyHeight: root.pickingColor
-                    ? Math.max(1, Math.min(innerWidth, bodyAvail)) + 32
+                    ? sideAvail + 32
                     : Math.max(1, Math.min(innerWidth / root.cardAspect, bodyAvail))
-                width: Math.min(parent.width - 64, 780)
+                width: Math.max(0, Math.min(parent.width - 64, 780))
                 height: Math.min(maxHeight, chrome + bodyHeight)
                 radius: 26
                 color: Theme.surface_container
@@ -513,7 +514,7 @@ PageBase {
                         anchors.topMargin: 12
                         anchors.horizontalCenter: parent.horizontalCenter
                         width: parent.width - 24
-                        maxSide: pickerCard.bodyAvail
+                        maxSide: pickerCard.sideAvail
                         hue: root.hue
                         saturation: root.saturation
                         lightness: root.lightness
