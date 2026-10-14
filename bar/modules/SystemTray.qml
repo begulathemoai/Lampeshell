@@ -12,6 +12,12 @@ Item {
 
     readonly property var hiddenApps: ["nm-applet", "blueman"]
 
+    TrayMenuPopup {
+        id: trayMenu
+
+        monitorName: windowHandle.screen ? windowHandle.screen.name : ""
+    }
+
     readonly property var customIconApps: ["spotify", "steam"]
 
     function matchedCustomIcon(rawId, rawTitle) {
@@ -133,17 +139,22 @@ Item {
 
                     onClicked: mouse => {
                         const mapped = mapToItem(windowHandle.contentItem, mouse.x, mouse.y);
+                        const px = Math.round(mapped.x);
+                        const py = Math.round(mapped.y);
 
                         switch (mouse.button) {
                         case Qt.LeftButton:
                             if (modelData.onlyMenu)
-                                modelData.display(windowHandle, mapped.x, mapped.y);
+                                modelData.display(windowHandle, px, py);
                             else
                                 modelData.activate();
                             break;
                         case Qt.RightButton:
                             if (modelData.hasMenu)
-                                modelData.display(windowHandle, mapped.x, mapped.y);
+                                if (trayMenu.visible)
+                                    trayMenu.close();
+                                else
+                                    trayMenu.show(modelData.menu);
                             break;
                         case Qt.MiddleButton:
                             modelData.secondaryActivate();
