@@ -31,19 +31,29 @@ AUR_PKGS=(
     ttf-google-sans
 )
 
+FISH_PKGS=(
+    fish
+    eza
+    zoxide
+    direnv
+)
+
 DRY_RUN=0
 AUTO_START=1
+INSTALL_FISH=1
 
 for arg in "$@"; do
     case "$arg" in
         --dry-run) DRY_RUN=1 ;;
         --no-start) AUTO_START=0 ;;
+        --no-fish) INSTALL_FISH=0 ;;
         -h | --help)
             cat <<EOF
 usage: install.sh [options]
 
   --dry-run   print what would happen without changing anything
   --no-start  install and build, but do not launch the shell
+  --no-fish   leave your fish config alone (greeting, colours)
 EOF
             exit 0
             ;;
@@ -119,6 +129,40 @@ install_aur_pkgs() {
     warn "cannot start: it requires the git build of quickshell."
 }
 
+# Deploy the fish dotfiles the same way caelestia does: put the files in
+# <config>/fish, replacing whatever is there, after keeping a backup.
+deploy_fish() {
+    local src="$TARGET/extras/fish"
+    local conf="${XDG_CONFIG_HOME:-$HOME/.config}"
+    local dest="$conf/fish"
+    local userconf="$conf/lampshell"
+
+    if [ ! -d "$src" ]; then
+        warn "no extras/fish in the checkout, skipping the fish config"
+        return 0
+    fi
+
+    if [ "$DRY_RUN" -eq 1 ]; then
+        printf '  [dry-run] back up %s to %s.bak, then copy %s into it\n' "$dest" "$dest" "$src"
+        printf '  [dry-run] touch %s/user-config.fish\n' "$userconf"
+        return 0
+    fi
+
+    if [ -e "$dest" ]; then
+        rm -rf "$dest.bak"
+        cp -a "$dest" "$dest.bak"
+        say "backed up $dest to $dest.bak"
+    fi
+
+    mkdir -p "$dest"
+    cp -a "$src/." "$dest/"
+
+    mkdir -p "$userconf"
+    touch "$userconf/user-config.fish"
+
+    say "installed the fish greeting and colours into $dest"
+}
+
 [ "$(uname -s)" = "Linux" ] || die "only Linux is supported"
 
 if ! command -v pacman >/dev/null 2>&1; then
@@ -142,9 +186,20 @@ if [ "$DRY_RUN" -eq 0 ] && ! command -v quickshell >/dev/null 2>&1; then
     die "quickshell is still not on PATH after installing, cannot continue"
 fi
 
+if [ "$INSTALL_FISH" -eq 1 ]; then
+    printf '\n'
+    say "installing fish dependencies"
+    install_arch_pkgs "${FISH_PKGS[@]}"
+fi
+
 printf '\n'
 if [ -d "$TARGET/.git" ]; then
-    say "checkout already present at $TARGET, leaving it alone"
+    say "existing checkout at $TARGET, refreshing it"
+    if [ "$DRY_RUN" -eq 1 ]; then
+        printf '  [dry-run] git -C %s pull --ff-only\n' "$TARGET"
+    elif ! git -C "$TARGET" pull --ff-only --quiet 2>/dev/null; then
+        warn "could not fast-forward $TARGET (local changes?), using it as it is"
+    fi
 else
     if [ -e "$TARGET" ] && [ -n "$(ls -A "$TARGET" 2>/dev/null)" ]; then
         die "$TARGET exists and is not a git checkout. Move it aside and re-run."
@@ -160,6 +215,12 @@ fi
 
 if [ "$DRY_RUN" -eq 0 ]; then
     chmod +x "$TARGET/scripts/lampshell"
+fi
+
+if [ "$INSTALL_FISH" -eq 1 ]; then
+    printf '\n'
+    say "installing the fish config"
+    deploy_fish
 fi
 
 printf '\n'

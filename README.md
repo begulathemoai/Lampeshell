@@ -21,10 +21,15 @@ curl -fsSL https://raw.githubusercontent.com/l6t9/lampshell/main/scripts/install
 
 It will ask for your password when it needs to install packages. Add
 `--dry-run` to see everything it would do first, or `--no-start` to build
-without launching the shell.
+without launching the shell. Add `--no-fish` to leave your fish config alone.
+
+It also drops a fish config into `~/.config/fish`: a `config.fish` plus a
+`fish_greeting` that prints the Lampshell logo and, if you have it,
+`fastfetch`. Your old `~/.config/fish` is copied to `~/.config/fish.bak`
+first, and anything else you kept in there is left in place.
 
 Re-running it is safe: packages are only installed when missing, and an
-existing checkout is left alone.
+existing checkout is fast-forwarded rather than replaced.
 
 ####  updating
 
