@@ -1,5 +1,6 @@
 pragma Singleton
 import QtQuick
+import qs.theme
 
 Item {
     id: root
