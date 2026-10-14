@@ -73,17 +73,21 @@ PageBase {
         Toaster.toastInfo("Keybinds reverted", "Reloaded from disk", "undo");
     }
 
-    KeybindPickerSheet {
-        id: picker
+    overlay: Item {
+        anchors.fill: parent
 
-        parent: root.dialogAnchor
+        KeybindPickerSheet {
+            id: picker
 
-        onApplied: text => {
-            root.markDraft(picker.bindKey, text);
-            root.nState.overlayOpen = false;
+            anchors.fill: parent
+
+            onApplied: text => {
+                root.markDraft(picker.bindKey, text);
+                root.nState.overlayOpen = false;
+            }
+
+            onDismissed: root.nState.overlayOpen = false
         }
-
-        onDismissed: root.nState.overlayOpen = false
     }
 
     SettingsCard {
