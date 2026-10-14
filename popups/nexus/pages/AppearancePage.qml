@@ -39,6 +39,7 @@ PageBase {
         sampleX = fx;
         sampleY = fy;
         pendingHex = hex;
+        primed = true;
 
         const c = Qt.color(hex);
         hue = c.hsvHue < 0 ? hue : c.hsvHue * 360;
@@ -67,7 +68,11 @@ PageBase {
             ImageSampler.load("file://" + ThemeService.currentWallpaper);
     }
 
-    readonly property color customColor: Qt.hsva(hue / 360, saturation, lightness, 1)
+    property bool primed: false
+
+    readonly property color customColor: root.primed
+        ? Qt.hsva(root.hue / 360, root.saturation, root.lightness, 1)
+        : (root.currentSource.length === 7 ? root.currentSource : Theme.primary)
 
     readonly property string currentSource: AccentPalette.isCustom
         ? AccentPalette.currentAccentSource
@@ -81,11 +86,13 @@ PageBase {
 
     function syncFromSource() {
         if (!AccentPalette.isCustom || currentSource.length !== 7)
-            return;
+            return false;
         const c = Qt.color(currentSource);
         hue = c.hsvHue < 0 ? root.hue : c.hsvHue * 360;
         saturation = c.hsvSaturation;
         lightness = c.hsvValue;
+        primed = true;
+        return true;
     }
 
     function applyCustomColor(hex) {
@@ -110,6 +117,19 @@ PageBase {
         target: AccentPalette
         function onCurrentAccentSourceChanged() {
             root.syncFromSource();
+        }
+
+        function onIsCustomChanged() {
+            root.syncFromSource();
+        }
+    }
+
+    Connections {
+        target: SettingsStore
+
+        function onLoadedChanged() {
+            if (SettingsStore.loaded)
+                root.syncFromSource();
         }
     }
 
@@ -302,33 +322,6 @@ PageBase {
                     width: parent.width
                     spacing: 10
                     visible: root.personalised
-
-                    Text {
-                        width: parent.width
-                        text: "Pick a color, or use Pick from image above to sample your wallpaper."
-                        color: Theme.on_surface_variant
-                        wrapMode: Text.WordWrap
-                        font {
-                            family: "Google Sans"
-                            pixelSize: 11
-                        }
-                    }
-
-                    Row {
-                        width: parent.width
-                        spacing: 10
-
-                        ActionButton {
-                            width: parent.width
-                            text: "Color Picker"
-                            icon: "palette"
-                            enabled: !ThemeService.busy
-                            onTriggered: {
-                                root.personalised = true;
-                                root.pickingColor = true;
-                            }
-                        }
-                    }
 
                     Rectangle {
                         width: parent.width
@@ -624,6 +617,7 @@ PageBase {
                         saturation: root.saturation
                         lightness: root.lightness
                         onPicked: function(h, sat, light) {
+                            root.primed = true;
                             root.hue = h;
                             root.saturation = sat;
                             root.lightness = light;

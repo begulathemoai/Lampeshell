@@ -734,7 +734,7 @@ printf '%s' "$px" | base64 -d >> "$out" || exit 1
     Process {
         id: writeColorsProc
         stdinEnabled: true
-        command: ["sh", "-c", "cat > '" + root.colorsPath + "'"]
+        command: ["sh", "-c", "cat > \"$1.tmp\" && mv \"$1.tmp\" \"$1\"", "sh", root.colorsPath]
         stdout: StdioCollector {}
         stderr: StdioCollector {
             id: writeErr
