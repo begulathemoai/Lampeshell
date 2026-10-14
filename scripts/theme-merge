@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+
+set -uo pipefail
+
+MODE="${1:-}"
+FILE="${2:-}"
+
+case "$MODE" in
+    lua | css) ;;
+    *) exit 0 ;;
+esac
+
+[ -n "$FILE" ] || exit 0
+[ -f "$FILE" ] || exit 0
+
+shift 2
+
+[ "$#" -ge 1 ] || exit 0
+
+TMP="$FILE.lampshell.$$"
+trap 'rm -f "$TMP"' EXIT
+
+BLOCK="$(printf '%s\n' "$@")" MODE="$MODE" awk '
+function lkey(s,   m) {
+    if (!match(s, /^[ \t]*[A-Za-z_][A-Za-z0-9_]*[ \t]*=/))
+        return ""
+    m = substr(s, RSTART, RLENGTH)
+    gsub(/[ \t=]/, "", m)
+    return m
+}
+
+function ckey(s,   m) {
+    if (!match(s, /^@define-color[ \t]+[A-Za-z0-9_]+/))
+        return ""
+    m = substr(s, RSTART, RLENGTH)
+    sub(/^@define-color[ \t]+/, "", m)
+    return m
+}
+
+BEGIN {
+    mode = ENVIRON["MODE"]
+    nb = split(ENVIRON["BLOCK"], bl, "\n")
+    n = 0
+
+    for (i = 1; i <= nb; i++) {
+        line = bl[i]
+
+        if (mode == "lua") {
+            k = lkey(line)
+            if (k != "" && match(line, /"[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]"/)) {
+                val[k] = substr(line, RSTART + 1, 6)
+                order[++n] = k
+            }
+            continue
+        }
+
+        k = ckey(line)
+        if (k != "") {
+            def[k] = line
+            order[++n] = k
+        }
+    }
+}
+
+mode == "lua" {
+    k = lkey($0)
+    if (k != "" && (k in val) && match($0, /"[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]"/))
+        $0 = substr($0, 1, RSTART - 1) "\"" val[k] "\"" substr($0, RSTART + RLENGTH)
+    print
+    next
+}
+
+mode == "css" {
+    k = ckey($0)
+    if (k != "" && (k in def)) {
+        if (k in done)
+            next
+        done[k] = 1
+        print def[k]
+        next
+    }
+    print
+}
+
+END {
+    if (mode != "css")
+        exit
+
+    for (i = 1; i <= n; i++) {
+        k = order[i]
+        if (k in def && !(k in done))
+            print def[k]
+    }
+}
+' "$FILE" > "$TMP" || exit 0
+
+[ -s "$TMP" ] || exit 0
+
+if ! cmp -s "$TMP" "$FILE"; then
+    cat "$TMP" > "$FILE" 2>/dev/null || exit 0
+fi
+
+exit 0
