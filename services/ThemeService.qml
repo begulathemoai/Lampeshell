@@ -695,6 +695,8 @@ printf '%s' "$px" | base64 -d >> "$out" || exit 1
             if (exitCode !== 0) {
                 const err = revertErr.text.trim();
                 root.lastError = "revert failed: " + (err.length > 0 ? err : "cp exited with code " + exitCode);
+            } else {
+                root.paletteApplied();
             }
         }
     }

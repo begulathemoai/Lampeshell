@@ -32,6 +32,7 @@ Singleton {
         overlayEffectsManaged: true,
         themeTargetgtk4: false,
         themeTargetgtk3: false,
+        themeTargethypr: true,
         favouriteApps: []
     })
 

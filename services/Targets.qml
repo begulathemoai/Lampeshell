@@ -26,6 +26,11 @@ Item {
             label: "GTK 3 apps",
             description: "Older GTK toolkits",
             path: homeDir + "/.config/gtk-3.0/gtk.css"
+        },
+        {
+            key: "hypr",
+            label: "Compositor borders",
+            description: "Focused and unfocused window outlines"
         }
     ]
 
@@ -172,11 +177,49 @@ Item {
         next();
     }
 
+    function rgba(role, alpha) {
+        const value = hex(role);
+        return value ? "rgba(" + value + alpha + ")" : null;
+    }
+
+    function applyHypr() {
+        const active = rgba("primary", "e6");
+        const inactive = rgba("on_surface_variant", "11");
+        if (!active || !inactive)
+            return;
+
+        if (Hypr.usingLua) {
+            hyprProc.command = [
+                "hyprctl", "eval",
+                'hl.config({ general = { col = { active_border = "' + active
+                    + '", inactive_border = "' + inactive + '" } } })'
+            ];
+        } else {
+            hyprProc.command = [
+                "hyprctl", "keyword", "col.active_border", active,
+                "1", "col.inactive_border", inactive
+            ];
+        }
+
+        hyprProc.running = true;
+    }
+
+    Process {
+        id: hyprProc
+
+        command: ["hyprctl", "keyword", "col.active_border", "rgba(ffffff00)"]
+        stderr: StdioCollector {}
+    }
+
     function refresh() {
         if (!SettingsStore.loaded)
             return;
         for (let i = 0; i < targets.length; i++) {
-            if (enabled(targets[i].key))
+            if (!enabled(targets[i].key))
+                continue;
+            if (targets[i].key === "hypr")
+                applyHypr();
+            else
                 apply(targets[i].key);
         }
     }
@@ -224,6 +267,14 @@ Item {
         target: ThemeService
 
         function onPaletteApplied(): void {
+            debounce.restart();
+        }
+    }
+
+    Connections {
+        target: Hypr
+
+        function onConfigReloaded(): void {
             debounce.restart();
         }
     }
