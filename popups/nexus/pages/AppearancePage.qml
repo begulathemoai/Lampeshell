@@ -165,7 +165,7 @@ PageBase {
 
                     SegmentedChoice {
                         width: (parent.width - 10) / 2
-                        label: "Personnalisé"
+                        label: "Custom"
                         icon: "palette"
                         active: root.personalised
                         onPicked: root.personalised = true
