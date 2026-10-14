@@ -59,7 +59,7 @@ Singleton {
             return;
 
         const namespaces = [
-            { ns: "launcher_overlay", blur: true },
+            { ns: "launcher_overlay", blur: false },
             { ns: "clipboard_overlay", blur: false },
             { ns: "emoji_overlay", blur: false }
         ];

@@ -49,12 +49,6 @@ PanelWindow {
 
     onWidthChanged: publishGeometry()
 
-    // The panel is opened on whatever monitor has focus and stays there for
-    // the whole session. Pinning the screen at open (like Settings.qml)
-    // instead of live-following focus matters with several monitors: a live
-    // `screen` change remaps the layer surface, drops the focus grab and
-    // republishes the card geometry for a window that has moved, which
-    // strands the card painted on the monitor the panel just left.
     onTargetScreenChanged: publishGeometry()
 
     function open() {
@@ -232,10 +226,6 @@ PanelWindow {
         anchors.fill: parent
     }
 
-    // Caelestia's sidebar, rebuilt for lampshell: notifications on top, then
-    // the keep-awake card, then the volume/brightness sliders (which caelestia
-    // keeps as an OSD hover control, but live in-line here), then the quick
-    // toggles. The sliders are caelestia's FilledSlider turned sideways.
     Column {
         id: content
         anchors.top: parent.top

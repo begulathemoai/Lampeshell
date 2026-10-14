@@ -29,7 +29,8 @@ Singleton {
         dashboardEnabled: true,
         weatherLocation: "",
         weatherUnits: "metric",
-        overlayEffectsManaged: true
+        overlayEffectsManaged: true,
+        favouriteApps: []
     })
 
     property var values: root.defaults

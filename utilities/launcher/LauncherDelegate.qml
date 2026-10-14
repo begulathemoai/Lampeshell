@@ -1,23 +1,46 @@
 import QtQuick
 import Quickshell.Widgets
 import "../../theme"
+import qs.services
 
 Item {
     id: delegateRoot
-    width: ListView.view.width
-    height: 56
 
-    property bool isSelected: ListView.isCurrentItem
-    property bool isHovered: itemMouseArea.containsMouse
+    width: ListView.view ? ListView.view.width : 0
+    height: 57
 
-    property string descriptionText: modelData.genericName ? modelData.genericName : (modelData.comment ? modelData.comment : "")
+    readonly property bool isCalc: !!modelData.__calc
+    readonly property bool isAction: !!modelData.__action
+    readonly property bool isFavourite: !delegateRoot.isCalc && !delegateRoot.isAction && delegateRoot.matchesFavourite(modelData)
+
+    readonly property string descriptionText: (delegateRoot.isAction || delegateRoot.isCalc)
+        ? (modelData.genericName || "")
+        : (modelData.comment || modelData.genericName || modelData.name || "")
+
+    readonly property bool containsMouse: itemMouseArea.containsMouse
+
+    function matchesFavourite(entry) {
+        if (!entry || !entry.id)
+            return false;
+        const patterns = SettingsStore.values.favouriteApps || [];
+        for (let i = 0; i < patterns.length; i++) {
+            try {
+                if (new RegExp(patterns[i]).test(entry.id))
+                    return true;
+            } catch (e) {
+                if (entry.id === patterns[i])
+                    return true;
+            }
+        }
+        return false;
+    }
 
     function launch() {
-        if (modelData.__calc) {
+        if (delegateRoot.isCalc) {
             ctrl.copyCalcResult(modelData);
             return;
         }
-        if (modelData.__action) {
+        if (delegateRoot.isAction) {
             ctrl.runAction(modelData.__action);
             return;
         }
@@ -25,166 +48,140 @@ Item {
     }
 
     Rectangle {
-        id: itemBox
-        anchors.centerIn: parent
-        width: parent.width - 12
-        height: parent.height - 2
-        radius: 8
+        id: hoverBg
 
-        readonly property color selectionColour: Qt.rgba(
-            Theme.primary_container.r,
-            Theme.primary_container.g,
-            Theme.primary_container.b,
-            0.6
-        )
+        anchors.fill: parent
+        radius: 16
+        color: Theme.on_surface
+        opacity: delegateRoot.containsMouse ? 0.08 : 0
 
-        color: delegateRoot.isSelected
-            ? itemBox.selectionColour
-            : (delegateRoot.isHovered
-                ? Qt.rgba(Theme.on_surface.r, Theme.on_surface.g, Theme.on_surface.b, 0.06)
-                : "transparent")
-        Behavior on color {
-            ColorAnimation {
-                duration: 120
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Motion.duration(Motion.defaultEffects)
+                easing.type: Easing.OutCubic
+            }
+        }
+    }
+
+    Item {
+        id: rowContent
+
+        anchors.fill: parent
+        anchors.margins: 8
+
+        IconImage {
+            id: appIcon
+
+            visible: !delegateRoot.isAction && !delegateRoot.isCalc
+            width: rowContent.height * 0.8
+            height: rowContent.height * 0.8
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+
+            source: {
+                if (!modelData.icon || modelData.icon === "")
+                    return "image://icon/application-x-executable";
+                if (modelData.icon.startsWith("/"))
+                    return "file://" + modelData.icon;
+                return "image://icon/" + modelData.icon;
+            }
+
+            onStatusChanged: {
+                if (status === Image.Error)
+                    source = "image://icon/application-x-executable";
             }
         }
 
         Text {
             id: actionIcon
-            visible: !!(modelData.__action || modelData.__calc)
-            width: 42
-            height: 42
+
+            visible: delegateRoot.isAction || delegateRoot.isCalc
+            width: rowContent.height * 0.8
+            height: rowContent.height * 0.8
             anchors.left: parent.left
-            anchors.leftMargin: 20
             anchors.verticalCenter: parent.verticalCenter
-            text: modelData.icon || "chevron_right"
-            color: delegateRoot.isSelected ? Theme.on_primary_container : Theme.primary
-            font { family: "Material Symbols Rounded"; pixelSize: 26 }
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-        }
 
-        IconImage {
-            id: appIcon
-            visible: !(modelData.__action || modelData.__calc)
-            width: 42
-            height: 42
-            anchors.left: parent.left
-            anchors.leftMargin: 20
-            anchors.verticalCenter: parent.verticalCenter
+            text: modelData.icon || "chevron_right"
+            color: Theme.on_surface_variant
 
-            source: {
-                if (!modelData.icon || modelData.icon === "") {
-                    return "image://icon/application-x-executable";
-                }
-                if (modelData.icon.startsWith("/")) {
-                    return "file://" + modelData.icon;
-                }
-                return "image://icon/" + modelData.icon;
-            }
-
-            onStatusChanged: {
-                if (status === Image.Error) {
-                    source = "image://icon/application-x-executable";
-                }
+            font {
+                family: "Material Symbols Rounded"
+                pointSize: 24
             }
         }
 
-        Column {
-            anchors.left: appIcon.right
-            anchors.right: launchPill.left
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.leftMargin: 16
-            anchors.rightMargin: 16
-            spacing: 2
+        Item {
+            id: textItem
+
+            anchors.left: appIcon.visible ? appIcon.right : actionIcon.right
+            anchors.leftMargin: 12
+            anchors.verticalCenter: appIcon.verticalCenter
+
+            width: parent.width - appIcon.width - favouriteIcon.width
+            height: name.implicitHeight + comment.implicitHeight
 
             Text {
+                id: name
+
                 width: parent.width
                 text: modelData.name
-                color: delegateRoot.isSelected ? Theme.on_primary_container : Theme.on_surface
+                color: Theme.on_surface
                 elide: Text.ElideRight
+
                 font {
                     family: "Google Sans"
-                    pixelSize: 16
-                    weight: Font.DemiBold
+                    pointSize: 14
+                    weight: Font.Normal
                 }
             }
 
             Text {
-                width: parent.width
+                id: comment
+
+                width: delegateRoot.width - appIcon.width - favouriteIcon.width - 32
                 text: delegateRoot.descriptionText
-                visible: delegateRoot.descriptionText !== ""
-                color: delegateRoot.isSelected ? Theme.on_primary_container : Theme.on_surface_variant
-                opacity: delegateRoot.isSelected ? 0.8 : 1.0
+                visible: text.length > 0
+                color: Theme.outline
                 elide: Text.ElideRight
+                anchors.top: name.bottom
+
                 font {
                     family: "Google Sans"
-                    pixelSize: 13
+                    pointSize: 12
+                    weight: Font.Normal
                 }
             }
         }
 
-        Rectangle {
-            id: launchPill
+        Loader {
+            id: favouriteIcon
+
+            active: delegateRoot.isFavourite
             anchors.right: parent.right
-            anchors.rightMargin: 16
             anchors.verticalCenter: parent.verticalCenter
-            width: 86
-            height: 32
-            radius: 16
-            color: Theme.primary
-            opacity: delegateRoot.isSelected ? 1.0 : 0.0
-            scale: delegateRoot.isSelected ? 1.0 : 0.8
 
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: 100
-                }
-            }
-            Behavior on scale {
-                NumberAnimation {
-                    duration: 100
-                    easing.type: Easing.OutBack
-                }
-            }
+            sourceComponent: Text {
+                text: "favorite"
+                color: Theme.primary
 
-            Row {
-                anchors.centerIn: parent
-                spacing: 6
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    topPadding: 2
-                    verticalAlignment: Text.AlignVCenter
-                    text: "Launch"
-                    color: Theme.on_primary
-                    font {
-                        family: "Google Sans Medium"
-                        pixelSize: 13
-                    }
-                }
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    topPadding: 2
-                    verticalAlignment: Text.AlignVCenter
-                    text: "keyboard_return"
-                    color: Theme.on_primary
-                    font {
-                        family: "Material Symbols Rounded"
-                        pixelSize: 16
-                    }
+                font {
+                    family: "Material Symbols Rounded"
+                    pointSize: 15
+                    weight: Font.Normal
+                    variableAxes: ({ "FILL": 1.0 })
                 }
             }
         }
+    }
 
-        MouseArea {
-            id: itemMouseArea
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onEntered: delegateRoot.ListView.view.currentIndex = index
-            onClicked: delegateRoot.launch()
-        }
+    MouseArea {
+        id: itemMouseArea
+
+        anchors.fill: parent
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: delegateRoot.launch()
     }
 }

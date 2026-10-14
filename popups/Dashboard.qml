@@ -7,9 +7,6 @@ import qs.theme
 import qs.services
 import qs.popups.dashboard
 
-// Top-centre dashboard, merged into the top bar the same way the sidebar
-// card is merged into the right bezel: the window is transparent and
-// bar/Chrome.qml paints the frame tab underneath it.
 PanelWindow {
     id: root
 
@@ -44,8 +41,6 @@ PanelWindow {
 
     property bool shown: false
 
-    // Set from shell.qml: closes the sidebar so the two merged cards don't
-    // fight over the top-right of the frame.
     property var closeSidebarHandler: null
 
     onShownChanged: DashboardState.open = shown
@@ -134,8 +129,6 @@ PanelWindow {
         }
     }
 
-    // Curtain: the window is fixed at its full size, the reveal grows the
-    // merged notch down from the bar and this clips the body to match.
     Item {
         id: reveal
 

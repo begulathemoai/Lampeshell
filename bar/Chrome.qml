@@ -24,16 +24,14 @@ Variants {
         readonly property HyprlandMonitor monitor: Hyprland.monitorFor(screen)
         visible: !FullscreenState.isFullscreen(monitor)
 
-        // The card belongs to the screen the panel window is on, which
-        // follows the focused monitor. Everywhere else this delegate
-        // paints the frame alone, because a card drawn at this screen's
-        // own resolution on a screen that has no panel is a slab of
-        // surface floating over live desktop.
         readonly property bool hasCard: PanelState.screenName.length === 0
             || PanelState.screenName === modelData.name
 
         readonly property bool hasDashCard: DashboardState.screenName.length === 0
             || DashboardState.screenName === modelData.name
+
+        readonly property bool hasLaunchCard: LauncherState.screenName.length === 0
+            || LauncherState.screenName === modelData.name
 
         WlrLayershell.layer: WlrLayer.Top
         WlrLayershell.namespace: "quickshell-bezels"
@@ -46,12 +44,6 @@ Variants {
             right: true
         }
 
-        // The chrome is pure decoration, so every click must fall through to
-        // whatever is behind it - apps, the bars, the panel. A `Combine` mask
-        // on a full-window item is a full-window input region, which swallows
-        // the entire desktop; `Xor` inverts it, and an empty mask makes
-        // Quickshell mark the surface WindowTransparentForInput. This is what
-        // upstream's BezelsMask.qml did before the chrome was split out.
         mask: Region {
             item: chromeShape
             intersection: Intersection.Xor
@@ -100,6 +92,13 @@ Variants {
             readonly property real dashRight: dashX + dashW
             readonly property real dashFillet: Math.min(corner, dashW / 4)
 
+            // Bottom-centre launcher card, mirrored to grow up from the bottom.
+            readonly property real launchW: LauncherState.panelWidth
+            readonly property real launchH: LauncherState.revealHeight
+            readonly property real launchX: (sw - launchW) / 2
+            readonly property real launchRight: launchX + launchW
+            readonly property real launchFillet: Math.min(corner, launchW / 4)
+
 
             readonly property string outerPath: {
                 return `M 0,0 L ${sw},0 L ${sw},${sh} L 0,${sh} Z`;
@@ -120,15 +119,34 @@ Variants {
                 const dopen = chromeWindow.hasDashCard && dch > 0.5 && dashW > 1
                     && dashX > x0 + r && dashRight < x1 - r;
 
+                // Centre launcher notch, growing up from the bottom edge.
+                const lch = Math.min(launchH, cutB - cutT - corner - launchFillet);
+                const lcr = Math.min(Layout.panelRadius, launchW / 2, lch);
+                const lopen = chromeWindow.hasLaunchCard && lch > 0.5 && launchW > 1
+                    && launchX > x0 + r && launchRight < x1 - r;
+
                 // Left side and bottom are shared.
                 let d = `M ${x0},${y0 + r}`
                     + ` L ${x0},${y1 - r}`
-                    + ` Q ${x0},${y1} ${x0 + r},${y1}`
-                    + ` L ${x1 - r},${y1}`
-                    + ` Q ${x1},${y1} ${x1},${y1 - r}`;
+                    + ` Q ${x0},${y1} ${x0 + r},${y1}`;
 
-                // Right edge, then traverse the top edge right-to-left,
-                // dipping around the sidebar card and/or the dashboard notch.
+                // Bottom edge, left to right, rising around the launcher card.
+                if (lopen) {
+                    d += ` L ${launchX - launchFillet},${y1}`
+                        + ` Q ${launchX},${y1} ${launchX},${y1 - launchFillet}`
+                        + ` L ${launchX},${y1 - lch + lcr}`
+                        + ` Q ${launchX},${y1 - lch} ${launchX + lcr},${y1 - lch}`
+                        + ` L ${launchRight - lcr},${y1 - lch}`
+                        + ` Q ${launchRight},${y1 - lch} ${launchRight},${y1 - lch + lcr}`
+                        + ` L ${launchRight},${y1 - launchFillet}`
+                        + ` Q ${launchRight},${y1} ${launchRight + launchFillet},${y1}`
+                        + ` L ${x1 - r},${y1}`;
+                } else {
+                    d += ` L ${x1 - r},${y1}`;
+                }
+
+                d += ` Q ${x1},${y1} ${x1},${y1 - r}`;
+
                 let cursor; // current x while walking the top edge leftwards
 
                 if (open) {

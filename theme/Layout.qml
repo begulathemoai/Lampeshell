@@ -12,10 +12,6 @@ QtObject {
 
     property int panelRadius: 28
 
-    // Caelestia sizes everything in logical pixels and lets Qt's per-output
-    // devicePixelRatio handle HiDPI - it has no hand-tuned multiplier. Our
-    // old 1.3 was multiplied on top of that DPR, so a 2x screen rendered the
-    // whole shell at 2.6x. Keep `scale` as a knob, but default it to 1.
     property real uiScale: 1.0
 
     function s(n) { return Math.round(n * uiScale) }
