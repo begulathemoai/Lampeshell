@@ -129,8 +129,5 @@ ShellRoot {
         onPressed: sessionWindow.lock()
     }
 
-    Component.onCompleted: {
-        NightLight.apply();
-        AccentPalette.started = true;
-    }
+    Component.onCompleted: NightLight.apply()
 }

@@ -1,5 +1,4 @@
 .qmllint.ini
 theme/colors.json
 theme/colors.json.bak
-theme/colors.json.accent.bak
 plugin/build/

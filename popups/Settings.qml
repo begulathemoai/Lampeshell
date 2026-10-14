@@ -98,8 +98,8 @@ FloatingWindow {
             settingsWindow.open();
         }
 
-        function accent(name: string) {
-            AccentPalette.applyAccent(name);
+        function accent(colour: string) {
+            AccentPalette.applyCustom(colour);
         }
 
         function wallpapers() {
