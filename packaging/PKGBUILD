@@ -55,13 +55,14 @@ package() {
     install -Dm644 "$d/LICENSE" "$pkgdir$_pkgdir/LICENSE"
     install -Dm644 "$d/README.md" "$pkgdir$_pkgdir/README.md"
 
-    # Compiled QML module.
     local mod="$d/plugin/build/qml/Lampshell/Services"
     install -Dm644 "$mod/qmldir" "$pkgdir$_plugindir/qml/Lampshell/Services/qmldir"
     install -Dm755 "$mod/liblampshell-servicesplugin.so" \
         "$pkgdir$_plugindir/qml/Lampshell/Services/liblampshell-servicesplugin.so"
     install -Dm644 "$mod/lampshell-services.qmltypes" \
         "$pkgdir$_plugindir/qml/Lampshell/Services/lampshell-services.qmltypes"
+    install -Dm755 "$d/plugin/build/src/liblampshell-services.so" \
+        "$pkgdir$_plugindir/src/liblampshell-services.so"
 
     install -Dm755 "$d/scripts/lampshell" "$pkgdir$_plugindir/lampshell"
 

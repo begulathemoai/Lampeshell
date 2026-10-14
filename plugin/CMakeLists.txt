@@ -13,4 +13,8 @@ qt_standard_project_setup(REQUIRES 6.5)
 # QML_IMPORT_PATH at it without installing anything system-wide.
 set(QT_QML_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/qml")
 
+set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
+set(INSTALL_RPATH "$ORIGIN")
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH OFF)
+
 add_subdirectory(src)
