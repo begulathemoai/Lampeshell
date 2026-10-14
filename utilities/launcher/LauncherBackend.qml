@@ -123,6 +123,7 @@ Item {
         if (desktopEntry.runInTerminal) {
             finalCommand.push(myTerminal);
             finalCommand.push("--");
+            finalCommand.push(Quickshell.shellDir + "/assets/wrap_term_launch.sh");
         }
 
         finalCommand = finalCommand.concat(desktopEntry.command);

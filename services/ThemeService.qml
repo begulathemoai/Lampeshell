@@ -14,7 +14,10 @@ Item {
     readonly property string homeDir: Quickshell.env("HOME")
     readonly property string wallDir: homeDir + "/Pictures/walls"
     readonly property string colorsPath: Quickshell.shellPath("theme/colors.json")
-    readonly property string stateDir: (Quickshell.env("XDG_STATE_HOME") || (homeDir + "/.local/state")) + "/octashell"
+    readonly property string stateBase: (Quickshell.env("XDG_STATE_HOME") || (homeDir + "/.local/state")) + "/lampshell"
+    readonly property string sequencesPath: stateBase + "/sequences.txt"
+    readonly property string kittyThemePath: stateBase + "/kitty-theme.conf"
+    readonly property string footColorsPath: stateBase + "/foot-colors.ini"
 
     readonly property string matugenType: "scheme-smart"
     readonly property string matugenPrefer: "saturation"
@@ -36,7 +39,7 @@ find "$dir" -maxdepth 3 -type f \\
 `
 
     function refresh() {
-        listProc.command = ["bash", "-c", root.listScript, "octashell-list", root.wallDir];
+        listProc.command = ["bash", "-c", root.listScript, "lampshell-list", root.wallDir];
         listProc.running = true;
     }
 
@@ -203,6 +206,124 @@ find "$dir" -maxdepth 3 -type f \\
         backupProc.running = true;
     }
 
+    // --- Terminal palette ---------------------------------------------------
+    // The 16 ANSI slots start from gruvbox and are rotated towards the
+    // wallpaper's primary hue so terminals always follow the shell palette.
+    readonly property var gruvbox: [
+        "282828", "cc241d", "98971a", "d79921", "458588", "b16286", "689d6a", "a89984",
+        "928374", "fb4934", "b8bb26", "fabd2f", "83a598", "d3869b", "8ec07c", "ebdbb2"
+    ]
+
+    function stripHash(hex) {
+        if (hex === undefined || hex === null)
+            return null;
+        const s = String(hex).replace("#", "").toLowerCase();
+        return s.length >= 6 ? s.slice(0, 6) : null;
+    }
+
+    function hexToColor(hex) {
+        const s = stripHash(hex);
+        return Qt.rgba(parseInt(s.slice(0, 2), 16) / 255,
+                       parseInt(s.slice(2, 4), 16) / 255,
+                       parseInt(s.slice(4, 6), 16) / 255, 1);
+    }
+
+    function harmonize(fromHex, targetHex, boost) {
+        const from = root.hexToColor(fromHex);
+        const target = root.hexToColor(targetHex);
+        const targetHue = target.hslHue < 0 ? 0 : target.hslHue * 360;
+        const fromHue = from.hslHue < 0 ? targetHue : from.hslHue * 360;
+        const diff = ((targetHue - fromHue + 540) % 360) - 180;
+        const rotation = Math.min(Math.abs(diff) * 0.8, 100);
+        const hue = (fromHue + rotation * (diff >= 0 ? 1 : -1) + 360) % 360;
+        const lightness = Math.min(1, from.hslLightness * (1 + boost));
+        return Qt.hsla(hue / 360, from.hslSaturation, lightness, 1).toString().replace("#", "").slice(0, 6);
+    }
+
+    function terminalPalette(primaryHex) {
+        const target = stripHash(primaryHex);
+        const out = [];
+        for (let i = 0; i < root.gruvbox.length; i++)
+            out.push(target === null ? root.gruvbox[i] : harmonize(root.gruvbox[i], target, i < 8 ? 0.35 : 0.2));
+        return out;
+    }
+
+    function osc(hex, ...idx) {
+        const c = stripHash(hex);
+        if (c === null)
+            return "";
+        return "\u001b]" + idx.join(";") + ";rgb:" + c.slice(0, 2) + "/" + c.slice(2, 4) + "/" + c.slice(4, 6) + "\u001b\\";
+    }
+
+    function genSequences(p) {
+        const terms = root.terminalPalette(p.primary);
+        let s = "";
+        s += root.osc(p.on_surface, 10);
+        s += root.osc(p.surface, 11);
+        s += root.osc(p.secondary, 12);
+        s += root.osc(p.secondary, 17);
+        for (let i = 0; i < 16; i++)
+            s += root.osc(terms[i], 4, i);
+        s += root.osc(p.primary, 4, 16);
+        s += root.osc(p.secondary, 4, 17);
+        s += root.osc(p.tertiary, 4, 18);
+        return s;
+    }
+
+    function genKitty(p) {
+        const terms = root.terminalPalette(p.primary);
+        const sel = stripHash(p.surface_container_highest ?? p.surface_variant ?? p.surface);
+        let s = "background            #" + stripHash(p.surface) + "\n";
+        s += "foreground            #" + stripHash(p.on_surface) + "\n";
+        s += "cursor                #" + stripHash(p.secondary) + "\n\n";
+        for (let i = 0; i < 16; i++)
+            s += "color" + i + "                #" + terms[i] + "\n";
+        s += "\nselection_background  #" + sel + "\n";
+        s += "selection_foreground  #" + stripHash(p.on_surface) + "\n";
+        return s;
+    }
+
+    function genFoot(p) {
+        const terms = root.terminalPalette(p.primary);
+        const sel = stripHash(p.surface_container_highest ?? p.surface_variant ?? p.surface);
+        let s = "[colors-dark]\n";
+        s += "background=" + stripHash(p.surface) + "\n";
+        s += "foreground=" + stripHash(p.on_surface) + "\n";
+        s += "cursor=" + stripHash(p.on_surface) + " " + stripHash(p.secondary) + "\n";
+        for (let i = 0; i < 8; i++)
+            s += "regular" + i + "=" + terms[i] + "\n";
+        for (let i = 0; i < 8; i++)
+            s += "bright" + i + "=" + terms[i + 8] + "\n";
+        s += "selection-foreground=" + stripHash(p.on_surface) + "\n";
+        s += "selection-background=" + sel + "\n";
+        return s;
+    }
+
+    function writeTerminal(p) {
+        if (!p || !p.primary || !p.surface)
+            return;
+        sequencesOut.setText(root.genSequences(p));
+        kittyOut.setText(root.genKitty(p));
+        footOut.setText(root.genFoot(p));
+    }
+
+    function terminalFromColorsJson(text) {
+        try {
+            const c = JSON.parse(text);
+            root.writeTerminal({
+                surface: c.surface,
+                on_surface: c.on_surface,
+                primary: c.primary,
+                secondary: c.secondary,
+                tertiary: c.tertiary,
+                surface_variant: c.surface_variant,
+                surface_container_highest: c.surface_container_highest
+            });
+        } catch (e) {
+            console.warn("lampshell: could not read colors.json for terminal palette:", e);
+        }
+    }
+
     IpcHandler {
         target: "wallpaper"
 
@@ -284,6 +405,36 @@ find "$dir" -maxdepth 3 -type f \\
     FileView {
         id: colorsOut
         path: root.colorsPath
+        printErrors: false
+    }
+
+    // Regenerate the terminal palette whenever colors.json changes, so both
+    // applying a wallpaper and reverting keep the terminals in sync.
+    FileView {
+        id: colorsWatch
+        path: root.colorsPath
+        printErrors: false
+        watchChanges: true
+
+        onLoaded: root.terminalFromColorsJson(text())
+        onFileChanged: reload()
+    }
+
+    FileView {
+        id: sequencesOut
+        path: root.sequencesPath
+        printErrors: false
+    }
+
+    FileView {
+        id: kittyOut
+        path: root.kittyThemePath
+        printErrors: false
+    }
+
+    FileView {
+        id: footOut
+        path: root.footColorsPath
         printErrors: false
     }
 
