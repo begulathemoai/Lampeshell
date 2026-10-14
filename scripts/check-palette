@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # Verifies that the running shell resolves every colour role Theme.qml declares
-# to a value taken from colors.json, rather than falling back to the literal
-# declared in Theme.qml.
+# to a value taken from colors.json, and that applying contrast and chroma boost
+# to that value produces exactly what the shell reports.
 #
 #   scripts/check-palette            check the palette currently in use
 #   scripts/check-palette --fresh    seed from colors.default.json first, check
@@ -53,7 +53,9 @@ REPORTED="$("$QS" -c "$CONFIG" ipc call wallpaper palette 2>/dev/null)"
 [ -n "$REPORTED" ] || fail "the shell returned nothing for wallpaper palette"
 
 python3 - "$COLORS" "$REPORTED" "$REPO/theme/Theme.qml" "$SETTINGS" "$MODE" <<'PY'
+import colorsys
 import json
+import math
 import os
 import re
 import sys
@@ -66,24 +68,29 @@ except Exception as exc:
     sys.exit(f"check-palette: could not read {colors_path}: {exc}")
 
 try:
-    resolved = json.loads(reported_raw)
+    reported = json.loads(reported_raw)
 except Exception as exc:
     sys.exit(f"check-palette: the shell did not return usable JSON: {exc}")
 
 theme_src = open(theme_path).read()
 singleton_src, adapter_src = theme_src.split("JsonAdapter {", 1)
 
-declared = re.findall(r"property color (\w+):", singleton_src)
+declared = set(re.findall(r"property color (\w+):", singleton_src))
 aliases = {"critical": "error", "on_critical": "on_error"}
-fallbacks = dict(
-    re.findall(r'property color (\w+):\s*"(#[0-9a-fA-F]{6})"', adapter_src)
-)
-
+declared |= set(aliases)
+fallbacks = dict(re.findall(r'property color (\w+):\s*"(#[0-9a-fA-F]{6})"', adapter_src))
 for alias, target in aliases.items():
     fallbacks[alias] = fallbacks.get(target, "")
 
-renames = {"sourceColor": "source_color"}
-resolved = {renames.get(k, k): v for k, v in resolved.items()}
+bypasses = set()
+for prop, key in re.findall(r"property alias (\w+):\s*colors\.(\w+)", singleton_src):
+    if key in fallbacks:
+        declared.add(key)
+        aliases[key] = key
+        bypasses.add(key)
+
+accent_block = singleton_src[singleton_src.index("property var accentRoles"):]
+accent_roles = set(re.findall(r'"([a-z_]+)"', accent_block[:accent_block.index("]")]))
 
 settings = {}
 if os.path.exists(settings_path):
@@ -95,83 +102,126 @@ if os.path.exists(settings_path):
 fidelity = bool(settings.get("themeFidelity", False))
 contrast = float(settings.get("themeContrast", 0) or 0)
 chroma = float(settings.get("themeChromaBoost", 0) or 0)
-tuning = not fidelity and (abs(contrast) > 0.001 or chroma > 0.001)
 
 hex_re = re.compile(r"^#[0-9a-fA-F]{6}$")
 
+
+def parse(value):
+    s = str(value).lstrip("#")
+    if not re.fullmatch(r"[0-9a-fA-F]{6}", s):
+        return None
+    return tuple(int(s[i:i + 2], 16) / 255 for i in (0, 2, 4))
+
+
+def to_hex(rgb):
+    quantised = (
+        max(0, min(255, math.floor(c * 255 + 0.5))) for c in rgb
+    )
+    return "#%02x%02x%02x" % tuple(quantised)
+
+
+def tune(hex_value, key):
+    rgb = parse(hex_value)
+    if rgb is None:
+        return hex_value
+    hue, sat, val = colorsys.rgb_to_hsv(*rgb)
+    hue *= 360.0
+    if hue < 0:
+        hue = 0.0
+    if chroma > 0.001 and not fidelity and key in accent_roles:
+        sat = min(1.0, sat * (1 + chroma))
+    if abs(contrast) > 0.001 and not fidelity:
+        shift = 0.06 * contrast if contrast > 0 else 0.09 * contrast
+        val = min(1.0, val + shift) if val > 0.5 else max(0.0, val - shift)
+    return to_hex(colorsys.hsv_to_rgb(hue / 360.0, sat, val))
+
+
+tuning = not fidelity and (abs(contrast) > 0.001 or chroma > 0.001)
+
+
+def channel_delta(a, b):
+    if not (hex_re.match(a) and hex_re.match(b)):
+        return None
+    return max(abs(int(a[i:i + 2], 16) - int(b[i:i + 2], 16)) for i in (1, 3, 5))
+
 print(f"  palette       : {mode}")
 print(f"  from file     : {colors_path}")
-print(f"  primary       : file {on_disk.get('primary')}  resolved {resolved.get('primary')}")
-print(f"  surface_tint  : file {on_disk.get('surface_tint')}  resolved {resolved.get('surface_tint')}")
+for probe in ("primary", "surface_tint", "critical"):
+    entry = reported.get(probe) or {}
+    print(f"  {probe:14}: file {on_disk.get(aliases.get(probe, probe))}  raw {entry.get('raw')}  resolved {entry.get('resolved')}")
 print()
 print(f"  fidelity      : {fidelity}")
-print(f"  tuning active : {tuning}"
-      + (f"  (contrast {contrast:+.3f}, chroma {chroma:+.3f})" if tuning else ""))
+print(f"  contrast      : {contrast:+.4f}")
+print(f"  chroma boost  : {chroma:+.4f}")
+print(f"  tuning active : {tuning}")
+print(f"  accent roles  : {len(accent_roles)}")
 print()
 print(f"  roles declared : {len(declared)}")
-print(f"  in colors.json : {len(on_disk)}")
-print(f"  resolved live  : {len(resolved)}")
+print(f"  reported live  : {len(reported)}")
 print()
 
 problems = []
 
-missing_file = [
-    k for k in declared
-    if k not in on_disk and k not in aliases
-]
+missing_file = [k for k in declared if k not in on_disk and k not in aliases]
 if missing_file:
     problems.append(f"absent from colors.json: {', '.join(missing_file)}")
 
-not_resolved = [k for k in declared if k not in resolved]
+not_resolved = [k for k in declared if k not in reported]
+if not_reported := sorted(set(reported) - set(declared)):
+    problems.append(f"reported but not declared in Theme.qml: {', '.join(not_reported)}")
 if not_resolved:
     problems.append(f"not resolved by the shell: {', '.join(not_resolved)}")
 
-for key, value in resolved.items():
-    if not hex_re.match(str(value)):
-        problems.append(f"{key} resolved to something that is not a colour: {value!r}")
+stale_load = []
+mismatched = []
+bad_colour = []
+worst_delta = 0
 
-if tuning:
-    untouched = []
-    for key in declared:
-        if key in aliases or key not in resolved:
-            continue
-        want = on_disk.get(key)
-        got = resolved[key]
-        if str(want).lower() != str(got).lower():
-            untouched.append(key)
-    if untouched:
-        print(f"  note: {len(untouched)} roles differ from the file because tuning is on")
-        print("        (expected, this is not a failure)")
-        print()
-else:
-    drifted = []
-    for key in declared:
-        if key in aliases or key not in resolved or key not in on_disk:
-            continue
-        want = str(on_disk[key]).lower()
-        got = str(resolved[key]).lower()
-        if want != got:
-            drifted.append((key, want, got))
-    if drifted:
-        problems.append(
-            "resolved values differ from the file with tuning inert: "
-            + ", ".join(f"{k} {w}->{g}" for k, w, g in drifted[:8])
-        )
+for key in declared:
+    if key not in reported:
+        continue
+    entry = reported[key]
+    raw = str(entry.get("raw", ""))
+    got = str(entry.get("resolved", ""))
+
+    if not hex_re.match(got):
+        bad_colour.append(f"{key}={got!r}")
+        continue
+
+    want_in_file = on_disk.get(aliases.get(key, key))
+    if want_in_file is not None and str(want_in_file).lower() != raw.lower():
+        stale_load.append(f"{key} file {want_in_file} raw {raw}")
+
+    expected = raw if key in bypasses else tune(raw, aliases.get(key, key))
+    delta = channel_delta(expected, got.lower())
+    if delta is None or delta > 1:
+        mismatched.append((key, raw, expected, got))
+    else:
+        worst_delta = max(worst_delta, delta)
+
+for problem in (
+    (bad_colour, "did not resolve to a colour"),
+    (stale_load, "Theme loaded a different value than the file holds"),
+    (mismatched, "tuning model disagrees with the shell"),
+):
+    if problem[0]:
+        problems.append(f"{problem[1]}: " + "; ".join(str(x) for x in problem[0][:6]))
 
 fell_back = []
 for key in declared:
-    if key in aliases or key not in resolved:
+    if key not in reported:
         continue
     fb = fallbacks.get(key)
     if not fb:
         continue
-    want = str(on_disk.get(key, "")).lower()
-    if str(resolved[key]).lower() == fb.lower() and fb.lower() != want:
+    raw = str(reported[key].get("raw", "")).lower()
+    got = str(reported[key].get("resolved", "")).lower()
+    if got == fb.lower() and fb.lower() != raw:
         fell_back.append(key)
 if fell_back:
     problems.append(
-        f"resolved to the literal declared in Theme.qml instead of the file: "
-        f"{', '.join(fell_back)}"
+        "resolved to the literal declared in Theme.qml instead of the file: "
+        + ", ".join(fell_back)
     )
 
 if problems:
@@ -180,5 +230,12 @@ if problems:
         print(f"    - {problem}")
     sys.exit(1)
 
-print("  ok: every declared role resolves to a value taken from the palette file")
+print(
+    f"  ok: {len(declared)} roles resolve from the file, tuning matches"
+    + (f" (max channel delta {worst_delta}/255)" if worst_delta else " exactly")
+)
+if tuning and worst_delta:
+    print("  note: colours are 8 bit, so a tuner fault worth less than 1/255 per")
+    print("        channel cannot be seen here; re-run at higher contrast to hunt")
+    print("        for tuner regressions")
 PY

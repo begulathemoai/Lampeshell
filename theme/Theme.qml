@@ -131,6 +131,10 @@ FileView {
         return root.tuneColor(hex, key);
     }
 
+    function rawColor(key) {
+        return colors[key];
+    }
+
     JsonAdapter {
         id: colors
 

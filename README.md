@@ -57,9 +57,10 @@ Put `scripts/` on your `PATH` to call it as `lampshell <command>`.
 
 `scripts/check-palette` asks the running shell what every colour role resolved
 to and compares that against `theme/colors.json`, so a role that silently falls
-back to the literal declared in `Theme.qml` shows up as a failure. Pass
-`--fresh` to seed `colors.default.json` first, which is what a new install
-starts from, then put the previous file back.
+back to the literal declared in `Theme.qml` shows up as a failure. It also
+re-derives the contrast and chroma boost transform and compares that against
+what the shell produced. Pass `--fresh` to seed `colors.default.json` first,
+which is what a new install starts from, then put the previous file back.
 
 Running `qs` directly against the config fails with `module
 "Lampshell.Services" is not installed`, because the plugin build output is

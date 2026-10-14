@@ -514,60 +514,24 @@ printf '%s' "$px" | base64 -d >> "$out" || exit 1
         }
 
         function palette(): string {
-            return JSON.stringify({
-                sourceColor: Theme.sourceColor.toString(),
-                primary: Theme.primary.toString(),
-                on_primary: Theme.on_primary.toString(),
-                primary_container: Theme.primary_container.toString(),
-                on_primary_container: Theme.on_primary_container.toString(),
-                primary_fixed: Theme.primary_fixed.toString(),
-                primary_fixed_dim: Theme.primary_fixed_dim.toString(),
-                on_primary_fixed: Theme.on_primary_fixed.toString(),
-                on_primary_fixed_variant: Theme.on_primary_fixed_variant.toString(),
-                inverse_primary: Theme.inverse_primary.toString(),
-                secondary: Theme.secondary.toString(),
-                on_secondary: Theme.on_secondary.toString(),
-                secondary_container: Theme.secondary_container.toString(),
-                on_secondary_container: Theme.on_secondary_container.toString(),
-                secondary_fixed: Theme.secondary_fixed.toString(),
-                secondary_fixed_dim: Theme.secondary_fixed_dim.toString(),
-                on_secondary_fixed: Theme.on_secondary_fixed.toString(),
-                on_secondary_fixed_variant: Theme.on_secondary_fixed_variant.toString(),
-                tertiary: Theme.tertiary.toString(),
-                on_tertiary: Theme.on_tertiary.toString(),
-                tertiary_container: Theme.tertiary_container.toString(),
-                on_tertiary_container: Theme.on_tertiary_container.toString(),
-                tertiary_fixed: Theme.tertiary_fixed.toString(),
-                tertiary_fixed_dim: Theme.tertiary_fixed_dim.toString(),
-                on_tertiary_fixed: Theme.on_tertiary_fixed.toString(),
-                on_tertiary_fixed_variant: Theme.on_tertiary_fixed_variant.toString(),
-                critical: Theme.critical.toString(),
-                on_critical: Theme.on_critical.toString(),
-                error: Theme.error.toString(),
-                on_error: Theme.on_error.toString(),
-                error_container: Theme.error_container.toString(),
-                on_error_container: Theme.on_error_container.toString(),
-                background: Theme.background.toString(),
-                on_background: Theme.on_background.toString(),
-                surface: Theme.surface.toString(),
-                on_surface: Theme.on_surface.toString(),
-                surface_dim: Theme.surface_dim.toString(),
-                surface_bright: Theme.surface_bright.toString(),
-                surface_tint: Theme.surface_tint.toString(),
-                surface_variant: Theme.surface_variant.toString(),
-                on_surface_variant: Theme.on_surface_variant.toString(),
-                inverse_surface: Theme.inverse_surface.toString(),
-                inverse_on_surface: Theme.inverse_on_surface.toString(),
-                surface_container_lowest: Theme.surface_container_lowest.toString(),
-                surface_container_low: Theme.surface_container_low.toString(),
-                surface_container: Theme.surface_container.toString(),
-                surface_container_high: Theme.surface_container_high.toString(),
-                surface_container_highest: Theme.surface_container_highest.toString(),
-                outline: Theme.outline.toString(),
-                outline_variant: Theme.outline_variant.toString(),
-                shadow: Theme.shadow.toString(),
-                scrim: Theme.scrim.toString()
-            });
+            const out = {};
+            for (const key of root.directKeys) {
+                const prop = key === "source_color" ? "sourceColor" : key;
+                const resolved = Theme[prop];
+                out[key] = {
+                    raw: String(Theme.rawColor(key)),
+                    resolved: resolved === undefined ? "" : String(resolved),
+                };
+            }
+            out.critical = {
+                raw: String(Theme.rawColor("error")),
+                resolved: String(Theme.critical),
+            };
+            out.on_critical = {
+                raw: String(Theme.rawColor("on_error")),
+                resolved: String(Theme.on_critical),
+            };
+            return JSON.stringify(out);
         }
     }
 
