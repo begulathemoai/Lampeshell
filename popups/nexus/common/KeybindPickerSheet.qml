@@ -29,8 +29,8 @@ Item {
     signal applied(string text)
     signal dismissed()
 
-    visible: root.open
     opacity: root.open ? 1 : 0
+    visible: root.open || opacity > 0.001
 
     Behavior on opacity {
         NumberAnimation {
@@ -178,6 +178,15 @@ Item {
                             }
                         }
 
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                root.editingIndex = comboChip.index;
+                                root.refreshParts();
+                            }
+                        }
+
                         Row {
                             id: chipRow
                             anchors.centerIn: parent
@@ -220,14 +229,6 @@ Item {
                             }
                         }
 
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                root.editingIndex = comboChip.index;
-                                root.refreshParts();
-                            }
-                        }
                     }
                 }
             }
