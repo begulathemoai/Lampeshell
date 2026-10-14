@@ -154,7 +154,7 @@ PageBase {
 
                     SegmentedChoice {
                         width: (parent.width - 10) / 2
-                        label: "Automatic"
+                        label: "Dynamic"
                         icon: "auto_awesome"
                         active: !root.personalised
                         onPicked: {
