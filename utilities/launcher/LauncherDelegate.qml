@@ -188,7 +188,6 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onEntered: delegateRoot.ListView.view.currentIndex = index
         onClicked: delegateRoot.launch()
     }
 }
