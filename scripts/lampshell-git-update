@@ -30,5 +30,5 @@ PY
 }
 
 ensure_arch_update_hook
-"$script" update 2>&1 | tee /dev/stderr
+"$script" update 2>&1 | tee /dev/stderr >/dev/null
 exit 0
