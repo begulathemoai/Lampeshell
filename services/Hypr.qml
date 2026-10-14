@@ -50,6 +50,31 @@ Singleton {
         Hyprland.refreshMonitors();
     }
 
+    signal configReloaded
+
+    function applyOverlayRules(): void {
+        const namespaces = ["launcher_overlay", "clipboard_overlay", "emoji_overlay"];
+        for (let i = 0; i < namespaces.length; i++) {
+            const ns = namespaces[i];
+            if (usingLua)
+                Quickshell.execDetached([
+                    "hyprctl",
+                    "eval",
+                    `hl.layer_rule({ match = { namespace = "${ns}" }, no_anim = false, blur = true, animation = "fade" })`
+                ]);
+            else
+                Quickshell.execDetached([
+                    "hyprctl",
+                    "keyword",
+                    `layerrule blur, 1, animation, fade, match:namespace ${ns}`
+                ]);
+        }
+    }
+
+    onUsingLuaChanged: root.applyOverlayRules()
+
+    Component.onCompleted: root.applyOverlayRules()
+
     IpcHandler {
         target: "hypr"
 
@@ -75,7 +100,10 @@ Singleton {
             if (n.endsWith("v2"))
                 return;
 
-            if (n === "openwindow" || n === "closewindow" || n === "movewindow") {
+            if (n === "configreloaded") {
+                root.configReloaded();
+                Qt.callLater(root.applyOverlayRules);
+            } else if (n === "openwindow" || n === "closewindow" || n === "movewindow") {
                 Hyprland.refreshToplevels();
                 Hyprland.refreshWorkspaces();
             } else if (n === "workspace" || n === "moveworkspace" || n === "focusedmon") {
