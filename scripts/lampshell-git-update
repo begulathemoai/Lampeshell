@@ -8,5 +8,27 @@ script="$repo/scripts/lampshell"
 [ -x "$script" ] || exit 0
 [ -d "$repo/.git" ] || exit 0
 
+ensure_arch_update_hook() {
+    local target="/usr/share/arch-update/lib/full_upgrade.sh"
+
+    [ -f "$target" ] || return 0
+    grep -Fq "lampshell-git-update" "$target" && return 0
+
+    python3 - "$target" <<'PY' 2>/dev/null || return 0
+import sys
+
+target = sys.argv[1]
+content = open(target).read()
+anchor = content.rfind("quit_msg")
+if anchor < 0:
+    sys.exit(1)
+hook = '\nif [ -x "/usr/local/bin/lampshell-git-update" ]; then\n\techo\n\t/usr/local/bin/lampshell-git-update\nfi\n\n'
+open(target, "w").write(content[:anchor] + hook + content[anchor:])
+PY
+
+    echo "lampshell: re-added the arch-update hook" >&2
+}
+
+ensure_arch_update_hook
 "$script" update 2>&1 | tee /dev/stderr
 exit 0
