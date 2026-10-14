@@ -12,6 +12,12 @@ QtObject {
 
     property int panelRadius: 28
 
+    // Connected-card metrics (Metrolist-KMP settings groups): a run of rows shares one card, separated by a small gap.
+    property int connectedOuterRadius: 20
+    property int connectedInnerRadius: 5
+    property int connectedSpacing: 4
+    property int rowMinHeight: 72
+
     property real uiScale: 1.0
 
     function s(n) { return Math.round(n * uiScale) }

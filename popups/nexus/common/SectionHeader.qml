@@ -13,17 +13,16 @@ Item {
         id: col
         anchors.left: parent.left
         anchors.right: parent.right
-        spacing: 1
+        spacing: 2
 
         Text {
             text: root.text
-            color: Theme.on_surface_variant
+            elide: Text.ElideRight
+            color: Theme.primary
             font {
-                family: "Google Sans"
-                pixelSize: 11
+                family: Layout.fontSans
+                pixelSize: 14
                 weight: Font.Medium
-                capitalization: Font.AllUppercase
-                letterSpacing: 0.8
             }
         }
 
@@ -35,8 +34,8 @@ Item {
             color: Theme.on_surface_variant
             opacity: 0.75
             font {
-                family: "Google Sans"
-                pixelSize: 11
+                family: Layout.fontSans
+                pixelSize: 12
             }
         }
     }

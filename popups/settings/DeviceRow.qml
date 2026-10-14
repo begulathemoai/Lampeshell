@@ -24,8 +24,8 @@ Item {
         isLast = last;
     }
 
-    readonly property real outerRadius: 20
-    readonly property real innerRadius: 5
+    readonly property real outerRadius: Layout.connectedOuterRadius
+    readonly property real innerRadius: Layout.connectedInnerRadius
 
     Rectangle {
         id: groupSurface
@@ -38,7 +38,7 @@ Item {
         bottomRightRadius: root.isLast ? root.outerRadius : root.innerRadius
     }
 
-    implicitHeight: 60
+    implicitHeight: Layout.rowMinHeight
     width: parent ? parent.width : 0
 
     Row {
@@ -76,8 +76,8 @@ Item {
                 color: Theme.on_surface
                 elide: Text.ElideRight
                 font {
-                    family: "Google Sans"
-                    pixelSize: 13
+                    family: Layout.fontSans
+                    pixelSize: 16
                     weight: Font.Medium
                 }
             }
@@ -97,8 +97,8 @@ Item {
                 color: Theme.on_surface_variant
                 elide: Text.ElideRight
                 font {
-                    family: "Google Sans"
-                    pixelSize: 11
+                    family: Layout.fontSans
+                    pixelSize: 14
                 }
             }
         }
@@ -183,15 +183,5 @@ Item {
                 onTapped: root.forgotten()
             }
         }
-    }
-
-    Rectangle {
-        anchors.bottom: parent.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
-        height: 1
-        color: Theme.outline_variant
-        visible: root.busy || root.connected
-        opacity: 0.5
     }
 }
