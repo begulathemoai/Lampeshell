@@ -167,27 +167,12 @@ else
     "$TARGET/scripts/lampshell" plugin
 fi
 
-link_command() {
-    local script="$TARGET/scripts/lampshell"
-    local user_bin="$HOME/.local/bin"
-
-    case ":$PATH:" in
-        *":$user_bin:"*)
-            if [ "$DRY_RUN" -eq 1 ]; then
-                printf '  [dry-run] ln -sf %s %s\n' "$script" "$user_bin/lampshell"
-            else
-                mkdir -p "$user_bin"
-                ln -sf "$script" "$user_bin/lampshell"
-            fi
-            return 0
-            ;;
-    esac
-
-    run as_root ln -sf "$script" /usr/local/bin/lampshell
-}
-
 printf '\n'
-link_command
+if [ "$DRY_RUN" -eq 1 ]; then
+    printf '  [dry-run] sudo ln -sf %s /usr/local/bin/lampshell\n' "$TARGET/scripts/lampshell"
+else
+    as_root ln -sf "$TARGET/scripts/lampshell" /usr/local/bin/lampshell
+fi
 
 if [ "$AUTO_START" -eq 1 ]; then
     printf '\n'
