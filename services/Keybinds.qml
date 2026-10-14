@@ -255,6 +255,10 @@ Singleton {
         return lines.join("\n");
     }
 
+    function reload() {
+        file.reload();
+    }
+
     function isDirty() {
         return root.buildText() !== root.original;
     }
