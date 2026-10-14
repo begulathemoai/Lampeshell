@@ -26,6 +26,13 @@ Item {
     property bool busy: false
     property string lastError: ""
 
+    onBusyChanged: {
+        if (busy)
+            busyWatchdog.restart();
+        else
+            busyWatchdog.stop();
+    }
+
     property var entries: []
 
     readonly property string listScript: `
@@ -364,9 +371,16 @@ find "$dir" -maxdepth 3 -type f \\
             }
         }
 
+        stderr: StdioCollector {
+            id: errCollector
+        }
+
         onExited: (exitCode, exitStatus) => {
             if (exitCode !== 0) {
-                root.lastError = "matugen exited with code " + exitCode + (collector.text.length > 0 ? "" : " and produced no output");
+                const err = errCollector.text.trim();
+                root.lastError = "matugen exited with code " + exitCode
+                    + (err.length > 0 ? ": " + err
+                                      : (collector.text.length > 0 ? "" : " and produced no output"));
                 root.busy = false;
             }
         }
@@ -383,16 +397,48 @@ find "$dir" -maxdepth 3 -type f \\
     Process {
         id: backupProc
         stdout: StdioCollector {}
+        stderr: StdioCollector {
+            id: backupErr
+        }
 
         // Best-effort backup: write the new palette even if the copy failed,
         // otherwise the revert snapshot would race the write (async cp) and
         // often capture the *new* colors instead of the old ones.
         onExited: {
-            colorsOut.setText(root.pendingColorsJson);
+            const err = backupErr.text.trim();
+            if (err.length > 0)
+                root.lastError = "could not back up colors.json: " + err;
+            if (root.pendingColorsJson.length > 0) {
+                writeColorsProc.stdinEnabled = true;
+                writeColorsProc.running = true;
+            } else
+                root.busy = false;
+        }
+    }
+
+    Process {
+        id: writeColorsProc
+        stdinEnabled: true
+        command: ["sh", "-c", "cat > '" + root.colorsPath + "'"]
+        stdout: StdioCollector {}
+        stderr: StdioCollector {
+            id: writeErr
+        }
+
+        onStarted: {
+            writeColorsProc.write(root.pendingColorsJson);
+            writeColorsProc.stdinEnabled = false;
+        }
+
+        onExited: (exitCode) => {
+            if (exitCode !== 0) {
+                const err = writeErr.text.trim();
+                root.lastError = "could not write colors.json: "
+                    + (err.length > 0 ? err : "cat exited with code " + exitCode);
+            }
             root.pendingColorsJson = "";
             root.busy = false;
             QtColors.sync();
-
         }
     }
 
@@ -400,12 +446,16 @@ find "$dir" -maxdepth 3 -type f \\
         id: revertProc
         command: ["cp", root.colorsPath + ".bak", root.colorsPath]
         stdout: StdioCollector {}
-    }
+        stderr: StdioCollector {
+            id: revertErr
+        }
 
-    FileView {
-        id: colorsOut
-        path: root.colorsPath
-        printErrors: false
+        onExited: (exitCode) => {
+            if (exitCode !== 0) {
+                const err = revertErr.text.trim();
+                root.lastError = "revert failed: " + (err.length > 0 ? err : "cp exited with code " + exitCode);
+            }
+        }
     }
 
     // Regenerate the terminal palette whenever colors.json changes, so both
@@ -413,11 +463,12 @@ find "$dir" -maxdepth 3 -type f \\
     FileView {
         id: colorsWatch
         path: root.colorsPath
-        printErrors: false
+        printErrors: true
         watchChanges: true
 
         onLoaded: root.terminalFromColorsJson(text())
         onFileChanged: reload()
+        onLoadFailed: (error) => root.lastError = "could not read colors.json (FileViewError " + error + ")"
     }
 
     FileView {
@@ -436,6 +487,18 @@ find "$dir" -maxdepth 3 -type f \\
         id: footOut
         path: root.footColorsPath
         printErrors: false
+    }
+
+    Timer {
+        id: busyWatchdog
+        interval: 30000
+
+        onTriggered: {
+            if (!root.busy)
+                return;
+            root.busy = false;
+            root.lastError = "colour generation did not finish within " + (interval / 1000) + "s";
+        }
     }
 
     Component.onCompleted: root.refresh()

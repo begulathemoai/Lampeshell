@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.theme
+import qs.services
 
 Item {
     id: root
@@ -56,18 +57,22 @@ Item {
             return;
 
         const script = `
-set -eu
+set -u
 f="${colorsPath}"
 backup="$f.bak"
-[ -f "$f" ] && cp "$f" "$backup"
-tmp="$(mktemp)"
+if [ ! -f "$f" ]; then
+  echo "colors.json not found at $f" >&2
+  exit 1
+fi
+cp "$f" "$backup" || echo "could not refresh $backup, reverting will be wrong" >&2
+tmp="$(mktemp)" || { echo "mktemp failed" >&2; exit 1; }
 sed \\
   -e 's|"primary": *"[^"]*"|"primary": "${swatch.primary}"|' \\
   -e 's|"on_primary": *"[^"]*"|"on_primary": "${swatch.on}"|' \\
   -e 's|"primary_container": *"[^"]*"|"primary_container": "${swatch.container}"|' \\
   -e 's|"on_primary_container": *"[^"]*"|"on_primary_container": "${swatch.onContainer}"|' \\
-  "$f" > "$tmp"
-cat "$tmp" > "$f"
+  "$f" > "$tmp" || { echo "sed failed" >&2; rm -f "$tmp"; exit 1; }
+cat "$tmp" > "$f" || { echo "could not write $f" >&2; rm -f "$tmp"; exit 1; }
 rm -f "$tmp"
 `;
         applyAccentProc.command = ["sh", "-c", script];
@@ -81,15 +86,35 @@ rm -f "$tmp"
     Process {
         id: applyAccentProc
         stdout: StdioCollector {}
+        stderr: StdioCollector {
+            id: applyErr
+        }
 
-        onExited: QtColors.sync()
+        onExited: (exitCode) => {
+            if (exitCode !== 0) {
+                const err = applyErr.text.trim();
+                ThemeService.lastError = "could not apply accent: "
+                    + (err.length > 0 ? err : "the accent script exited with code " + exitCode);
+            }
+            QtColors.sync();
+        }
     }
 
     Process {
         id: revertProc
-        command: ["sh", "-c", 'cp "' + root.colorsPath + '.bak" "' + root.colorsPath + '" 2>/dev/null || true']
+        command: ["sh", "-c", 'cp "' + root.colorsPath + '.bak" "' + root.colorsPath + '" || true']
         stdout: StdioCollector {}
+        stderr: StdioCollector {
+            id: revertErr
+        }
 
-        onExited: QtColors.sync()
+        onExited: (exitCode) => {
+            const err = revertErr.text.trim();
+            if (exitCode !== 0 || err.length > 0) {
+                ThemeService.lastError = "could not revert accent: "
+                    + (err.length > 0 ? err : "cp exited with code " + exitCode);
+            }
+            QtColors.sync();
+        }
     }
 }
