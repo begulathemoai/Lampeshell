@@ -261,6 +261,19 @@ PageBase {
                 }
             }
         }
+
+        Text {
+            id: errorText
+            width: parent.width
+            visible: ThemeService.lastError.length > 0
+            text: ThemeService.lastError
+            color: Theme.critical
+            wrapMode: Text.WordWrap
+            font {
+                family: "Google Sans"
+                pixelSize: 11
+            }
+        }
     }
 
     SettingsGroup {
@@ -440,10 +453,10 @@ PageBase {
                     Rectangle {
                         id: sampleMark
                         visible: wallImage.status === Image.Ready && root.pendingHex.length > 0
-                        width: 30
-                        height: 30
-                        radius: 15
-                        color: "transparent"
+                        width: 32
+                        height: 32
+                        radius: 16
+                        color: root.pendingHex
                         border.width: 3
                         border.color: Theme.on_surface
                         x: root.sampleX * Math.max(0, wallImage.paintedWidth - width)

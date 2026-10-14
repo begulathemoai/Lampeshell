@@ -302,7 +302,7 @@ find "$dir" -maxdepth 3 -type f \\
         }
         busy = true;
         lastError = "";
-        root.pendingColorsJson = JSON.stringify(root.tune(palette), null, 4) + "\n";
+        root.pendingColorsJson = JSON.stringify(palette, null, 4) + "\n";
         root.backupColors();
     }
 
@@ -361,6 +361,8 @@ find "$dir" -maxdepth 3 -type f \\
 set -u
 out="$1"
 px="$2"
+dir="$(dirname "$out")"
+mkdir -p "$dir" || exit 1
 printf 'P6\\n1 1\\n255\\n' > "$out" || exit 1
 printf '%s' "$px" | base64 -d >> "$out" || exit 1
 `;
