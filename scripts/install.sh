@@ -99,12 +99,16 @@ install_aur_pkgs() {
     done
 
     if [ -n "$helper" ]; then
-        say "installing from the AUR with $helper: ${AUR_PKGS[*]}"
+        local want=()
+        mapfile -t want < <(missing "${AUR_PKGS[@]}")
+        [ "${#want[@]}" -eq 0 ] && return 0
+
+        say "installing from the AUR with $helper: ${want[*]}"
         if [ "$DRY_RUN" -eq 1 ]; then
-            printf '  [dry-run] %s -S --needed --noconfirm %s\n' "$helper" "${AUR_PKGS[*]}"
+            printf '  [dry-run] %s -S --needed --noconfirm %s\n' "$helper" "${want[*]}"
             return 0
         fi
-        "$helper" -S --needed --noconfirm "${AUR_PKGS[@]}"
+        "$helper" -S --needed --noconfirm "${want[@]}"
         return 0
     fi
 
@@ -167,8 +171,10 @@ fi
 printf '\n'
 if [ "$DRY_RUN" -eq 1 ]; then
     printf '  [dry-run] sudo ln -sf %s /usr/local/bin/lampshell\n' "$TARGET/scripts/lampshell"
-else
-    as_root ln -sf "$TARGET/scripts/lampshell" /usr/local/bin/lampshell
+elif ! as_root ln -sf "$TARGET/scripts/lampshell" /usr/local/bin/lampshell 2>/dev/null; then
+    warn "could not put lampshell on your PATH"
+    warn "run:  sudo ln -sf $TARGET/scripts/lampshell /usr/local/bin/lampshell"
+    warn "or just call $TARGET/scripts/lampshell directly"
 fi
 
 if [ "$AUTO_START" -eq 1 ]; then
