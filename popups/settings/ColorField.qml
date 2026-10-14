@@ -13,13 +13,13 @@ Column {
     readonly property color value: Qt.hsva(hue / 360, saturation, lightness, 1)
 
     width: parent ? parent.width : 0
-    spacing: 10
+    spacing: 8
 
     Rectangle {
         id: square
         width: root.width
-        height: Math.round(width)
-        radius: 14
+        height: Math.min(Math.round(width), 190)
+        radius: 12
         clip: true
         border.width: 1
         border.color: Theme.outline_variant
@@ -75,9 +75,9 @@ Column {
         }
 
         Rectangle {
-            width: 16
-            height: 16
-            radius: 8
+            width: 15
+            height: 15
+            radius: 7.5
             color: "transparent"
             border.width: 3
             border.color: Theme.on_surface
@@ -102,8 +102,8 @@ Column {
     Rectangle {
         id: strip
         width: root.width
-        height: 30
-        radius: 15
+        height: 24
+        radius: 12
         clip: true
         border.width: 1
         border.color: Theme.outline_variant
@@ -141,9 +141,9 @@ Column {
         }
 
         Rectangle {
-            width: 18
-            height: 18
-            radius: 9
+            width: 15
+            height: 15
+            radius: 7.5
             color: "transparent"
             border.width: 3
             border.color: Theme.on_surface
