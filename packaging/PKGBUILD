@@ -23,7 +23,7 @@ depends=(
     'slurp'
     'ttf-google-sans'
     'ttf-material-symbols-variable'
-    'ttf-noto-color-emoji'
+    'noto-fonts-emoji'
 )
 makedepends=('cmake' 'ninja' 'gcc')
 optdepends=(

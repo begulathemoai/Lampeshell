@@ -14,22 +14,19 @@ RUNTIME_PKGS=(
     brightnessctl
     ddcutil
     slurp
-    ttf-google-sans
     ttf-material-symbols-variable
-    ttf-noto-color-emoji
+    noto-fonts-emoji
 )
 
 BUILD_PKGS=(
     cmake
     ninja
-    base-devel
-    qt6-base-devel
-    qt6-declarative-devel
+    gcc
 )
 
-# Ships in the AUR rather than the Arch repos.
 AUR_PKGS=(
     quickshell-git
+    ttf-google-sans
 )
 
 DRY_RUN=0

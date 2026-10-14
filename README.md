@@ -56,14 +56,15 @@ gitignored and `QML_IMPORT_PATH` is only set by the launcher script.
 
 ####  dependencies
 
-Runtime: `quickshell-git` (the git version, not a tagged release),
-`qt6-base`, `qt6-declarative` (this also provides `QtQuick.Shapes`),
-`hyprland`, `matugen`, `wl-clipboard`, `brightnessctl` or `ddcutil`, `slurp`,
-and the fonts `ttf-google-sans`, `ttf-material-symbols-variable`,
-`ttf-noto-color-emoji`.
+Runtime: `quickshell-git` and `ttf-google-sans` (both AUR, so these need an
+AUR helper rather than pacman), `qt6-base`, `qt6-declarative` (this also
+provides `QtQuick.Shapes`), `hyprland`, `matugen`, `wl-clipboard`,
+`brightnessctl` or `ddcutil`, `slurp`, and the fonts
+`ttf-material-symbols-variable` and `noto-fonts-emoji`.
 
-Build, needed once: `cmake`, `ninja`, a C++20 compiler, `qt6-base-devel`,
-`qt6-declarative-devel`.
+Build, needed once: `cmake`, `ninja` and a C++20 compiler. Arch ships the Qt6
+headers inside `qt6-base` and `qt6-declarative` themselves, so there are no
+separate `-devel` packages to install.
 
 ####  packaging
 
