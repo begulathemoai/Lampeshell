@@ -1,0 +1,184 @@
+#!/usr/bin/env bash
+
+# Verifies that the running shell resolves every colour role Theme.qml declares
+# to a value taken from colors.json, rather than falling back to the literal
+# declared in Theme.qml.
+#
+#   scripts/check-palette            check the palette currently in use
+#   scripts/check-palette --fresh    seed from colors.default.json first, check
+#                                    that, then put the previous file back
+#
+# The check runs against the live shell on purpose. A copy started headless does
+# not reliably read colors.json, because Theme is a FileView and nothing renders
+# in a windowless ShellRoot, so an isolated run reports roles as unresolved when
+# they are in fact fine.
+
+set -uo pipefail
+
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+COLORS="$REPO/theme/colors.json"
+DEFAULT="$REPO/theme/colors.default.json"
+SETTINGS="${XDG_STATE_HOME:-$HOME/.local/state}/lampshell/settings.json"
+CONFIG="${LAMP_SHELL_CONFIG:-lampshell}"
+QS="${QS_BIN:-qs}"
+
+fail() {
+    printf 'check-palette: %s\n' "$1" >&2
+    exit 1
+}
+
+[ -f "$COLORS" ] || fail "no colors.json at $COLORS"
+command -v "$QS" >/dev/null 2>&1 || fail "$QS is not installed"
+"$QS" -c "$CONFIG" ipc call wallpaper get >/dev/null 2>&1 \
+    || fail "the shell is not running (lampshell status)"
+
+FRESH=0
+BACKUP=""
+MODE="live"
+[ "${1:-}" = "--fresh" ] && FRESH=1
+
+if [ "$FRESH" -eq 1 ]; then
+    [ -f "$DEFAULT" ] || fail "no colors.default.json to seed from"
+    BACKUP="$(mktemp)"
+    cp "$COLORS" "$BACKUP"
+    trap 'mv "$BACKUP" "$COLORS"; printf "check-palette: put the previous colors.json back\n"' EXIT INT TERM
+
+    cp "$DEFAULT" "$COLORS"
+    MODE="colors.default.json (seeded)"
+    printf 'check-palette: seeded colors.json from colors.default.json\n'
+    sleep 3
+fi
+
+REPORTED="$("$QS" -c "$CONFIG" ipc call wallpaper palette 2>/dev/null)"
+[ -n "$REPORTED" ] || fail "the shell returned nothing for wallpaper palette"
+
+python3 - "$COLORS" "$REPORTED" "$REPO/theme/Theme.qml" "$SETTINGS" "$MODE" <<'PY'
+import json
+import os
+import re
+import sys
+
+colors_path, reported_raw, theme_path, settings_path, mode = sys.argv[1:6]
+
+try:
+    on_disk = json.load(open(colors_path))
+except Exception as exc:
+    sys.exit(f"check-palette: could not read {colors_path}: {exc}")
+
+try:
+    resolved = json.loads(reported_raw)
+except Exception as exc:
+    sys.exit(f"check-palette: the shell did not return usable JSON: {exc}")
+
+theme_src = open(theme_path).read()
+singleton_src, adapter_src = theme_src.split("JsonAdapter {", 1)
+
+declared = re.findall(r"property color (\w+):", singleton_src)
+aliases = {"critical": "error", "on_critical": "on_error"}
+fallbacks = dict(
+    re.findall(r'property color (\w+):\s*"(#[0-9a-fA-F]{6})"', adapter_src)
+)
+
+for alias, target in aliases.items():
+    fallbacks[alias] = fallbacks.get(target, "")
+
+renames = {"sourceColor": "source_color"}
+resolved = {renames.get(k, k): v for k, v in resolved.items()}
+
+settings = {}
+if os.path.exists(settings_path):
+    try:
+        settings = json.load(open(settings_path))
+    except Exception:
+        pass
+
+fidelity = bool(settings.get("themeFidelity", False))
+contrast = float(settings.get("themeContrast", 0) or 0)
+chroma = float(settings.get("themeChromaBoost", 0) or 0)
+tuning = not fidelity and (abs(contrast) > 0.001 or chroma > 0.001)
+
+hex_re = re.compile(r"^#[0-9a-fA-F]{6}$")
+
+print(f"  palette       : {mode}")
+print(f"  from file     : {colors_path}")
+print(f"  primary       : file {on_disk.get('primary')}  resolved {resolved.get('primary')}")
+print(f"  surface_tint  : file {on_disk.get('surface_tint')}  resolved {resolved.get('surface_tint')}")
+print()
+print(f"  fidelity      : {fidelity}")
+print(f"  tuning active : {tuning}"
+      + (f"  (contrast {contrast:+.3f}, chroma {chroma:+.3f})" if tuning else ""))
+print()
+print(f"  roles declared : {len(declared)}")
+print(f"  in colors.json : {len(on_disk)}")
+print(f"  resolved live  : {len(resolved)}")
+print()
+
+problems = []
+
+missing_file = [
+    k for k in declared
+    if k not in on_disk and k not in aliases
+]
+if missing_file:
+    problems.append(f"absent from colors.json: {', '.join(missing_file)}")
+
+not_resolved = [k for k in declared if k not in resolved]
+if not_resolved:
+    problems.append(f"not resolved by the shell: {', '.join(not_resolved)}")
+
+for key, value in resolved.items():
+    if not hex_re.match(str(value)):
+        problems.append(f"{key} resolved to something that is not a colour: {value!r}")
+
+if tuning:
+    untouched = []
+    for key in declared:
+        if key in aliases or key not in resolved:
+            continue
+        want = on_disk.get(key)
+        got = resolved[key]
+        if str(want).lower() != str(got).lower():
+            untouched.append(key)
+    if untouched:
+        print(f"  note: {len(untouched)} roles differ from the file because tuning is on")
+        print("        (expected, this is not a failure)")
+        print()
+else:
+    drifted = []
+    for key in declared:
+        if key in aliases or key not in resolved or key not in on_disk:
+            continue
+        want = str(on_disk[key]).lower()
+        got = str(resolved[key]).lower()
+        if want != got:
+            drifted.append((key, want, got))
+    if drifted:
+        problems.append(
+            "resolved values differ from the file with tuning inert: "
+            + ", ".join(f"{k} {w}->{g}" for k, w, g in drifted[:8])
+        )
+
+fell_back = []
+for key in declared:
+    if key in aliases or key not in resolved:
+        continue
+    fb = fallbacks.get(key)
+    if not fb:
+        continue
+    want = str(on_disk.get(key, "")).lower()
+    if str(resolved[key]).lower() == fb.lower() and fb.lower() != want:
+        fell_back.append(key)
+if fell_back:
+    problems.append(
+        f"resolved to the literal declared in Theme.qml instead of the file: "
+        f"{', '.join(fell_back)}"
+    )
+
+if problems:
+    print("  FAILED")
+    for problem in problems:
+        print(f"    - {problem}")
+    sys.exit(1)
+
+print("  ok: every declared role resolves to a value taken from the palette file")
+PY
