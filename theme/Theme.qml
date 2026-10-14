@@ -19,68 +19,125 @@ FileView {
     property alias accentSource: colors.accent_source
     property alias sourceColor: colors.source_color
 
-    property alias primary: colors.primary
-    property alias on_primary: colors.on_primary
-    property alias primary_container: colors.primary_container
-    property alias on_primary_container: colors.on_primary_container
-    property alias primary_fixed: colors.primary_fixed
-    property alias primary_fixed_dim: colors.primary_fixed_dim
-    property alias on_primary_fixed: colors.on_primary_fixed
-    property alias on_primary_fixed_variant: colors.on_primary_fixed_variant
-    property alias inverse_primary: colors.inverse_primary
+    property color primary: root.tuned(colors.primary, "primary")
+    property color on_primary: root.tuned(colors.on_primary, "on_primary")
+    property color primary_container: root.tuned(colors.primary_container, "primary_container")
+    property color on_primary_container: root.tuned(colors.on_primary_container, "on_primary_container")
+    property color primary_fixed: root.tuned(colors.primary_fixed, "primary_fixed")
+    property color primary_fixed_dim: root.tuned(colors.primary_fixed_dim, "primary_fixed_dim")
+    property color on_primary_fixed: root.tuned(colors.on_primary_fixed, "on_primary_fixed")
+    property color on_primary_fixed_variant: root.tuned(colors.on_primary_fixed_variant, "on_primary_fixed_variant")
+    property color inverse_primary: root.tuned(colors.inverse_primary, "inverse_primary")
 
-    property alias secondary: colors.secondary
-    property alias on_secondary: colors.on_secondary
-    property alias secondary_container: colors.secondary_container
-    property alias on_secondary_container: colors.on_secondary_container
-    property alias secondary_fixed: colors.secondary_fixed
-    property alias secondary_fixed_dim: colors.secondary_fixed_dim
-    property alias on_secondary_fixed: colors.on_secondary_fixed
-    property alias on_secondary_fixed_variant: colors.on_secondary_fixed_variant
+    property color secondary: root.tuned(colors.secondary, "secondary")
+    property color on_secondary: root.tuned(colors.on_secondary, "on_secondary")
+    property color secondary_container: root.tuned(colors.secondary_container, "secondary_container")
+    property color on_secondary_container: root.tuned(colors.on_secondary_container, "on_secondary_container")
+    property color secondary_fixed: root.tuned(colors.secondary_fixed, "secondary_fixed")
+    property color secondary_fixed_dim: root.tuned(colors.secondary_fixed_dim, "secondary_fixed_dim")
+    property color on_secondary_fixed: root.tuned(colors.on_secondary_fixed, "on_secondary_fixed")
+    property color on_secondary_fixed_variant: root.tuned(colors.on_secondary_fixed_variant, "on_secondary_fixed_variant")
 
-    property alias tertiary: colors.tertiary
-    property alias on_tertiary: colors.on_tertiary
-    property alias tertiary_container: colors.tertiary_container
-    property alias on_tertiary_container: colors.on_tertiary_container
-    property alias tertiary_fixed: colors.tertiary_fixed
-    property alias tertiary_fixed_dim: colors.tertiary_fixed_dim
-    property alias on_tertiary_fixed: colors.on_tertiary_fixed
-    property alias on_tertiary_fixed_variant: colors.on_tertiary_fixed_variant
+    property color tertiary: root.tuned(colors.tertiary, "tertiary")
+    property color on_tertiary: root.tuned(colors.on_tertiary, "on_tertiary")
+    property color tertiary_container: root.tuned(colors.tertiary_container, "tertiary_container")
+    property color on_tertiary_container: root.tuned(colors.on_tertiary_container, "on_tertiary_container")
+    property color tertiary_fixed: root.tuned(colors.tertiary_fixed, "tertiary_fixed")
+    property color tertiary_fixed_dim: root.tuned(colors.tertiary_fixed_dim, "tertiary_fixed_dim")
+    property color on_tertiary_fixed: root.tuned(colors.on_tertiary_fixed, "on_tertiary_fixed")
+    property color on_tertiary_fixed_variant: root.tuned(colors.on_tertiary_fixed_variant, "on_tertiary_fixed_variant")
 
-    property alias error: colors.error
-    property alias on_error: colors.on_error
-    property alias error_container: colors.error_container
-    property alias on_error_container: colors.on_error_container
-    property alias critical: colors.error
-    property alias on_critical: colors.on_error
+    property color error: root.tuned(colors.error, "error")
+    property color on_error: root.tuned(colors.on_error, "on_error")
+    property color error_container: root.tuned(colors.error_container, "error_container")
+    property color on_error_container: root.tuned(colors.on_error_container, "on_error_container")
+    property color critical: root.tuned(colors.error, "error")
+    property color on_critical: root.tuned(colors.on_error, "on_error")
 
-    property alias background: colors.background
-    property alias on_background: colors.on_background
-    property alias surface: colors.surface
-    property alias on_surface: colors.on_surface
-    property alias surface_dim: colors.surface_dim
-    property alias surface_bright: colors.surface_bright
-    property alias surface_tint: colors.surface_tint
-    property alias surface_variant: colors.surface_variant
-    property alias on_surface_variant: colors.on_surface_variant
-    property alias inverse_surface: colors.inverse_surface
-    property alias inverse_on_surface: colors.inverse_on_surface
+    property color background: root.tuned(colors.background, "background")
+    property color on_background: root.tuned(colors.on_background, "on_background")
+    property color surface: root.tuned(colors.surface, "surface")
+    property color on_surface: root.tuned(colors.on_surface, "on_surface")
+    property color surface_dim: root.tuned(colors.surface_dim, "surface_dim")
+    property color surface_bright: root.tuned(colors.surface_bright, "surface_bright")
+    property color surface_tint: root.tuned(colors.surface_tint, "surface_tint")
+    property color surface_variant: root.tuned(colors.surface_variant, "surface_variant")
+    property color on_surface_variant: root.tuned(colors.on_surface_variant, "on_surface_variant")
+    property color inverse_surface: root.tuned(colors.inverse_surface, "inverse_surface")
+    property color inverse_on_surface: root.tuned(colors.inverse_on_surface, "inverse_on_surface")
 
-    property alias surface_container_lowest: colors.surface_container_lowest
-    property alias surface_container_low: colors.surface_container_low
-    property alias surface_container: colors.surface_container
-    property alias surface_container_high: colors.surface_container_high
-    property alias surface_container_highest: colors.surface_container_highest
+    property color surface_container_lowest: root.tuned(colors.surface_container_lowest, "surface_container_lowest")
+    property color surface_container_low: root.tuned(colors.surface_container_low, "surface_container_low")
+    property color surface_container: root.tuned(colors.surface_container, "surface_container")
+    property color surface_container_high: root.tuned(colors.surface_container_high, "surface_container_high")
+    property color surface_container_highest: root.tuned(colors.surface_container_highest, "surface_container_highest")
 
-    property alias outline: colors.outline
-    property alias outline_variant: colors.outline_variant
-    property alias shadow: colors.shadow
-    property alias scrim: colors.scrim
+    property color outline: root.tuned(colors.outline, "outline")
+    property color outline_variant: root.tuned(colors.outline_variant, "outline_variant")
+    property color shadow: root.tuned(colors.shadow, "shadow")
+    property color scrim: root.tuned(colors.scrim, "scrim")
 
     function on(c: color): color {
         if (c.hslLightness < 0.5)
             return Qt.hsla(c.hslHue, c.hslSaturation, 0.9, 1);
         return Qt.hsla(c.hslHue, c.hslSaturation, 0.1, 1);
+    }
+
+    property real contrast: 0
+    property real chromaBoost: 0
+    property bool fidelity: false
+
+    readonly property var accentRoles: [
+        "primary", "primary_container", "primary_fixed", "primary_fixed_dim",
+        "secondary", "secondary_container", "secondary_fixed", "secondary_fixed_dim",
+        "tertiary", "tertiary_container", "tertiary_fixed", "tertiary_fixed_dim",
+        "surface_tint"
+    ]
+
+    function toColor(hex) {
+        if (hex === undefined || hex === null)
+            return null;
+        if (typeof hex !== "string")
+            return hex;
+        const s = hex.charAt(0) === "#" ? hex.slice(1).toLowerCase() : hex.toLowerCase();
+        if (!/^[0-9a-f]{6}$/.test(s))
+            return null;
+        return Qt.rgba(parseInt(s.slice(0, 2), 16) / 255,
+                       parseInt(s.slice(2, 4), 16) / 255,
+                       parseInt(s.slice(4, 6), 16) / 255, 1);
+    }
+
+    function tuneColor(hex, key) {
+        const c = root.toColor(hex);
+        if (!c)
+            return hex;
+
+        let hue = c.hsvHue < 0 ? 0 : c.hsvHue;
+        let sat = c.hsvSaturation;
+        let value = c.hsvValue;
+
+        if (root.fidelity && key === "primary") {
+            const s = root.toColor(colors.source_color);
+            if (s) {
+                hue = s.hsvHue < 0 ? hue : s.hsvHue;
+                sat = s.hsvSaturation;
+                value = Math.max(0.6, Math.min(0.95, s.hsvValue));
+            }
+        }
+
+        if (root.chromaBoost > 0.001 && !root.fidelity && root.accentRoles.indexOf(key) >= 0)
+            sat = Math.min(1, sat * (1 + root.chromaBoost));
+
+        if (Math.abs(root.contrast) > 0.001 && !root.fidelity) {
+            const shift = root.contrast > 0 ? 0.06 * root.contrast : 0.09 * root.contrast;
+            value = value > 0.5 ? Math.min(1, value + shift) : Math.max(0, value - shift);
+        }
+
+        return Qt.hsva(hue, sat, value, 1).toString();
+    }
+
+    function tuned(hex, key) {
+        return root.tuneColor(hex, key);
     }
 
     JsonAdapter {

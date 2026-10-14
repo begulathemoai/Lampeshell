@@ -7,12 +7,20 @@ Item {
     property string icon: ""
     property string label: ""
     property string suffix: "%"
+    property string valueLabel: ""
     property real value: 0
     property real from: 0
     property real to: 100
     signal moved(real value)
 
     property bool dragging: false
+
+    opacity: enabled ? 1 : 0.4
+    Behavior on opacity {
+        NumberAnimation {
+            duration: 120
+        }
+    }
 
     property bool isFirst: true
     property bool isLast: true
@@ -74,7 +82,7 @@ Item {
         Rectangle {
             id: track
             anchors.verticalCenter: parent.verticalCenter
-            width: parent.width - 22 - 92 - 52 - 36
+            width: parent.width - 22 - 92 - 66 - 36
             height: 8
             radius: 4
             color: Theme.surface_container_highest
@@ -139,11 +147,33 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             width: 44
             horizontalAlignment: Text.AlignRight
+            visible: root.valueLabel.length === 0
             text: Math.round(root.value) + root.suffix
             color: Theme.on_surface_variant
             font {
                 family: "Google Sans"
                 pixelSize: 12
+            }
+        }
+
+        Rectangle {
+            anchors.verticalCenter: parent.verticalCenter
+            width: 62
+            height: 26
+            radius: 8
+            visible: root.valueLabel.length > 0
+            color: Theme.secondary_container
+
+            Text {
+                id: valueBadge
+                anchors.centerIn: parent
+                text: root.valueLabel
+                color: Theme.on_secondary_container
+                font {
+                    family: "Google Sans"
+                    pixelSize: 11
+                    weight: Font.Medium
+                }
             }
         }
     }

@@ -223,10 +223,10 @@ find "$dir" -maxdepth 3 -type f \\
         { key: "scheme-content", label: "Content" }
     ]
 
-    property string styleKey: SettingsStore.get("themeStyle") ?? "scheme-smart"
-    property real contrast: SettingsStore.get("themeContrast") ?? 0
-    property real chromaBoost: SettingsStore.get("themeChromaBoost") ?? 0
-    property bool fidelity: SettingsStore.get("themeFidelity") === true
+    property string styleKey: "scheme-smart"
+    property real contrast: 0
+    property real chromaBoost: 0
+    property bool fidelity: false
 
     readonly property string styleLabel: {
         for (const s of root.styles) {
@@ -242,69 +242,42 @@ find "$dir" -maxdepth 3 -type f \\
 
     readonly property int chromaPercent: Math.round(Math.max(0, root.chromaBoost) * 100)
 
-    onStyleKeyChanged: SettingsStore.set("themeStyle", root.styleKey)
-    onContrastChanged: SettingsStore.set("themeContrast", root.contrast)
-    onChromaBoostChanged: SettingsStore.set("themeChromaBoost", root.chromaBoost)
-    onFidelityChanged: SettingsStore.set("themeFidelity", root.fidelity)
-
-    readonly property var tunedRoles: [
-        "primary", "primary_container", "primary_fixed", "primary_fixed_dim",
-        "secondary", "secondary_container", "secondary_fixed", "secondary_fixed_dim",
-        "tertiary", "tertiary_container", "tertiary_fixed", "tertiary_fixed_dim",
-        "surface_tint"
-    ]
-
-    function boostChroma(hex, amount) {
-        if (typeof hex !== "string" || !/^#[0-9a-fA-F]{6}$/.test(hex))
-            return hex;
-        const c = root.hexToColor(hex);
-        if (!c)
-            return hex;
-        const sat = Math.min(1, c.hsvSaturation * (1 + amount));
-        return Qt.hsva(c.hsvHue < 0 ? 0 : c.hsvHue, sat, c.hsvValue, 1).toString();
+    function loadTunables() {
+        if (!SettingsStore.loaded)
+            return;
+        Theme.contrast = SettingsStore.get("themeContrast") ?? 0;
+        Theme.chromaBoost = SettingsStore.get("themeChromaBoost") ?? 0;
+        Theme.fidelity = SettingsStore.get("themeFidelity") === true;
+        root.styleKey = SettingsStore.get("themeStyle") ?? "scheme-smart";
+        root.contrast = SettingsStore.get("themeContrast") ?? 0;
+        root.chromaBoost = SettingsStore.get("themeChromaBoost") ?? 0;
+        root.fidelity = SettingsStore.get("themeFidelity") === true;
     }
 
-    function tune(out) {
-        if (!out)
-            return out;
+    onStyleKeyChanged: if (SettingsStore.loaded)
+        SettingsStore.set("themeStyle", root.styleKey)
+    onContrastChanged: {
+        Theme.contrast = root.contrast;
+        if (SettingsStore.loaded)
+            SettingsStore.set("themeContrast", root.contrast);
+    }
+    onChromaBoostChanged: {
+        Theme.chromaBoost = root.chromaBoost;
+        if (SettingsStore.loaded)
+            SettingsStore.set("themeChromaBoost", root.chromaBoost);
+    }
+    onFidelityChanged: {
+        Theme.fidelity = root.fidelity;
+        if (SettingsStore.loaded)
+            SettingsStore.set("themeFidelity", root.fidelity);
+    }
 
-        if (Math.abs(root.contrast) > 0.01) {
-            for (const key of root.directKeys) {
-                const v = out[key];
-                if (typeof v !== "string" || !/^#[0-9a-fA-F]{6}$/.test(v))
-                    continue;
-                const c = root.hexToColor(v);
-                if (!c)
-                    continue;
-                const shift = root.contrast > 0 ? 0.06 * root.contrast : 0.09 * root.contrast;
-                let value = c.hsvValue;
-                if (c.hsvValue > 0.5)
-                    value = Math.min(1, value + shift);
-                else
-                    value = Math.max(0, value - shift);
-                out[key] = Qt.hsva(c.hsvHue < 0 ? 0 : c.hsvHue, c.hsvSaturation, value, 1).toString();
-            }
+    Connections {
+        target: SettingsStore
+        function onLoadedChanged() {
+            if (SettingsStore.loaded)
+                root.loadTunables();
         }
-
-        if (root.chromaBoost > 0.01) {
-            for (const key of root.tunedRoles) {
-                if (typeof out[key] === "string")
-                    out[key] = root.boostChroma(out[key], root.chromaBoost);
-            }
-        }
-
-        if (root.fidelity) {
-            const source = root.stripHash(out.source_color ?? out.accent_source ?? "");
-            const primary = typeof out.primary === "string" ? out.primary : "";
-            if (source && primary) {
-                const s = root.hexToColor(source);
-                const p = root.hexToColor(primary);
-                if (s && p)
-                    out.primary = Qt.hsva(s.hsvHue < 0 ? p.hsvHue : s.hsvHue, s.hsvSaturation, p.hsvValue, 1).toString();
-            }
-        }
-
-        return out;
     }
 
     function regenerate(hex) {
@@ -746,5 +719,8 @@ printf '%s' "$px" | base64 -d >> "$out" || exit 1
         }
     }
 
-    Component.onCompleted: root.refresh()
+    Component.onCompleted: {
+        root.loadTunables();
+        root.refresh();
+    }
 }

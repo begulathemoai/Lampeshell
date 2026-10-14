@@ -273,14 +273,15 @@ PageBase {
             checked: ThemeService.fidelity
             onToggled: function(checked) {
                 ThemeService.fidelity = checked;
-                ThemeService.regenerate(root.personalised ? root.currentSource : "");
             }
         }
 
         SliderRow {
             icon: "contrast"
             label: "Contrast Level"
+            enabled: !ThemeService.fidelity
             value: (ThemeService.contrast + 1) * 50
+            valueLabel: ThemeService.fidelity ? "Fidelity" : ThemeService.contrastLabel
             onMoved: function(v) {
                 ThemeService.contrast = (v - 50) / 50;
             }
@@ -289,6 +290,7 @@ PageBase {
         SliderRow {
             icon: "tonality"
             label: "Chroma Boost"
+            enabled: !ThemeService.fidelity
             value: ThemeService.chromaPercent
             onMoved: function(v) {
                 ThemeService.chromaBoost = v / 100;
