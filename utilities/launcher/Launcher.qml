@@ -392,7 +392,6 @@ PanelWindow {
                         add: Transition {
                             NumberAnimation {
                                 property: "opacity"
-                                from: 0
                                 to: 1
                                 duration: Motion.duration(Motion.defaultEffects)
                                 easing.type: Easing.OutCubic
