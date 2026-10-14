@@ -24,7 +24,6 @@ Item {
     property bool typing: false
     property string typed: ""
 
-    readonly property bool hasCombo: root.current.length > 0
     readonly property var clashes: Keybinds.conflictsFor(root.current, root.bindKey)
 
     signal applied(string text)
@@ -51,6 +50,10 @@ Item {
         root.typing = false;
         root.typed = "";
         root.open = true;
+    }
+
+    function close() {
+        root.open = false;
     }
 
     function refreshParts() {
@@ -105,7 +108,10 @@ Item {
 
         MouseArea {
             anchors.fill: parent
-            onClicked: root.dismissed()
+            onClicked: {
+                root.close();
+                root.dismissed();
+            }
         }
     }
 
@@ -129,6 +135,8 @@ Item {
             spacing: 14
 
             Text {
+                id: titleText
+
                 width: parent.width
                 text: root.bindLabel
                 color: Theme.on_surface
@@ -141,6 +149,8 @@ Item {
             }
 
             Flow {
+                id: comboRow
+
                 width: parent.width
                 spacing: 8
 
@@ -156,7 +166,7 @@ Item {
                         readonly property string combo: root.combos[index] ?? ""
 
                         height: 34
-                        width: row.implicitWidth + 26
+                        width: chipRow.implicitWidth + 26
                         radius: 17
                         color: active ? Theme.primary : Theme.surface_container_highest
                         border.width: 1
@@ -169,14 +179,18 @@ Item {
                         }
 
                         Row {
-                            id: row
+                            id: chipRow
                             anchors.centerIn: parent
                             spacing: 6
 
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
+                                width: Math.min(implicitWidth, 210)
                                 text: comboChip.combo.length > 0 ? comboChip.combo : "empty"
-                                color: comboChip.active ? Theme.on_primary : Theme.on_surface_variant
+                                color: comboChip.active
+                                    ? Theme.on_primary
+                                    : Theme.on_surface_variant
+                                elide: Text.ElideRight
                                 font {
                                     family: Layout.fontSans
                                     pixelSize: 12
@@ -188,7 +202,9 @@ Item {
                                 anchors.verticalCenter: parent.verticalCenter
                                 visible: root.combos.length > 1
                                 text: "close"
-                                color: comboChip.active ? Theme.on_primary : Theme.on_surface_variant
+                                color: comboChip.active
+                                    ? Theme.on_primary
+                                    : Theme.on_surface_variant
                                 opacity: 0.7
                                 font {
                                     family: Layout.fontIcons
@@ -208,7 +224,7 @@ Item {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                root.editingIndex = index;
+                                root.editingIndex = comboChip.index;
                                 root.refreshParts();
                             }
                         }
@@ -217,6 +233,8 @@ Item {
             }
 
             Rectangle {
+                id: previewRect
+
                 width: parent.width
                 height: 46
                 radius: 23
@@ -233,7 +251,9 @@ Item {
                     anchors.rightMargin: 10
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.current.length > 0 ? root.current : "Pick a combination"
-                    color: root.current.length > 0 ? Theme.on_surface : Theme.on_surface_variant
+                    color: root.current.length > 0
+                        ? Theme.on_surface
+                        : Theme.on_surface_variant
                     elide: Text.ElideRight
                     font {
                         family: Layout.fontSans
@@ -249,9 +269,11 @@ Item {
                     anchors.rightMargin: 16
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.clashes.length > 0
-                        ? "already used by " + root.clashes.length + " action(s)"
+                        ? "used by " + root.clashes.length + " more"
                         : "Hyprland"
-                    color: root.clashes.length > 0 ? Theme.critical : Theme.on_surface_variant
+                    color: root.clashes.length > 0
+                        ? Theme.critical
+                        : Theme.on_surface_variant
                     font {
                         family: Layout.fontSans
                         pixelSize: 11
@@ -260,6 +282,8 @@ Item {
             }
 
             Flow {
+                id: modRow
+
                 width: parent.width
                 spacing: 8
 
@@ -289,7 +313,7 @@ Item {
                         Text {
                             id: modLabel
                             anchors.centerIn: parent
-                            text: modelData
+                            text: modChip.modelData
                             color: modChip.on ? Theme.on_primary : Theme.on_surface_variant
                             font {
                                 family: Layout.fontSans
@@ -301,21 +325,21 @@ Item {
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: root.toggleMod(modelData)
+                            onClicked: root.toggleMod(modChip.modelData)
                         }
                     }
                 }
 
                 Rectangle {
                     height: 36
-                    width: modLabel2.implicitWidth + 28
+                    width: addLabel.implicitWidth + 28
                     radius: 18
                     color: Theme.surface_container
                     border.width: 1
                     border.color: Theme.outline_variant
 
                     Text {
-                        id: modLabel2
+                        id: addLabel
                         anchors.centerIn: parent
                         text: "+ add another"
                         color: Theme.on_surface_variant
@@ -363,13 +387,16 @@ Item {
             }
 
             Rectangle {
+                id: typedRect
+
                 width: parent.width
-                height: 44
+                height: root.typing ? 44 : 0
                 radius: 22
-                visible: root.typing
                 color: Theme.surface_container_highest
-                border.width: typedInput.activeFocus ? 2 : 1
-                border.color: typedInput.activeFocus ? Theme.primary : Theme.outline_variant
+                border.width: root.typing && typedInput.activeFocus ? 2 : (root.typing ? 1 : 0)
+                border.color: root.typing
+                    ? (typedInput.activeFocus ? Theme.primary : Theme.outline_variant)
+                    : "transparent"
 
                 TextInput {
                     id: typedInput
@@ -377,6 +404,7 @@ Item {
                     anchors.fill: parent
                     anchors.leftMargin: 16
                     anchors.rightMargin: 16
+                    visible: root.typing
                     verticalAlignment: TextInput.AlignVCenter
                     text: root.typed
                     color: Theme.on_surface
@@ -396,7 +424,14 @@ Item {
                 id: gridFlick
 
                 width: parent.width
-                height: Math.max(0, Math.min(contentHeight, sheet.height - body.spacing * 6 - 330))
+                height: Math.max(96, body.height
+                    - titleText.implicitHeight
+                    - comboRow.implicitHeight
+                    - previewRect.height
+                    - modRow.implicitHeight
+                    - typedRect.height
+                    - buttonRow.height
+                    - body.spacing * 6)
                 clip: true
                 contentHeight: keysCol.implicitHeight
                 boundsBehavior: Flickable.StopAtBounds
@@ -405,6 +440,7 @@ Item {
 
                 Column {
                     id: keysCol
+
                     width: gridFlick.width
                     spacing: 10
 
@@ -418,6 +454,7 @@ Item {
                             spacing: 6
 
                             Text {
+                                width: parent.width
                                 text: modelData.title
                                 color: Theme.on_surface_variant
                                 font {
@@ -444,11 +481,11 @@ Item {
                                         width: keyLabel.implicitWidth + 22
                                         height: 32
                                         radius: 10
-                                        color: selected
+                                        color: keyBtn.selected
                                             ? Theme.primary
                                             : Theme.surface_container_highest
                                         border.width: 1
-                                        border.color: selected
+                                        border.color: keyBtn.selected
                                             ? Theme.primary
                                             : Theme.outline_variant
 
@@ -461,7 +498,7 @@ Item {
                                         Text {
                                             id: keyLabel
                                             anchors.centerIn: parent
-                                            text: modelData
+                                            text: keyBtn.modelData
                                             color: keyBtn.selected
                                                 ? Theme.on_primary
                                                 : Theme.on_surface_variant
@@ -477,7 +514,7 @@ Item {
                                         MouseArea {
                                             anchors.fill: parent
                                             cursorShape: Qt.PointingHandCursor
-                                            onClicked: root.chooseKey(modelData)
+                                            onClicked: root.chooseKey(keyBtn.modelData)
                                         }
                                     }
                                 }
@@ -488,6 +525,8 @@ Item {
             }
 
             Row {
+                id: buttonRow
+
                 width: parent.width
                 spacing: 10
 
@@ -517,7 +556,10 @@ Item {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: root.dismissed()
+                        onClicked: {
+                            root.close();
+                            root.dismissed();
+                        }
                     }
                 }
 
@@ -545,8 +587,10 @@ Item {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             const text = Keybinds.joinList(root.combos);
-                            if (text.length > 0)
-                                root.applied(text);
+                            if (text.length === 0)
+                                return;
+                            root.close();
+                            root.applied(text);
                         }
                     }
                 }
