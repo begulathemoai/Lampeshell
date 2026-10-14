@@ -1,11 +1,12 @@
 import QtQuick
 import QtQuick.Effects
+import qs.theme
 
 Item {
     id: root
     anchors.fill: parent
 
-    property color rippleColor: "#ffffff"
+    property color rippleColor: Theme.on_surface
     property real cornerRadius: 0
 
     function trigger(px, py) {

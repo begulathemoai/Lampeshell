@@ -35,7 +35,7 @@ FloatingWindow {
     NexusState {
         id: nexusState
         host: settingsWindow
-        accentPalette: accentPalette
+
         quickSettingsBackend: quickSettingsBackend
         targetScreen: settingsWindow.targetScreen
     }
@@ -95,7 +95,7 @@ FloatingWindow {
         }
 
         function accent(name: string) {
-            accentPalette.applyAccent(name);
+            AccentPalette.applyAccent(name);
         }
 
         function wallpapers() {
@@ -104,13 +104,10 @@ FloatingWindow {
         }
 
         function revert() {
-            accentPalette.revert();
+            AccentPalette.revert();
         }
     }
 
-    AccentPalette {
-        id: accentPalette
-    }
 
     QuickSettingsBackend {
         id: quickSettingsBackend

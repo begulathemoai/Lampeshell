@@ -5,7 +5,6 @@ QtObject {
 
     required property var host
 
-    property var accentPalette
     property var quickSettingsBackend
     property var targetScreen
 

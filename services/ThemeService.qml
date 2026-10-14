@@ -20,6 +20,7 @@ Item {
     readonly property string footColorsPath: stateBase + "/foot-colors.ini"
 
     readonly property string matugenType: "scheme-smart"
+    readonly property string matugenAccentType: "scheme-tonal-spot"
     readonly property string matugenPrefer: "saturation"
     readonly property string matugenMode: "dark"
 
@@ -145,8 +146,31 @@ find "$dir" -maxdepth 3 -type f \\
 
     property string pendingWallpaper: ""
     property string pendingColorsJson: ""
+    property string pendingAccentName: ""
+    property string pendingAccentSource: ""
 
-    function writeColors(colorsJson) {
+    readonly property var directKeys: [
+        "source_color",
+        "primary", "on_primary", "primary_container", "on_primary_container",
+        "primary_fixed", "primary_fixed_dim", "on_primary_fixed",
+        "on_primary_fixed_variant", "inverse_primary",
+        "secondary", "on_secondary", "secondary_container", "on_secondary_container",
+        "secondary_fixed", "secondary_fixed_dim", "on_secondary_fixed",
+        "on_secondary_fixed_variant",
+        "tertiary", "on_tertiary", "tertiary_container", "on_tertiary_container",
+        "tertiary_fixed", "tertiary_fixed_dim", "on_tertiary_fixed",
+        "on_tertiary_fixed_variant",
+        "error", "on_error", "error_container", "on_error_container",
+        "background", "on_background", "surface", "on_surface",
+        "surface_dim", "surface_bright", "surface_tint",
+        "surface_variant", "on_surface_variant",
+        "inverse_surface", "inverse_on_surface",
+        "surface_container_lowest", "surface_container_low", "surface_container",
+        "surface_container_high", "surface_container_highest",
+        "outline", "outline_variant", "shadow", "scrim"
+    ];
+
+    function shapeMatugen(colorsJson, accent, accentSource) {
         const src = colorsJson.colors ?? colorsJson;
         const hex = key => {
             const c = src[key];
@@ -159,23 +183,12 @@ find "$dir" -maxdepth 3 -type f \\
         };
 
         const out = {
-            wallpaper_path: root.pendingWallpaper
+            wallpaper_path: root.pendingWallpaper.length > 0 ? root.pendingWallpaper : root.currentWallpaper,
+            accent: accent ?? "",
+            accent_source: accentSource ?? ""
         };
 
-        const direct = [
-            "primary", "on_primary", "primary_container", "on_primary_container",
-            "secondary", "on_secondary", "secondary_container", "on_secondary_container",
-            "tertiary", "on_tertiary", "tertiary_container", "on_tertiary_container",
-            "background", "on_background", "surface", "on_surface",
-            "surface_dim", "surface_bright",
-            "surface_variant", "on_surface_variant",
-            "inverse_surface", "inverse_on_surface",
-            "surface_container_lowest", "surface_container_low", "surface_container",
-            "surface_container_high", "surface_container_highest",
-            "outline", "outline_variant", "shadow", "scrim"
-        ];
-
-        for (const key of direct) {
+        for (const key of root.directKeys) {
             const v = hex(key);
             if (v === null) {
                 out[key] = null;
@@ -184,14 +197,8 @@ find "$dir" -maxdepth 3 -type f \\
             }
         }
 
-        out.critical = hex("error") ?? out.critical ?? null;
-        out.on_critical = hex("on_error") ?? out.on_critical ?? null;
-
-        if (out.primary === null) {
-            lastError = "matugen returned no usable primary colour";
-            busy = false;
-            return;
-        }
+        if (out.primary === null)
+            throw new Error("matugen returned no usable primary colour");
 
         for (const key of Object.keys(out)) {
             if (out[key] !== null)
@@ -201,9 +208,79 @@ find "$dir" -maxdepth 3 -type f \\
                 out[key] = current;
         }
 
+        return out;
+    }
+
+    function applyPalette(palette) {
+        if (!palette || !palette.primary) {
+            lastError = "refusing to apply a palette with no primary colour";
+            return;
+        }
+        busy = true;
+        lastError = "";
+        root.pendingColorsJson = JSON.stringify(palette, null, 4) + "\n";
+        root.backupColors();
+    }
+
+    function writeColors(colorsJson) {
+        let out;
+        try {
+            out = root.shapeMatugen(colorsJson, "", "");
+        } catch (e) {
+            lastError = e.message ?? String(e);
+            busy = false;
+            return;
+        }
+        out.wallpaper_path = root.pendingWallpaper;
         root.pendingColorsJson = JSON.stringify(out, null, 4) + "\n";
         root.backupColors();
     }
+
+    function base64(bytes) {
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        let out = "";
+        for (let i = 0; i < bytes.length; i += 3) {
+            const b0 = bytes[i];
+            const b1 = bytes[i + 1];
+            const b2 = bytes[i + 2];
+            out += chars[b0 >> 2];
+            out += chars[((b0 & 3) << 4) | ((b1 ?? 0) >> 4)];
+            out += b1 === undefined ? "=" : chars[((b1 & 15) << 2) | ((b2 ?? 0) >> 6)];
+            out += b2 === undefined ? "=" : chars[b2 & 63];
+        }
+        return out;
+    }
+
+    function generateFromColor(hex, name) {
+        const cleaned = String(hex ?? "").trim().replace(/^#/, "").toLowerCase();
+        if (!/^[0-9a-f]{6}$/.test(cleaned)) {
+            lastError = "'" + hex + "' is not a six digit hex colour";
+            return;
+        }
+
+        busy = true;
+        lastError = "";
+        pendingAccentName = name && name.length > 0 ? name : "custom";
+        pendingAccentSource = cleaned;
+
+        const rgb = [
+            parseInt(cleaned.slice(0, 2), 16),
+            parseInt(cleaned.slice(2, 4), 16),
+            parseInt(cleaned.slice(4, 6), 16)
+        ];
+
+        swatchProc.command = ["sh", "-c", root.swatchScript, "lampshell-swatch",
+            root.stateBase + "/swatch.ppm", root.base64(rgb)];
+        swatchProc.running = true;
+    }
+
+    readonly property string swatchScript: `
+set -u
+out="$1"
+px="$2"
+printf 'P6\\n1 1\\n255\\n' > "$out" || exit 1
+printf '%s' "$px" | base64 -d >> "$out" || exit 1
+`;
 
     function backupColors() {
         backupProc.command = ["cp", root.colorsPath, root.colorsPath + ".bak"];
@@ -378,6 +455,68 @@ find "$dir" -maxdepth 3 -type f \\
                 root.lastError = "matugen exited with code " + exitCode
                     + (err.length > 0 ? ": " + err
                                       : (collector.text.length > 0 ? "" : " and produced no output"));
+                root.busy = false;
+            }
+        }
+    }
+
+    Process {
+        id: swatchProc
+        stdout: StdioCollector {}
+        stderr: StdioCollector {
+            id: swatchErr
+        }
+
+        onExited: (exitCode) => {
+            if (exitCode !== 0) {
+                const err = swatchErr.text.trim();
+                root.lastError = "could not write the colour swatch: "
+                    + (err.length > 0 ? err : "awk exited with code " + exitCode);
+                root.busy = false;
+                return;
+            }
+
+            accentMatugenProc.command = [
+                "matugen", "image", root.stateBase + "/swatch.ppm",
+                "-j", "hex",
+                "--type", root.matugenAccentType,
+                "--prefer", "saturation",
+                "--mode", root.matugenMode,
+                "--dry-run"
+            ];
+            accentMatugenProc.running = true;
+        }
+    }
+
+    Process {
+        id: accentMatugenProc
+
+        stdout: StdioCollector {
+            id: accentCollector
+            onStreamFinished: {
+                let out;
+                try {
+                    out = root.shapeMatugen(JSON.parse(accentCollector.text),
+                        root.pendingAccentName, root.pendingAccentSource);
+                } catch (e) {
+                    root.lastError = "could not build a palette for that colour: "
+                        + (e.message ?? String(e));
+                    root.busy = false;
+                    return;
+                }
+                root.applyPalette(out);
+            }
+        }
+
+        stderr: StdioCollector {
+            id: accentErr
+        }
+
+        onExited: (exitCode) => {
+            if (exitCode !== 0) {
+                const err = accentErr.text.trim();
+                root.lastError = "matugen exited with code " + exitCode
+                    + (err.length > 0 ? ": " + err : "");
                 root.busy = false;
             }
         }

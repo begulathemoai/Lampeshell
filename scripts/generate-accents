@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+usage() {
+    cat <<'EOF'
+usage: generate-accents [--out DIR] [--mode MODE] [--type TYPE]
+
+Regenerates the fixed accent palettes in theme/accents from their source
+colours, using matugen. Each accent is rendered as a flat swatch and passed
+through matugen so every role in the resulting palette comes from one scheme
+rather than being hand-picked.
+
+    --out DIR     where to write the palettes (default: theme/accents)
+    --mode MODE   matugen mode, light or dark (default: dark)
+    --type TYPE   matugen scheme type (default: scheme-tonal-spot)
+EOF
+}
+
+TARGET="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+OUT="$TARGET/theme/accents"
+MODE="dark"
+TYPE="scheme-tonal-spot"
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --out) OUT="$2"; shift 2 ;;
+        --mode) MODE="$2"; shift 2 ;;
+        --type) TYPE="$2"; shift 2 ;;
+        -h|--help) usage; exit 0 ;;
+        *) printf 'generate-accents: unknown argument %s\n' "$1" >&2; usage >&2; exit 2 ;;
+    esac
+done
+
+command -v matugen >/dev/null 2>&1 || {
+    printf 'generate-accents: matugen is not installed\n' >&2
+    exit 1
+}
+
+command -v python3 >/dev/null 2>&1 || {
+    printf 'generate-accents: python3 is not installed\n' >&2
+    exit 1
+}
+
+mkdir -p "$OUT"
+
+ACCENTS='blue:0091ff
+cyan:00b7c3
+green:30a46c
+amber:ffb224
+orange:f76b15
+red:e5484d
+pink:e93d82
+violet:8e4ec6'
+
+swatch="$(mktemp -d)"
+trap 'rm -rf "$swatch"' EXIT
+
+printf 'generate-accents: type=%s mode=%s out=%s\n' "$TYPE" "$MODE" "$OUT"
+
+printf '%s\n' "$ACCENTS" | while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
+    name="${entry%%:*}"
+    hex="${entry##*:}"
+
+    python3 - "$swatch/$name.ppm" "$hex" <<'PY'
+import sys
+
+path, hexvalue = sys.argv[1], sys.argv[2].lstrip("#")
+rgb = bytes(int(hexvalue[i:i + 2], 16) for i in (0, 2, 4))
+
+with open(path, "wb") as handle:
+    handle.write(b"P6\n64 64\n255\n" + rgb * 4096)
+PY
+
+    if ! matugen image "$swatch/$name.ppm" -j hex --type "$TYPE" --mode "$MODE" \
+        --prefer saturation --dry-run > "$swatch/$name.raw" 2>"$swatch/$name.err"; then
+        printf 'generate-accents: matugen failed for %s\n' "$name" >&2
+        cat "$swatch/$name.err" >&2
+        exit 1
+    fi
+
+    python3 - "$swatch/$name.raw" "$OUT/$name.json" "$name" "$hex" <<'PY'
+import json
+import sys
+
+raw, target, name, hexvalue = sys.argv[1:5]
+text = open(raw).read()
+start = text.find("{")
+if start < 0:
+    raise SystemExit(f"generate-accents: matugen produced no JSON for {name}")
+
+colours = json.loads(text[start:]).get("colors", {})
+
+
+def pick(role):
+    entry = colours.get(role)
+    if isinstance(entry, str):
+        return entry
+    if isinstance(entry, dict):
+        tone = entry.get(name if name in ("light", "dark") else "default")
+        if isinstance(tone, dict) and isinstance(tone.get("color"), str):
+            return tone["color"]
+        for fallback in ("default", "dark", "light"):
+            tone = entry.get(fallback)
+            if isinstance(tone, dict) and isinstance(tone.get("color"), str):
+                return tone["color"]
+    return None
+
+
+palette = {"accent": name, "accent_source": "#" + hexvalue.lstrip("#").lower()}
+missing = []
+
+for role in sorted(colours):
+    if role in ("image", "image_path"):
+        continue
+    value = pick(role)
+    if value is None:
+        missing.append(role)
+        continue
+    palette[role] = value.lower()
+
+for role in ("primary", "secondary", "tertiary", "surface", "on_surface", "surface_tint"):
+    if role not in palette:
+        raise SystemExit(f"generate-accents: {name} is missing {role}")
+
+if missing:
+    print(f"generate-accents: {name} skipped roles {sorted(missing)}", file=sys.stderr)
+
+with open(target, "w") as handle:
+    json.dump(palette, handle, indent=4)
+    handle.write("\n")
+
+print(f"  {name:8} {palette['accent_source']} -> primary {palette['primary']} "
+      f"tint {palette['surface_tint']} ({len(palette)} roles)")
+PY
+done

@@ -222,7 +222,7 @@ Rectangle {
         bottomRightRadius: height * 0.15
         bottomLeftRadius: height * 0.9
 
-        color: currentActiveDot?.isFocused ? (Theme.primary ?? "#6750A4") : (Theme.primary_container ?? "#EADDFF")
+        color: currentActiveDot?.isFocused ? (Theme.primary) : (Theme.primary_container)
 
         Behavior on color {
             enabled: root.allowAnimations
@@ -333,7 +333,7 @@ Rectangle {
                         }
                     }
 
-                    color: dotHover.hovered ? (Theme.secondary_container ?? "#E8DEF8") : (Theme.surface_container_high ?? "#ECE6F0")
+                    color: dotHover.hovered ? (Theme.secondary_container) : (Theme.surface_container_high)
 
                     Behavior on color {
                         enabled: root.allowAnimations
@@ -348,7 +348,7 @@ Rectangle {
                     anchors.fill: parent
                     radius: height / 2
 
-                    color: (workspaceDot.isFocused || workspaceDot.isActive) ? (Theme.on_primary ?? "#FFFFFF") : (Theme.on_surface ?? "#1C1B1F")
+                    color: (workspaceDot.isFocused || workspaceDot.isActive) ? (Theme.on_primary) : (Theme.on_surface)
                     opacity: dotTap.pressed ? 0.10 : (dotHover.hovered ? 0.08 : 0.0)
 
                     Behavior on opacity {
@@ -408,7 +408,7 @@ Rectangle {
                                 radius: Layout.s(9.5)
                                 color: "transparent"
                                 border.width: 1.5
-                                border.color: (workspaceDot.isFocused || workspaceDot.isActive) ? (Theme.primary ?? "#6750A4") : (Theme.surface_container_high ?? "#ECE6F0")
+                                border.color: (workspaceDot.isFocused || workspaceDot.isActive) ? (Theme.primary) : (Theme.surface_container_high)
 
                                 Behavior on border.color {
                                     enabled: root.allowAnimations
@@ -422,7 +422,7 @@ Rectangle {
                                 id: fallbackBadge
                                 anchors.fill: parent
                                 radius: height / 2
-                                color: (workspaceDot.isFocused || workspaceDot.isActive) ? (Theme.on_primary ?? "#FFFFFF") : (Theme.on_surface_variant ?? "#49454F")
+                                color: (workspaceDot.isFocused || workspaceDot.isActive) ? (Theme.on_primary) : (Theme.on_surface_variant)
                                 opacity: (iconImg.status === Image.Ready && iconImg.source != "") ? 0.0 : 0.3
                                 visible: opacity > 0
 
@@ -436,7 +436,7 @@ Rectangle {
                                 Text {
                                     anchors.centerIn: parent
                                     text: iconSlot.fallbackLetter
-                                    color: (workspaceDot.isFocused || workspaceDot.isActive) ? (Theme.primary ?? "#6750A4") : (Theme.surface_container ?? "#FFFFFF")
+                                    color: (workspaceDot.isFocused || workspaceDot.isActive) ? (Theme.primary) : (Theme.surface_container)
                                     font {
                                         family: "Google Sans"
                                         pixelSize: Layout.ts(10)
@@ -463,7 +463,7 @@ Rectangle {
                                 maskSpreadAtMin: 1.0
 
                                 saturation: -0.3
-                                colorizationColor: (workspaceDot.isFocused || workspaceDot.isActive) ? (Theme.on_primary ?? "#FFFFFF") : (Theme.on_surface_variant ?? "#49454F")
+                                colorizationColor: (workspaceDot.isFocused || workspaceDot.isActive) ? (Theme.on_primary) : (Theme.on_surface_variant)
                                 colorization: 0.3
 
                                 opacity: (iconImg.status === Image.Ready && iconImg.source != "") ? 1.0 : 0.0
@@ -484,13 +484,13 @@ Rectangle {
                         height: Layout.s(18)
                         radius: Layout.s(9)
                         color: "transparent"
-                        border.color: (workspaceDot.isFocused || workspaceDot.isActive) ? (Theme.on_primary ?? "#FFFFFF") : (Theme.on_surface_variant ?? "#49454F")
+                        border.color: (workspaceDot.isFocused || workspaceDot.isActive) ? (Theme.on_primary) : (Theme.on_surface_variant)
                         border.width: 1
 
                         Text {
                             anchors.centerIn: parent
                             text: "+" + (workspaceDot.windowCount - 3)
-                            color: (workspaceDot.isFocused || workspaceDot.isActive) ? (Theme.on_primary ?? "#FFFFFF") : (Theme.on_surface_variant ?? "#49454F")
+                            color: (workspaceDot.isFocused || workspaceDot.isActive) ? (Theme.on_primary) : (Theme.on_surface_variant)
                             font {
                                 family: "Google Sans"
                                 pixelSize: Layout.ts(9)
@@ -508,7 +508,7 @@ Rectangle {
                     height: width
                     radius: width / 2
 
-                    color: (workspaceDot.isFocused || workspaceDot.isActive) ? (Theme.on_primary ?? "#FFFFFF") : (Theme.on_surface_variant ?? "#49454F")
+                    color: (workspaceDot.isFocused || workspaceDot.isActive) ? (Theme.on_primary) : (Theme.on_surface_variant)
                     opacity: workspaceDot.isFocused ? 1.0 : (dotHover.hovered ? 1.0 : 0.6)
 
                     Behavior on width {
