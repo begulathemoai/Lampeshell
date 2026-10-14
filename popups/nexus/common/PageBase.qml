@@ -11,16 +11,39 @@ Item {
     property string title: ""
     property string description: ""
     property bool isSubPage: false
+    property bool showHeader: true
 
     readonly property bool showBack: nState.subPageIdxStack.length > 0
+
+    function findLabelY(item, label, baseY) {
+        for (let i = 0; i < item.children.length; i++) {
+            const child = item.children[i];
+            const y = baseY + child.y;
+            if (child.visible !== false && (child.label === label || child.title === label))
+                return y;
+            const sub = root.findLabelY(child, label, y);
+            if (sub >= 0)
+                return sub;
+        }
+        return -1;
+    }
+
+    function revealByLabel(label) {
+        const y = root.findLabelY(content, label, 0);
+        if (y < 0)
+            return;
+        scrollAnim.to = Math.max(0, Math.min(y - 24, flick.contentHeight - flick.height));
+        scrollAnim.start();
+    }
 
     default property alias body: content.data
     property alias overlay: overlayLayer.data
 
-    implicitHeight: header.implicitHeight + 18 + flick.contentHeight
+    implicitHeight: (root.showHeader ? header.implicitHeight + 18 : 0) + flick.contentHeight
 
     Item {
         id: header
+        visible: root.showHeader
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
@@ -101,8 +124,8 @@ Item {
         id: flick
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: header.bottom
-        anchors.topMargin: 18
+        anchors.top: root.showHeader ? header.bottom : parent.top
+        anchors.topMargin: root.showHeader ? 18 : 0
         anchors.bottom: parent.bottom
         clip: true
         contentWidth: width
@@ -122,5 +145,13 @@ Item {
         id: overlayLayer
         anchors.fill: parent
         z: 100
+    }
+
+    NumberAnimation {
+        id: scrollAnim
+        target: flick
+        property: "contentY"
+        duration: 260
+        easing.type: Easing.OutCubic
     }
 }
