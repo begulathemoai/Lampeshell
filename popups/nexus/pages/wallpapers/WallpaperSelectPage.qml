@@ -263,7 +263,7 @@ PageBase {
         cellWidth: root.cellWidth + 12
         cellHeight: root.cellHeight
 
-        ScrollBar.vertical: ScrollBar {}
+        ScrollBar.vertical: ThemedScrollBar {}
 
         delegate: WallpaperTile {
 

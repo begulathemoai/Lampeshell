@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import qs.theme
 import qs.popups.nexus
+import qs.popups.nexus.common
 
 Item {
     id: root
@@ -132,7 +133,7 @@ Item {
         contentHeight: content.implicitHeight
         boundsBehavior: Flickable.StopAtBounds
 
-        ScrollBar.vertical: ScrollBar {}
+        ScrollBar.vertical: ThemedScrollBar {}
 
         Column {
             id: content

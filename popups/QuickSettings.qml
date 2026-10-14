@@ -9,6 +9,7 @@ import Quickshell.Io
 import qs.theme
 import qs.services
 import qs.popups.settings
+import qs.popups.nexus.common
 
 PanelWindow {
     id: quickSettingsWindow
@@ -404,7 +405,7 @@ PanelWindow {
                 boundsBehavior: Flickable.StopAtBounds
                 visible: Notifs.notClosed.length > 0
 
-                ScrollBar.vertical: ScrollBar {}
+                ScrollBar.vertical: ThemedScrollBar {}
 
                 Column {
                     id: notifColumn
