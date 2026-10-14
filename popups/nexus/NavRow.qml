@@ -19,8 +19,8 @@ Item {
     width: parent ? parent.width : 0
     height: Math.max(64, content.implicitHeight + 24)
 
-    readonly property real outerRadius: 20
-    readonly property real innerRadius: 5
+    readonly property real outerRadius: Layout.connectedOuterRadius
+    readonly property real innerRadius: Layout.connectedInnerRadius
 
     Rectangle {
         anchors.fill: parent
@@ -40,6 +40,7 @@ Item {
 
     MouseArea {
         anchors.fill: parent
+        hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
         onClicked: root.clicked()
     }
@@ -63,7 +64,7 @@ Item {
                 text: root.page.icon ?? ""
                 color: Theme.on_surface_variant
                 font {
-                    family: "Material Symbols Rounded"
+                    family: Layout.fontIcons
                     pixelSize: 24
                 }
             }
@@ -80,8 +81,8 @@ Item {
                 elide: Text.ElideRight
                 color: Theme.on_surface
                 font {
-                    family: "Google Sans"
-                    pixelSize: 15
+                    family: Layout.fontSans
+                    pixelSize: 16
 
                     weight: root.selected ? Font.DemiBold : Font.Normal
                 }
@@ -94,8 +95,8 @@ Item {
                 elide: Text.ElideRight
                 color: Theme.on_surface_variant
                 font {
-                    family: "Google Sans"
-                    pixelSize: 13
+                    family: Layout.fontSans
+                    pixelSize: 14
                 }
             }
         }

@@ -14,6 +14,7 @@ Item {
     signal moved(real value)
 
     property bool dragging: false
+    property bool enabled: true
 
     opacity: enabled ? 1 : 0.4
     Behavior on opacity {
@@ -30,8 +31,8 @@ Item {
         isLast = last;
     }
 
-    readonly property real outerRadius: 20
-    readonly property real innerRadius: 5
+    readonly property real outerRadius: Layout.connectedOuterRadius
+    readonly property real innerRadius: Layout.connectedInnerRadius
 
     Rectangle {
         id: groupSurface
@@ -44,10 +45,10 @@ Item {
         bottomRightRadius: root.isLast ? root.outerRadius : root.innerRadius
     }
 
-    implicitHeight: 56
+    implicitHeight: Layout.rowMinHeight
     width: parent ? parent.width : 0
 
-    readonly property real shownValue: dragging ? value : value
+    opacity: enabled ? 1.0 : 0.38
 
     Row {
         anchors.left: parent.left
@@ -63,7 +64,7 @@ Item {
             text: root.icon
             color: Theme.on_surface_variant
             font {
-                family: "Material Symbols Rounded"
+                family: Layout.fontIcons
                 pixelSize: 19
             }
         }
@@ -74,8 +75,8 @@ Item {
             text: root.label
             color: Theme.on_surface
             font {
-                family: "Google Sans"
-                pixelSize: 13
+                family: Layout.fontSans
+                pixelSize: 16
             }
         }
 
@@ -116,6 +117,7 @@ Item {
                 id: dragMouse
                 anchors.fill: parent
                 anchors.margins: -10
+                enabled: root.enabled
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
 
@@ -149,10 +151,11 @@ Item {
             horizontalAlignment: Text.AlignRight
             visible: root.valueLabel.length === 0
             text: Math.round(root.value) + root.suffix
-            color: Theme.on_surface_variant
+            color: Theme.primary
             font {
-                family: "Google Sans"
-                pixelSize: 12
+                family: Layout.fontSans
+                pixelSize: 14
+                weight: Font.Medium
             }
         }
 

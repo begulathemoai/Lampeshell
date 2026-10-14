@@ -15,12 +15,13 @@ Item {
     readonly property int rowCount: rowsColumn.children.length
 
     function applyShape() {
-        const kids = rowsColumn.children;
-        for (let i = 0; i < kids.length; i++) {
-            const row = kids[i];
-            if (row && typeof row.setGroupShape === "function")
-                row.setGroupShape(i === 0, i === kids.length - 1);
+        const rows = [];
+        for (const child of rowsColumn.children) {
+            if (child && typeof child.setGroupShape === "function")
+                rows.push(child);
         }
+        for (let i = 0; i < rows.length; i++)
+            rows[i].setGroupShape(i === 0, i === rows.length - 1);
     }
 
     onRowCountChanged: applyShape()
@@ -39,13 +40,13 @@ Item {
             elide: Text.ElideRight
             color: Theme.primary
             font {
-                family: "Google Sans"
-                pixelSize: 12
+                family: Layout.fontSans
+                pixelSize: 14
                 weight: Font.Medium
             }
             topPadding: 8
             bottomPadding: 12
-            leftPadding: 16
+            rightPadding: 32
         }
 
         Text {
@@ -56,18 +57,16 @@ Item {
             color: Theme.on_surface_variant
             opacity: 0.75
             font {
-                family: "Google Sans"
+                family: Layout.fontSans
                 pixelSize: 12
             }
-            leftPadding: 16
-            rightPadding: 16
-            bottomPadding: 10
+            bottomPadding: 12
         }
 
         Column {
             id: rowsColumn
             width: parent.width
-            spacing: 4
+            spacing: Layout.connectedSpacing
         }
     }
 }

@@ -64,11 +64,10 @@ Item {
                         }
                         width: parent.width
                         color: Theme.primary
-                        leftPadding: 16
                         topPadding: 16
                         bottomPadding: 8
                         font {
-                            family: "Google Sans"
+                            family: Layout.fontSans
                             pixelSize: 14
                             weight: Font.Medium
                         }

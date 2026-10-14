@@ -15,8 +15,8 @@ Item {
         isLast = last;
     }
 
-    readonly property real outerRadius: 20
-    readonly property real innerRadius: 5
+    readonly property real outerRadius: Layout.connectedOuterRadius
+    readonly property real innerRadius: Layout.connectedInnerRadius
 
     Rectangle {
         id: groupSurface
@@ -29,7 +29,7 @@ Item {
         bottomRightRadius: root.isLast ? root.outerRadius : root.innerRadius
     }
 
-    implicitHeight: 48
+    implicitHeight: Layout.rowMinHeight
     width: parent ? parent.width : 0
 
     Text {
@@ -38,10 +38,11 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         width: Math.max(0, parent.width * 0.4 - 16)
         text: root.label
-        color: Theme.on_surface_variant
+        elide: Text.ElideRight
+        color: Theme.on_surface
         font {
-            family: "Google Sans"
-            pixelSize: 12
+            family: Layout.fontSans
+            pixelSize: 16
         }
     }
 
@@ -54,10 +55,10 @@ Item {
         horizontalAlignment: Text.AlignRight
         elide: Text.ElideRight
         text: root.value
-        color: Theme.on_surface
+        color: Theme.primary
         font {
-            family: "Google Sans"
-            pixelSize: 12
+            family: Layout.fontSans
+            pixelSize: 14
             weight: Font.Medium
         }
     }

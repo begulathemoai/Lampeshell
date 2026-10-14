@@ -11,8 +11,8 @@ Item {
     property bool isInput: false
     property bool isFirst: true
     property bool isLast: true
-    property real innerRadius: 5
-    property real outerRadius: 20
+    readonly property real innerRadius: Layout.connectedInnerRadius
+    readonly property real outerRadius: Layout.connectedOuterRadius
 
     readonly property string label: {
         if (!root.node)
@@ -26,6 +26,9 @@ Item {
         isFirst = first;
         isLast = last;
     }
+
+    implicitHeight: Layout.rowMinHeight
+    width: parent ? parent.width : 0
 
     Rectangle {
         anchors.fill: parent
@@ -57,7 +60,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             text: root.isInput ? Audio.iconForSource(root.node) : Audio.iconForSink(root.node)
             color: root.isActive ? Theme.on_primary_container : Theme.on_surface_variant
-            font { family: Layout.fontIcons; pixelSize: Layout.s(20) }
+            font { family: Layout.fontIcons; pixelSize: Layout.s(24) }
         }
 
         Text {
@@ -66,7 +69,7 @@ Item {
             text: root.label
             color: Theme.on_surface
             elide: Text.ElideRight
-            font { family: Layout.fontSans; pixelSize: Layout.ts(13) }
+            font { family: Layout.fontSans; pixelSize: Layout.ts(16) }
         }
     }
 
