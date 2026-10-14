@@ -19,8 +19,6 @@ Item {
     readonly property string kittyThemePath: stateBase + "/kitty-theme.conf"
     readonly property string footColorsPath: stateBase + "/foot-colors.ini"
 
-    readonly property string matugenType: "scheme-smart"
-    readonly property string matugenAccentType: "scheme-tonal-spot"
     readonly property string matugenPrefer: "saturation"
     readonly property string matugenMode: "dark"
 
@@ -132,9 +130,10 @@ find "$dir" -maxdepth 3 -type f \\
         matugenProc.command = [
             "matugen", "image", path,
             "-j", "hex",
-            "--type", root.matugenType,
+            "--type", root.styleKey,
             "--prefer", root.matugenPrefer,
             "--mode", root.matugenMode,
+            "--contrast", String(root.contrast),
             "--dry-run"
         ];
         matugenProc.running = true;
@@ -211,6 +210,116 @@ find "$dir" -maxdepth 3 -type f \\
         return out;
     }
 
+    readonly property var styles: [
+        { key: "scheme-smart", label: "Smart" },
+        { key: "scheme-tonal-spot", label: "Tonal Spot" },
+        { key: "scheme-vibrant", label: "Vibrant" },
+        { key: "scheme-expressive", label: "Expressive" },
+        { key: "scheme-fidelity", label: "Fidelity" },
+        { key: "scheme-fruit-salad", label: "Fruit Salad" },
+        { key: "scheme-rainbow", label: "Rainbow" },
+        { key: "scheme-monochrome", label: "Monochrome" },
+        { key: "scheme-neutral", label: "Neutral" },
+        { key: "scheme-content", label: "Content" }
+    ]
+
+    property string styleKey: SettingsStore.get("themeStyle") ?? "scheme-smart"
+    property real contrast: SettingsStore.get("themeContrast") ?? 0
+    property real chromaBoost: SettingsStore.get("themeChromaBoost") ?? 0
+    property bool fidelity: SettingsStore.get("themeFidelity") === true
+
+    readonly property string styleLabel: {
+        for (const s of root.styles) {
+            if (s.key === root.styleKey)
+                return s.label;
+        }
+        return "Smart";
+    }
+
+    readonly property string contrastLabel: root.contrast < -0.33
+        ? "Low"
+        : (root.contrast > 0.33 ? "High" : "Normal")
+
+    readonly property int chromaPercent: Math.round(Math.max(0, root.chromaBoost) * 100)
+
+    onStyleKeyChanged: SettingsStore.set("themeStyle", root.styleKey)
+    onContrastChanged: SettingsStore.set("themeContrast", root.contrast)
+    onChromaBoostChanged: SettingsStore.set("themeChromaBoost", root.chromaBoost)
+    onFidelityChanged: SettingsStore.set("themeFidelity", root.fidelity)
+
+    readonly property var tunedRoles: [
+        "primary", "primary_container", "primary_fixed", "primary_fixed_dim",
+        "secondary", "secondary_container", "secondary_fixed", "secondary_fixed_dim",
+        "tertiary", "tertiary_container", "tertiary_fixed", "tertiary_fixed_dim",
+        "surface_tint"
+    ]
+
+    function boostChroma(hex, amount) {
+        if (typeof hex !== "string" || !/^#[0-9a-fA-F]{6}$/.test(hex))
+            return hex;
+        const c = root.hexToColor(hex);
+        if (!c)
+            return hex;
+        const sat = Math.min(1, c.hsvSaturation * (1 + amount));
+        return Qt.hsva(c.hsvHue < 0 ? 0 : c.hsvHue, sat, c.hsvValue, 1).toString();
+    }
+
+    function tune(out) {
+        if (!out)
+            return out;
+
+        if (Math.abs(root.contrast) > 0.01) {
+            for (const key of root.directKeys) {
+                const v = out[key];
+                if (typeof v !== "string" || !/^#[0-9a-fA-F]{6}$/.test(v))
+                    continue;
+                const c = root.hexToColor(v);
+                if (!c)
+                    continue;
+                const shift = root.contrast > 0 ? 0.06 * root.contrast : 0.09 * root.contrast;
+                let value = c.hsvValue;
+                if (c.hsvValue > 0.5)
+                    value = Math.min(1, value + shift);
+                else
+                    value = Math.max(0, value - shift);
+                out[key] = Qt.hsva(c.hsvHue < 0 ? 0 : c.hsvHue, c.hsvSaturation, value, 1).toString();
+            }
+        }
+
+        if (root.chromaBoost > 0.01) {
+            for (const key of root.tunedRoles) {
+                if (typeof out[key] === "string")
+                    out[key] = root.boostChroma(out[key], root.chromaBoost);
+            }
+        }
+
+        if (root.fidelity) {
+            const source = root.stripHash(out.source_color ?? out.accent_source ?? "");
+            const primary = typeof out.primary === "string" ? out.primary : "";
+            if (source && primary) {
+                const s = root.hexToColor(source);
+                const p = root.hexToColor(primary);
+                if (s && p)
+                    out.primary = Qt.hsva(s.hsvHue < 0 ? p.hsvHue : s.hsvHue, s.hsvSaturation, p.hsvValue, 1).toString();
+            }
+        }
+
+        return out;
+    }
+
+    function regenerate(hex) {
+        const source = String(hex ?? "").trim().replace(/^#/, "").toLowerCase();
+        if (/^[0-9a-f]{6}$/.test(source)) {
+            root.generateFromColor(source, "custom");
+            return;
+        }
+        if (root.hasWallpaper) {
+            root.applyWallpaper(root.currentWallpaper);
+            return;
+        }
+        lastError = "nothing to regenerate: no wallpaper and no custom colour set";
+    }
+
     function applyPalette(palette) {
         if (!palette || !palette.primary) {
             lastError = "refusing to apply a palette with no primary colour";
@@ -218,7 +327,7 @@ find "$dir" -maxdepth 3 -type f \\
         }
         busy = true;
         lastError = "";
-        root.pendingColorsJson = JSON.stringify(palette, null, 4) + "\n";
+        root.pendingColorsJson = JSON.stringify(root.tune(palette), null, 4) + "\n";
         root.backupColors();
     }
 
@@ -232,8 +341,7 @@ find "$dir" -maxdepth 3 -type f \\
             return;
         }
         out.wallpaper_path = root.pendingWallpaper;
-        root.pendingColorsJson = JSON.stringify(out, null, 4) + "\n";
-        root.backupColors();
+        root.applyPalette(out);
     }
 
     function base64(bytes) {
@@ -479,9 +587,10 @@ printf '%s' "$px" | base64 -d >> "$out" || exit 1
             accentMatugenProc.command = [
                 "matugen", "image", root.stateBase + "/swatch.ppm",
                 "-j", "hex",
-                "--type", root.matugenAccentType,
+                "--type", root.styleKey,
                 "--prefer", "saturation",
                 "--mode", root.matugenMode,
+                "--contrast", String(root.contrast),
                 "--dry-run"
             ];
             accentMatugenProc.running = true;

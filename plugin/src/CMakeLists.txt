@@ -10,6 +10,8 @@ qt_add_qml_module(lampshell-services
         serviceref.hpp
         sensors.cpp
         sensors.hpp
+        imagesampler.cpp
+        imagesampler.hpp
         cpu.cpp
         cpu.hpp
         memory.cpp
@@ -28,4 +30,5 @@ target_link_libraries(lampshell-services PRIVATE
     Qt::Core
     Qt::Qml
     Qt::Concurrent
+    Qt::Gui
 )

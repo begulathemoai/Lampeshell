@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Lampshell.Services
 import qs.theme
 import qs.services
 import qs.popups.settings
@@ -11,108 +12,318 @@ PageBase {
     id: root
 
     title: "Appearance"
-    description: "Wallpaper and accent"
+    description: "Customize your palette"
 
     property real hue: 205
     property real saturation: 0.65
     property real lightness: 0.55
 
+    property bool personalised: AccentPalette.isCustom
+
+    property bool pickingFromWallpaper: false
+    property string pendingHex: ""
+
     readonly property color customColor: Qt.hsva(hue / 360, saturation, lightness, 1)
 
-    SettingsCard {
-        title: "Wallpaper"
-        subtitle: ThemeService.hasWallpaper
-            ? ThemeService.currentWallpaper.split("/").pop()
-            : "No wallpaper applied."
+    readonly property string currentSource: AccentPalette.isCustom
+        ? AccentPalette.currentAccentSource
+        : ""
 
-        Column {
+    readonly property color previewColor: AccentPalette.isCustom && currentSource.length > 0
+        ? currentSource
+        : Theme.primary
+
+    function setHue(value) {
+        hue = Math.max(0, Math.min(359, value));
+    }
+
+    function syncFromSource() {
+        if (!AccentPalette.isCustom || currentSource.length !== 7)
+            return;
+        const c = Qt.color(currentSource);
+        hue = c.hsvHue < 0 ? root.hue : c.hsvHue * 360;
+        saturation = c.hsvSaturation;
+        lightness = c.hsvValue;
+    }
+
+    function applyCustomColor(hex) {
+        if (typeof hex === "string" && hex.length === 7)
+            pendingHex = hex;
+        pendingHex = "";
+        AccentPalette.applyCustom(root.customColor);
+    }
+
+    Component.onCompleted: syncFromSource()
+
+    Connections {
+        target: AccentPalette
+        function onCurrentAccentSourceChanged() {
+            root.syncFromSource();
+        }
+    }
+
+    SettingsCard {
+        title: "Theme Colors"
+        subtitle: root.personalised ? "Using custom color" : "Following wallpaper"
+
+        Item {
             width: parent.width
-            spacing: 12
+            height: Math.max(bodyCol.implicitHeight, 64)
 
             Rectangle {
-                width: parent.width
-                height: Math.round(width / 3.2)
+                id: previewChip
+                anchors.right: parent.right
+                width: 44
+                height: 44
                 radius: 14
-                color: Theme.surface_container_highest
-                clip: true
-                border.width: 1
-                border.color: Theme.outline_variant
+                color: root.previewColor
 
-                Image {
-                    id: currentPreview
-                    anchors.fill: parent
-                    asynchronous: true
-                    fillMode: Image.PreserveAspectCrop
-                    sourceSize: Qt.size(560, 175)
-                    source: ThemeService.hasWallpaper ? "file://" + ThemeService.currentWallpaper : ""
-                    opacity: status === Image.Ready ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 160
-                        }
-                    }
-                }
-
-                Rectangle {
-                    anchors.fill: parent
-                    color: Theme.surface_container_highest
-                    visible: currentPreview.status !== Image.Ready
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: ThemeService.hasWallpaper ? "image" : "hide_image"
-                        color: Theme.on_surface_variant
-                        opacity: 0.45
-                        font {
-                            family: "Material Symbols Rounded"
-                            pixelSize: 26
-                        }
-                    }
-                }
+                border.width: root.personalised ? 2 : 0
+                border.color: Theme.on_surface
             }
 
-            Row {
+            Column {
+                id: bodyCol
+                anchors.left: parent.left
+                anchors.right: previewChip.left
+                anchors.rightMargin: 14
+                anchors.top: parent.top
                 spacing: 10
 
-                ActionButton {
-                    text: ThemeService.busy ? "Generating..." : "Choose wallpaper"
-                    icon: "image"
-                    primary: true
-                    enabled: !ThemeService.busy
+                Row {
+                    width: parent.width
+                    spacing: 10
 
-                    onTriggered: root.nState.openSubPage(1)
+                    SegmentedChoice {
+                        width: (parent.width - 10) / 2
+                        label: "Automatic"
+                        icon: "auto_awesome"
+                        active: !root.personalised
+                        onPicked: {
+                            root.personalised = false;
+                            ThemeService.applyWallpaper(ThemeService.currentWallpaper);
+                        }
+                    }
+
+                    SegmentedChoice {
+                        width: (parent.width - 10) / 2
+                        label: "Personnalisé"
+                        icon: "palette"
+                        active: root.personalised
+                        onPicked: root.personalised = true
+                    }
                 }
 
-                ActionButton {
-                    text: "Re-apply colours"
-                    icon: "palette"
-                    enabled: ThemeService.hasWallpaper && !ThemeService.busy
-                    onTriggered: ThemeService.applyWallpaper(ThemeService.currentWallpaper)
-                }
+                Column {
+                    width: parent.width
+                    spacing: 10
+                    visible: root.personalised
 
-                ActionButton {
-                    text: "Revert"
-                    icon: "undo"
-                    enabled: ThemeService.hasWallpaper
-                    onTriggered: ThemeService.revertTheme()
+                    Text {
+                        width: parent.width
+                        text: "Choose how to pick your custom color:"
+                        color: Theme.on_surface_variant
+                        font {
+                            family: "Google Sans"
+                            pixelSize: 11
+                        }
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: 10
+
+                        ActionButton {
+                            width: (parent.width - 10) / 2
+                            text: "From Wallpaper"
+                            icon: "colorize"
+                            enabled: ThemeService.hasWallpaper && !ThemeService.busy
+                            onTriggered: root.pickingFromWallpaper = true
+                        }
+
+                        ActionButton {
+                            width: (parent.width - 10) / 2
+                            text: "Color Picker"
+                            icon: "palette"
+                            enabled: !ThemeService.busy
+                            onTriggered: root.personalised = true
+                        }
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: 62
+                        radius: 16
+                        color: Theme.surface_container_highest
+
+                        Rectangle {
+                            id: chip
+                            anchors.left: parent.left
+                            anchors.leftMargin: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 38
+                            height: 38
+                            radius: 12
+                            color: root.customColor
+                        }
+
+                        Column {
+                            anchors.left: chip.right
+                            anchors.leftMargin: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 1
+
+                            Text {
+                                text: "Selected Color"
+                                color: Theme.on_surface_variant
+                                font {
+                                    family: "Google Sans"
+                                    pixelSize: 11
+                                }
+                            }
+
+                            Text {
+                                text: root.customColor
+                                color: Theme.on_surface
+                                font {
+                                    family: "Google Sans"
+                                    pixelSize: 12
+                                    weight: Font.Medium
+                                }
+                            }
+                        }
+
+                        ActionButton {
+                            anchors.right: parent.right
+                            anchors.rightMargin: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: ThemeService.busy ? "..." : "Apply"
+                            primary: true
+                            enabled: !ThemeService.busy
+                            onTriggered: AccentPalette.applyCustom(root.customColor)
+                        }
+                    }
+
+                    SliderRow {
+                        icon: "palette"
+                        label: "Hue"
+                        from: 0
+                        to: 359
+                        suffix: "°"
+                        value: root.hue
+                        onMoved: function(v) {
+                            root.setHue(v);
+                        }
+                    }
+
+                    SliderRow {
+                        icon: "gradient"
+                        label: "Saturation"
+                        from: 0
+                        to: 100
+                        value: root.saturation * 100
+                        onMoved: function(v) {
+                            root.saturation = v / 100;
+                        }
+                    }
+
+                    SliderRow {
+                        icon: "light_mode"
+                        label: "Brightness"
+                        from: 25
+                        to: 80
+                        value: root.lightness * 100
+                        onMoved: function(v) {
+                            root.lightness = v / 100;
+                        }
+                    }
                 }
             }
+        }
+    }
+
+    SettingsGroup {
+        title: "Theme Style"
+
+        SettingsRow {
+            icon: "palette"
+            label: "Theme Style"
+            description: ThemeService.styleLabel
+            onClicked: root.styleDialog.open = true
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "chevron_right"
+                color: Theme.on_surface_variant
+                font {
+                    family: "Material Symbols Rounded"
+                    pixelSize: 20
+                }
+            }
+        }
+    }
+
+    SettingsGroup {
+        title: "Fine Tuning"
+
+        ToggleRow {
+            icon: "tune"
+            label: "Fidelity"
+            description: "Keep the source colour's hue and saturation"
+            checked: ThemeService.fidelity
+            onToggled: function(checked) {
+                ThemeService.fidelity = checked;
+                ThemeService.regenerate(root.personalised ? root.currentSource : "");
+            }
+        }
+
+        SliderRow {
+            icon: "contrast"
+            label: "Contrast Level"
+            value: (ThemeService.contrast + 1) * 50
+            onMoved: function(v) {
+                ThemeService.contrast = (v - 50) / 50;
+            }
+        }
+
+        SliderRow {
+            icon: "tonality"
+            label: "Chroma Boost"
+            value: ThemeService.chromaPercent
+            onMoved: function(v) {
+                ThemeService.chromaBoost = v / 100;
+            }
+        }
+    }
+
+    Rectangle {
+        width: parent.width
+        height: infoCol.implicitHeight + 32
+        radius: 20
+        color: Theme.surface_container
+
+        Column {
+            id: infoCol
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.margins: 16
+            spacing: 4
 
             Text {
                 width: parent.width
-                visible: ThemeService.lastError.length > 0
-                text: ThemeService.lastError
-                color: Theme.critical
-                wrapMode: Text.WordWrap
+                text: "About Color Customization"
+                color: Theme.on_surface
                 font {
                     family: "Google Sans"
-                    pixelSize: 11
+                    pixelSize: 13
+                    weight: Font.Medium
                 }
             }
 
             Text {
                 width: parent.width
-                text: "The accent above is generated from the wallpaper by matugen. Picking an accent below overrides it until you re-apply a wallpaper."
+                text: "Colour changes apply across the shell and to any app that reads the generated theme file. Adjusting these may change how other apps look."
                 color: Theme.on_surface_variant
                 wrapMode: Text.WordWrap
                 font {
@@ -123,237 +334,117 @@ PageBase {
         }
     }
 
-    SettingsCard {
-        title: "Accent"
-        subtitle: AccentPalette.isCustom
-            ? "Custom " + AccentPalette.currentAccentSource
-            : (AccentPalette.ready
-                ? "Fixed accent: " + AccentPalette.currentAccent
-                : "No accent palettes found.")
-
-        Column {
+    overlay: Item {
+        ChoiceDialog {
+            id: styleDialog
             width: parent.width
-            spacing: 12
-
-            Grid {
-                id: swatchGrid
-                width: parent.width
-                columns: 4
-                spacing: 12
-
-                Repeater {
-                    model: AccentPalette.swatches
-
-                    delegate: Item {
-                        id: swatchTile
-                        required property int index
-
-                        readonly property var swatch: AccentPalette.swatches[index]
-                        readonly property bool isActive: AccentPalette.activeIndex === index
-
-                        width: (swatchGrid.width - 36) / 4
-                        height: 52
-
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: 14
-                            color: swatchTile.swatch.primary
-                            opacity: swatchMouse.containsMouse ? 1.0 : 0.85
-                            scale: swatchMouse.pressed ? 0.94 : 1.0
-                            transformOrigin: Item.Center
-
-                            Behavior on opacity {
-                                NumberAnimation {
-                                    duration: 120
-                                }
-                            }
-                            Behavior on scale {
-                                NumberAnimation {
-                                    duration: 120
-                                }
-                            }
-                        }
-
-                        Rectangle {
-                            anchors.centerIn: parent
-                            width: parent.width + 6
-                            height: parent.height + 6
-                            radius: 17
-                            color: "transparent"
-                            border.width: 2
-                            border.color: Theme.on_surface
-                            visible: swatchTile.isActive
-                        }
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: swatchTile.swatch.name
-                            color: swatchTile.swatch.on
-                            font {
-                                family: "Google Sans"
-                                pixelSize: 11
-                                weight: Font.Medium
-                            }
-                        }
-
-                        MouseArea {
-                            id: swatchMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            enabled: !ThemeService.busy
-                            onClicked: AccentPalette.applyAccent(swatchTile.index)
-                        }
-                    }
-                }
-            }
-
-            Rectangle {
-                width: parent.width
-                height: 1
-                color: Theme.outline_variant
-                opacity: 0.4
-            }
-
-            Row {
-                id: accentInfoRow
-                width: parent.width
-                spacing: 12
-
-                Rectangle {
-                    width: 44
-                    height: 44
-                    radius: 14
-                    color: AccentPalette.isCustom ? AccentPalette.currentAccentSource : Theme.primary_container
-                    border.width: AccentPalette.isCustom ? 2 : 1
-                    border.color: AccentPalette.isCustom ? Theme.on_surface : "transparent"
-
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: parent.width + 6
-                        height: parent.height + 6
-                        radius: 17
-                        color: "transparent"
-                        border.width: 2
-                        border.color: Theme.on_surface
-                        visible: AccentPalette.isCustom
-                    }
-                }
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: Math.max(0, accentInfoRow.width - 56 - accentRevert.width)
-                    text: AccentPalette.isCustom
-                        ? "Custom " + AccentPalette.currentAccentSource
-                        : "No custom colour set. Use the picker below."
-                    color: Theme.on_surface_variant
-                    elide: Text.ElideRight
-                    font {
-                        family: "Google Sans"
-                        pixelSize: 11
-                    }
-                }
-
-                ActionButton {
-                    id: accentRevert
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "Revert"
-                    icon: "undo"
-                    enabled: !ThemeService.busy && (AccentPalette.isCustom || AccentPalette.activeIndex >= 0)
-                    onTriggered: AccentPalette.revert()
-                }
+            height: parent.height
+            title: "Theme Style"
+            model: ThemeService.styles
+            current: ThemeService.styleKey
+            onChosen: function(key) {
+                ThemeService.styleKey = key;
+                ThemeService.regenerate(root.personalised ? root.currentSource : "");
             }
         }
-    }
 
-    SettingsCard {
-        title: "Custom colour"
-        subtitle: "matugen builds a full palette from any colour you pick here, the same way it does for a wallpaper."
+        Rectangle {
+            id: wallpaperPicker
+            anchors.fill: parent
+            visible: root.pickingFromWallpaper
+            color: Qt.rgba(0, 0, 0, 0.72)
 
-        Column {
-            width: parent.width
-            spacing: 8
+            Image {
+                id: wallImage
+                anchors.fill: parent
+                anchors.margins: 28
+                source: ThemeService.hasWallpaper ? "file://" + ThemeService.currentWallpaper : ""
+                asynchronous: true
+                fillMode: Image.PreserveAspectFit
 
-            Rectangle {
-                width: parent.width
-                height: 56
-                radius: 14
-                color: root.customColor
-                border.width: 1
-                border.color: Theme.outline
+                Rectangle {
+                    id: sampleMark
+                    visible: wallImage.status === Image.Ready && root.pendingHex.length > 0
+                    width: 34
+                    height: 34
+                    radius: 17
+                    color: "transparent"
+                    border.width: 3
+                    border.color: Theme.on_surface
+                    x: (wallImage.paintedWidth - width) / 2
+                    y: (wallImage.paintedHeight - height) / 2
+                }
 
-                Text {
-                    anchors.centerIn: parent
-                    text: root.customColor
-                    color: Theme.on(root.customColor)
-                    font {
-                        family: "Google Sans"
-                        pixelSize: 14
-                        weight: Font.Medium
+                MouseArea {
+                    anchors.fill: parent
+                    enabled: wallImage.status === Image.Ready
+                    cursorShape: Qt.CrossCursor
+                    onClicked: function(mouse) {
+                        const w = wallImage.paintedWidth;
+                        const h = wallImage.paintedHeight;
+                        const fx = (mouse.x - (wallImage.width - w) / 2) / Math.max(1, w);
+                        const fy = (mouse.y - (wallImage.height - h) / 2) / Math.max(1, h);
+                        if (fx < 0 || fx > 1 || fy < 0 || fy > 1)
+                            return;
+                        const hex = ImageSampler.sampleAtFraction(fx, fy);
+                        if (hex.length !== 7)
+                            return;
+                        root.pendingHex = hex;
+                        const c = Qt.color(hex);
+                        root.hue = c.hsvHue < 0 ? root.hue : c.hsvHue * 360;
+                        root.saturation = c.hsvSaturation;
+                        root.lightness = c.hsvValue;
                     }
                 }
             }
 
-            SliderRow {
-                icon: "palette"
-                label: "Hue"
-                from: 0
-                to: 360
-                suffix: "\u00b0"
-                value: root.hue
-                onMoved: function(v) {
-                    root.hue = v;
+            Text {
+                anchors.centerIn: parent
+                text: "Pick from Wallpaper"
+                color: Theme.on_surface
+                font {
+                    family: "Google Sans"
+                    pixelSize: 20
+                    weight: Font.Medium
                 }
             }
 
-            SliderRow {
-                icon: "gradient"
-                label: "Saturation"
-                from: 0
-                to: 100
-                value: root.saturation * 100
-                onMoved: function(v) {
-                    root.saturation = v / 100;
-                }
-            }
-
-            SliderRow {
-                icon: "light_mode"
-                label: "Lightness"
-                from: 25
-                to: 80
-                value: root.lightness * 100
-                onMoved: function(v) {
-                    root.lightness = v / 100;
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: parent.top
+                anchors.topMargin: 40
+                visible: root.pendingHex.length > 0
+                text: "Selected Color:  " + root.pendingHex
+                color: Theme.on_surface
+                font {
+                    family: "Google Sans"
+                    pixelSize: 14
                 }
             }
 
             ActionButton {
-                width: parent.width
-                text: ThemeService.busy ? "Generating..." : "Apply custom colour"
-                icon: "check"
-                primary: true
-                enabled: !ThemeService.busy
-                onTriggered: AccentPalette.applyCustom(root.customColor)
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 36
+                text: "Cancel"
+                onTriggered: {
+                    root.pendingHex = "";
+                    root.pickingFromWallpaper = false;
+                }
             }
-        }
-    }
 
-    SectionHeader {
-        text: "How the accent is chosen"
-        description: "A wallpaper and a custom colour are treated the same way: matugen extracts a source colour and builds a complete Material 3 scheme from it in dark mode, and the result is written to theme/colors.json. Theme.qml watches that file, so every change applies live without reloading the shell. The fixed accents are the same palettes, pre-generated by scripts/generate-accents so switching to one is instant. Terminal colours are derived from whichever palette is active."
-    }
-
-    SettingsGroup {
-        title: "Overlay effects"
-        description: "Applies the shell's own blur and fade to its overlay windows. Turn off to stop the shell touching those layers; your compositor's own rules take over once it reloads."
-
-        ToggleRow {
-            icon: "animation"
-            label: "Managed by Lampshell"
-            checked: SettingsStore.get("overlayEffectsManaged") === true
-            onToggled: function(checked) {
-                SettingsStore.set("overlayEffectsManaged", checked);
+            ActionButton {
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 36
+                visible: root.pendingHex.length > 0
+                text: "Apply"
+                primary: true
+                onTriggered: {
+                    AccentPalette.applyCustom(root.pendingHex);
+                    root.pendingHex = "";
+                    root.pickingFromWallpaper = false;
+                }
             }
         }
     }

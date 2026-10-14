@@ -15,6 +15,7 @@ Item {
     readonly property bool showBack: nState.subPageIdxStack.length > 0
 
     default property alias body: content.data
+    property alias overlay: overlayLayer.data
 
     implicitHeight: header.implicitHeight + 18 + flick.contentHeight
 
@@ -115,5 +116,11 @@ Item {
             width: flick.contentWidth
             spacing: 18
         }
+    }
+
+    Item {
+        id: overlayLayer
+        anchors.fill: parent
+        z: 100
     }
 }
