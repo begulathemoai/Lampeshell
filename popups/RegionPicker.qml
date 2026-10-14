@@ -90,36 +90,38 @@ Variants {
         }
 
         function save() {
-            const rect = Qt.rect(Math.ceil(picker.rsx), Math.ceil(picker.rsy),
-                Math.floor(picker.sw), Math.floor(picker.sh));
+            const rx = Math.ceil(picker.rsx);
+            const ry = Math.ceil(picker.rsy);
+            const rw = Math.floor(picker.sw);
+            const rh = Math.floor(picker.sh);
+
+            if (!(rw > 0 && rh > 0)) {
+                RegionPick.finish(null);
+                return;
+            }
+
             const target = RegionPick.freeze ? frozen : liveLoader.item;
             if (!target) {
                 RegionPick.finish(null);
                 return;
             }
+
             target.grabToImage(function(result) {
-                if (!result || result.image.width <= 0) {
+                if (!result) {
                     RegionPick.finish(null);
                     return;
                 }
-                const img = result.image;
-                const sx = img.width / Math.max(1, target.width);
-                const sy = img.height / Math.max(1, target.height);
-                const crop = Qt.rect(
-                    Math.round(rect.x * sx),
-                    Math.round(rect.y * sy),
-                    Math.round(rect.width * sx),
-                    Math.round(rect.height * sy));
+
+                const scale = picker.pxScale > 0 ? picker.pxScale : 1;
+
                 result.saveToFile("file://" + picker.shotPath);
                 RegionPick.finish({
                     path: picker.shotPath,
                     out: RegionPick.outPath,
-                    x: crop.x,
-                    y: crop.y,
-                    w: crop.width,
-                    h: crop.height,
-                    imgW: img.width,
-                    imgH: img.height
+                    x: Math.round(rx * scale),
+                    y: Math.round(ry * scale),
+                    w: Math.round(rw * scale),
+                    h: Math.round(rh * scale)
                 });
             });
         }

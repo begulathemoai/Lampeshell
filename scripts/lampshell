@@ -661,7 +661,13 @@ case "${1:-help}" in
 
                 shot=$(printf '%s' "$sel" | jq -r '.path // empty')
                 read -r cx cy cw ch <<<"$(printf '%s' "$sel" | jq -r '"\(.x) \(.y) \(.w) \(.h)"')"
-                if [ -z "$shot" ] || [ -z "$cw" ] || [ "$cw" -le 0 ] || [ "$ch" -le 0 ]; then
+                case "${cx:-}${cy:-}${cw:-}${ch:-}" in
+                    ''|*[!0-9]*)
+                        err "the picker returned an unusable region (x=${cx:-} y=${cy:-} w=${cw:-} h=${ch:-})"
+                        exit 1
+                        ;;
+                esac
+                if [ -z "$shot" ] || [ "$cw" -le 0 ] || [ "$ch" -le 0 ]; then
                     err "empty selection"
                     exit 1
                 fi
