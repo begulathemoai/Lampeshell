@@ -100,7 +100,7 @@ Variants {
                 return;
             }
 
-            const target = RegionPick.freeze ? frozen : liveLoader.item;
+            const target = RegionPick.freeze ? frozenLoader.item : liveLoader.item;
             if (!target) {
                 RegionPick.finish(null);
                 return;
@@ -143,17 +143,14 @@ Variants {
             picker.dragging = false;
             picker.releaseCaptureActive = false;
             liveLoader.active = false;
+            frozenLoader.active = RegionPick.freeze;
             picker.resetSelection();
             Qt.callLater(function() {
                 surface.forceActiveFocus();
                 cursorProc.running = true;
             });
 
-            if (RegionPick.freeze) {
-                Qt.callLater(function() {
-                    frozen.captureFrame();
-                });
-            }
+
         }
 
         Process {
@@ -172,17 +169,24 @@ Variants {
             }
         }
 
-        ScreencopyView {
-            id: frozen
+        Loader {
+            id: frozenLoader
             anchors.fill: parent
+            active: false
+            asynchronous: true
             visible: RegionPick.freeze && picker.picking
-            captureSource: picker.screen
-            live: false
-            paintCursor: false
 
-            onHasContentChanged: {
-                if (hasContent && picker.releaseCaptureActive)
-                    picker.save();
+            sourceComponent: ScreencopyView {
+                id: frozen
+                anchors.fill: parent
+                captureSource: picker.screen
+                live: false
+                paintCursor: false
+
+                onHasContentChanged: {
+                    if (hasContent && picker.releaseCaptureActive)
+                        picker.save();
+                }
             }
         }
 
@@ -317,7 +321,7 @@ Variants {
                     picker.releaseCaptureActive = true;
 
                     if (RegionPick.freeze) {
-                        if (frozen.hasContent)
+                        if (frozenLoader.item && frozenLoader.item.hasContent)
                             picker.save();
                     } else {
                         liveLoader.active = true;
