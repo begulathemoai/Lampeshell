@@ -3,6 +3,7 @@
 set -euo pipefail
 
 REPO_URL="https://github.com/l6t9/lampshell.git"
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 CONFIG_NAME="lampshell"
 QS_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell"
 TARGET="$QS_DIR/$CONFIG_NAME"
@@ -188,8 +189,46 @@ if [ "$AUTO_START" -eq 1 ]; then
     fi
 fi
 
+install_update_hook() {
+    local updater="/usr/local/bin/lampshell-git-update"
+    local hookdir="/usr/share/libalpm/hooks"
+    local hook="$hookdir/90-lampshell.hook"
+
+    if [ ! -d "$hookdir" ]; then
+        warn "no pacman hook directory, skipping"
+        warn "run 'lampshell update' yourself to pull changes"
+        return 0
+    fi
+
+    if [ "$DRY_RUN" -eq 1 ]; then
+        printf '  [dry-run] would install %s and %s\n' "$updater" "$hook"
+        return 0
+    fi
+
+    as_root install -Dm755 "$SCRIPT_DIR/lampshell-git-update" "$updater"
+    as_root install -Dm644 "$SCRIPT_DIR/lampshell-pacman-hook.hook" "$hook"
+
+    say "every pacman transaction will now pull and rebuild Lampshell"
+    printf '  that covers %s and %s\n' "cachy-update" "paru -Syu"
+}
+
 printf '\n'
 say "done"
 if [ "$DRY_RUN" -eq 0 ]; then
     printf '  \033[1mlampshell status\033[0m to check on it, \033[1mlampshell update\033[0m to pull changes\n'
 fi
+
+printf '\n'
+if [ "$DRY_RUN" -eq 1 ]; then
+    reply="y"
+elif [ -t 0 ]; then
+    printf 'Let system updates keep Lampshell current, so you never have to run\n'
+    printf 'lampshell update yourself? [Y/n] '
+    read -r reply
+else
+    reply="n"
+fi
+case "$reply" in
+    [nN] | [nN][oO]) printf '  skipped\n' ;;
+    *) install_update_hook ;;
+esac

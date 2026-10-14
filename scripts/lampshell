@@ -253,10 +253,10 @@ case "${1:-help}" in
         after=$(git -C "$REPO_DIR" rev-parse --short HEAD)
         if [ "${before:0:7}" = "$after" ]; then
             echo "lampshell: already up to date"
-        else
-            echo "lampshell: updated ${before:0:7} -> $after"
+            exit 0
         fi
 
+        echo "lampshell: updated ${before:0:7} -> $after"
         echo "lampshell: checking whether the plugin needs rebuilding"
         build_plugin || exit 1
 
