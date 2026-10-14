@@ -25,6 +25,15 @@ PageBase {
     property real sampleX: 0.5
     property real sampleY: 0.5
 
+    readonly property real cardAspect: ImageSampler.imageWidth > 0 && ImageSampler.imageHeight > 0
+        ? ImageSampler.imageWidth / ImageSampler.imageHeight
+        : 16 / 9
+
+    function loadSampler() {
+        if (ThemeService.hasWallpaper)
+            ImageSampler.load("file://" + ThemeService.currentWallpaper);
+    }
+
     readonly property color customColor: Qt.hsva(hue / 360, saturation, lightness, 1)
 
     readonly property string currentSource: AccentPalette.isCustom
@@ -55,12 +64,22 @@ PageBase {
         AccentPalette.applyCustom(root.customColor);
     }
 
-    Component.onCompleted: syncFromSource()
+    Component.onCompleted: {
+        syncFromSource();
+        root.loadSampler();
+    }
 
     Connections {
         target: AccentPalette
         function onCurrentAccentSourceChanged() {
             root.syncFromSource();
+        }
+    }
+
+    Connections {
+        target: ThemeService
+        function onCurrentWallpaperChanged() {
+            root.loadSampler();
         }
     }
 
@@ -363,17 +382,32 @@ PageBase {
             visible: root.pickingFromWallpaper
             color: Qt.rgba(0, 0, 0, 0.78)
 
-            Rectangle {
+            MouseArea {
                 anchors.fill: parent
-                anchors.margins: 24
+                onClicked: {
+                    root.pendingHex = "";
+                    root.pickingFromWallpaper = false;
+                }
+            }
+
+            Rectangle {
+                id: pickerCard
+                anchors.centerIn: parent
+                width: Math.min(parent.width - 64, 780)
+                height: Math.min(parent.height - 48, width / root.cardAspect + 116)
                 radius: 24
                 color: Theme.surface_container_low
+                border.width: 1
+                border.color: Theme.outline_variant
                 clip: true
 
                 Image {
                     id: wallImage
-                    anchors.fill: parent
-                    anchors.margins: 12
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    height: Math.max(1, width / root.cardAspect)
+                    anchors.margins: 0
                     source: ThemeService.hasWallpaper ? "file://" + ThemeService.currentWallpaper : ""
                     asynchronous: true
                     fillMode: Image.PreserveAspectFit
@@ -418,8 +452,8 @@ PageBase {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.top: parent.top
-                    anchors.topMargin: 22
+                    anchors.bottom: wallImage.bottom
+                    anchors.bottomMargin: 20
                     text: "Pick from Wallpaper"
                     color: Theme.on_surface
                     font {
@@ -429,34 +463,12 @@ PageBase {
                     }
                 }
 
-                MouseArea {
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.margins: 10
-                    width: 38
-                    height: 38
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        root.pendingHex = "";
-                        root.pickingFromWallpaper = false;
-                    }
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "close"
-                        color: Theme.on_surface_variant
-                        font {
-                            family: "Material Symbols Rounded"
-                            pixelSize: 20
-                        }
-                    }
-                }
             }
 
             Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 34
+                anchors.top: pickerCard.bottom
+                anchors.topMargin: 16
                 width: Math.min(parent.width - 72, 430)
                 height: 76
                 radius: 20
