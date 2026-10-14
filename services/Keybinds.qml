@@ -241,6 +241,120 @@ Singleton {
         return binds.join(", ");
     }
 
+    readonly property var modifierList: ["SUPER", "CTRL", "SHIFT", "ALT"]
+
+    readonly property var keyGroups: [
+        {
+            title: "Letters",
+            keys: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+                "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
+        },
+        {
+            title: "Numbers",
+            keys: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+        },
+        {
+            title: "Function",
+            keys: ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12"]
+        },
+        {
+            title: "Movement",
+            keys: ["Left", "Right", "Up", "Down", "Home", "End", "Page_Up", "Page_Down"]
+        },
+        {
+            title: "Editing",
+            keys: ["Space", "Return", "Escape", "TAB", "Backspace", "Delete", "Insert", "Print"]
+        },
+        {
+            title: "Punctuation",
+            keys: ["Minus", "Equal", "BracketLeft", "BracketRight", "Backslash", "Semicolon",
+                "Apostrophe", "Grave", "Comma", "Period", "Slash"]
+        },
+        {
+            title: "Media",
+            keys: ["XF86AudioPlay", "XF86AudioPause", "XF86AudioStop", "XF86AudioPrev",
+                "XF86AudioNext", "XF86AudioRaiseVolume", "XF86AudioLowerVolume",
+                "XF86AudioMute", "XF86MonBrightnessUp", "XF86MonBrightnessDown"]
+        },
+        {
+            title: "Mouse",
+            keys: ["mouse_down", "mouse_up", "mouse_left", "mouse_right",
+                "mouse_wheel_up", "mouse_wheel_down"]
+        }
+    ]
+
+    function splitList(text) {
+        if (!text)
+            return [];
+        return String(text).split(",").map(s => s.trim()).filter(s => s.length > 0);
+    }
+
+    function partsOf(combo) {
+        const parts = String(combo ?? "").split("+").map(s => s.trim()).filter(s => s.length > 0);
+        return {
+            mods: parts.slice(0, -1),
+            key: parts.length > 0 ? parts[parts.length - 1] : ""
+        };
+    }
+
+    function compose(mods, key) {
+        if (!key || key.length === 0)
+            return "";
+
+        const list = Array.isArray(mods) ? mods.slice() : [];
+        const out = [];
+
+        for (const m of modifierList) {
+            if (list.indexOf(m) >= 0)
+                out.push(m);
+        }
+
+        for (const m of list) {
+            if (modifierList.indexOf(m) < 0)
+                out.push(m);
+        }
+
+        out.push(key);
+        return out.join(" + ");
+    }
+
+    function normalise(combo) {
+        const p = root.partsOf(combo);
+        return root.compose(p.mods, p.key);
+    }
+
+    function joinList(list) {
+        if (!list || list.length === 0)
+            return "";
+        return list.filter(s => String(s).length > 0).join(", ");
+    }
+
+    function conflictsFor(combo, exceptKey) {
+        const target = root.normalise(combo);
+        if (target.length === 0)
+            return [];
+
+        const hits = [];
+
+        for (const key of root.order) {
+            if (key === exceptKey)
+                continue;
+
+            const binds = root.bindings[key];
+            if (!binds)
+                continue;
+
+            for (const b of binds) {
+                if (root.normalise(b) === target) {
+                    hits.push(key);
+                    break;
+                }
+            }
+        }
+
+        return hits;
+    }
+
     function labelFor(key) {
         return root.labels[key] ?? key;
     }

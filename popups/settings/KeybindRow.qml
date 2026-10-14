@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import qs.theme
+import qs.services
 
 Item {
     id: root
@@ -9,8 +10,11 @@ Item {
     property string bindText: ""
     property bool isFirst: true
     property bool isLast: true
+    property string bindKey: ""
+    property var clashes: []
 
     signal edited(string text)
+    signal picked()
 
     function setGroupShape(first, last) {
         root.isFirst = first;
@@ -19,8 +23,6 @@ Item {
 
     readonly property real outerRadius: Layout.connectedOuterRadius
     readonly property real innerRadius: Layout.connectedInnerRadius
-
-    readonly property bool invalid: bindInput.text.length > 0 && /["'\\{}#;\n\r]/.test(bindInput.text)
 
     width: parent ? parent.width : 0
     implicitHeight: Layout.rowMinHeight
@@ -52,15 +54,20 @@ Item {
 
     Rectangle {
         id: field
+
         anchors.right: parent.right
         anchors.rightMargin: 12
         anchors.verticalCenter: parent.verticalCenter
         width: Math.max(150, Math.min(300, parent.width * 0.36))
         height: 38
         radius: 19
-        color: Theme.surface_container_highest
-        border.width: bindInput.activeFocus ? 2 : 1
-        border.color: root.invalid ? Theme.critical : (bindInput.activeFocus ? Theme.primary : Theme.outline_variant)
+        color: fieldMouse.containsMouse
+            ? Theme.surface_container_high
+            : Theme.surface_container_highest
+        border.width: root.clashes.length > 0 ? 2 : 1
+        border.color: root.clashes.length > 0
+            ? Theme.critical
+            : (fieldMouse.containsMouse ? Theme.primary : Theme.outline_variant)
 
         Behavior on border.color {
             ColorAnimation {
@@ -68,22 +75,48 @@ Item {
             }
         }
 
-        TextInput {
-            id: bindInput
-            anchors.fill: parent
+        Row {
+            anchors.left: parent.left
             anchors.leftMargin: 14
-            anchors.rightMargin: 14
-            verticalAlignment: TextInput.AlignVCenter
-            text: root.bindText
-            color: Theme.on_surface
-            selectionColor: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.4)
-            selectedTextColor: Theme.on_primary
-            font {
-                family: Layout.fontSans
-                pixelSize: 13
-            }
+            anchors.right: hint.left
+            anchors.rightMargin: 8
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 8
 
-            onTextChanged: root.edited(text)
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                width: Math.min(implicitWidth, field.width - 90)
+                text: root.bindText.length > 0 ? root.bindText : "Unbound"
+                color: root.bindText.length > 0 ? Theme.on_surface : Theme.on_surface_variant
+                elide: Text.ElideRight
+                font {
+                    family: Layout.fontSans
+                    pixelSize: 13
+                }
+            }
+        }
+
+        Text {
+            id: hint
+
+            anchors.right: parent.right
+            anchors.rightMargin: 14
+            anchors.verticalCenter: parent.verticalCenter
+            text: root.clashes.length > 0 ? "conflict" : "tune"
+            color: root.clashes.length > 0 ? Theme.critical : Theme.on_surface_variant
+            opacity: 0.75
+            font {
+                family: root.clashes.length > 0 ? Layout.fontSans : Layout.fontIcons
+                pixelSize: root.clashes.length > 0 ? 11 : 14
+            }
+        }
+
+        MouseArea {
+            id: fieldMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.picked()
         }
     }
 }

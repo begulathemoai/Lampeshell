@@ -13,6 +13,35 @@ PageBase {
 
     property var drafts: ({})
 
+    function textFor(key) {
+        if (Object.prototype.hasOwnProperty.call(root.drafts, key))
+            return root.drafts[key];
+        return Keybinds.textFor(key);
+    }
+
+    function clashKeys() {
+        const seen = {};
+        const clashes = {};
+
+        for (const key of Keybinds.order) {
+            for (const combo of Keybinds.splitList(root.textFor(key))) {
+                const norm = Keybinds.normalise(combo);
+                if (norm.length === 0)
+                    continue;
+                if (seen[norm] === undefined)
+                    seen[norm] = key;
+                else {
+                    clashes[key] = true;
+                    clashes[seen[norm]] = true;
+                }
+            }
+        }
+
+        return clashes;
+    }
+
+    readonly property var clashes: root.clashKeys()
+
     function markDraft(key, text) {
         const next = Object.assign({}, root.drafts);
         next[key] = text;
@@ -44,9 +73,22 @@ PageBase {
         Toaster.toastInfo("Keybinds reverted", "Reloaded from disk", "undo");
     }
 
+    KeybindPickerSheet {
+        id: picker
+
+        parent: root.dialogAnchor
+
+        onApplied: text => {
+            root.markDraft(picker.bindKey, text);
+            root.nState.overlayOpen = false;
+        }
+
+        onDismissed: root.nState.overlayOpen = false
+    }
+
     SettingsCard {
         title: "Your keybinds"
-        subtitle: "Edits are written to " + Keybinds.path + " and Hyprland is reloaded."
+        subtitle: "Click a bind to change it. Edits are written to " + Keybinds.path + " and Hyprland is reloaded."
 
         Row {
             spacing: 10
@@ -91,7 +133,7 @@ PageBase {
 
     SettingsGroup {
         title: "How binds are written"
-        description: "Separate several keybinds for one action with commas, for example SUPER + K, CTRL + SUPER + K. Modifiers are SUPER, CTRL, ALT and SHIFT."
+        description: "Click any bind to build it from modifier and key chips. Separate several keybinds for one action with the plus another chip."
 
         InfoRow {
             label: "Config file"
@@ -100,6 +142,34 @@ PageBase {
         InfoRow {
             label: "Keybinds found"
             value: String(Keybinds.order.length)
+        }
+    }
+
+    Rectangle {
+        width: parent.width
+        height: clashText.implicitHeight + 24
+        radius: 20
+        visible: Object.keys(root.clashes).length > 0
+        color: Qt.rgba(Theme.critical.r, Theme.critical.g, Theme.critical.b, 0.12)
+        border.width: 1
+        border.color: Theme.critical
+
+        Text {
+            id: clashText
+
+            anchors.left: parent.left
+            anchors.leftMargin: 16
+            anchors.right: parent.right
+            anchors.rightMargin: 16
+            anchors.verticalCenter: parent.verticalCenter
+            text: Object.keys(root.clashes).length + " action(s) share the same combination. "
+                + "Hyprland uses the last one, so the others will never fire."
+            color: Theme.critical
+            wrapMode: Text.WordWrap
+            font {
+                family: Layout.fontSans
+                pixelSize: 12
+            }
         }
     }
 
@@ -122,10 +192,15 @@ PageBase {
                     required property int index
 
                     label: Keybinds.labelFor(modelData)
-                    bindText: Keybinds.textFor(modelData)
+                    bindKey: modelData
+                    bindText: root.textFor(modelData)
+                    clashes: Object.prototype.hasOwnProperty.call(root.clashes, modelData) ? ["1"] : []
                     isFirst: index === 0
                     isLast: index === inner.count - 1
-                    onEdited: text => root.markDraft(modelData, text)
+                    onPicked: {
+                        root.nState.overlayOpen = true;
+                        picker.openFor(modelData, Keybinds.labelFor(modelData), root.textFor(modelData));
+                    }
                 }
             }
         }
