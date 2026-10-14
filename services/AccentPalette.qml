@@ -35,7 +35,12 @@ Item {
 
     readonly property string currentAccent: (Theme.accent ?? "").toLowerCase()
     readonly property bool isCustom: currentAccent === "custom"
-    readonly property string currentAccentSource: Theme.accentSource ?? ""
+    readonly property string currentAccentSource: {
+        const raw = (Theme.accentSource ?? "").toString().trim();
+        if (raw.length === 6)
+            return "#" + raw;
+        return raw;
+    }
 
     readonly property int activeIndex: {
         for (let i = 0; i < root.swatches.length; i++) {

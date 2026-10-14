@@ -40,9 +40,7 @@ PageBase {
         ? AccentPalette.currentAccentSource
         : ""
 
-    readonly property color previewColor: AccentPalette.isCustom && currentSource.length > 0
-        ? currentSource
-        : Theme.primary
+    readonly property color previewColor: currentSource.length === 7 ? currentSource : Theme.primary
 
     function setHue(value) {
         hue = Math.max(0, Math.min(359, value));

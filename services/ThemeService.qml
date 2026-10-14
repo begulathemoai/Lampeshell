@@ -344,7 +344,7 @@ find "$dir" -maxdepth 3 -type f \\
         busy = true;
         lastError = "";
         pendingAccentName = name && name.length > 0 ? name : "custom";
-        pendingAccentSource = cleaned;
+        pendingAccentSource = "#" + cleaned;
 
         const rgb = [
             parseInt(cleaned.slice(0, 2), 16),
