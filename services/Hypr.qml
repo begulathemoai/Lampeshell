@@ -62,19 +62,22 @@ Singleton {
         if (managed)
             root.neutralApplied = false;
 
-        const rule = managed
-            ? `no_anim = false, blur = true, animation = "fade"`
-            : `no_anim = false, blur = false, animation = "none"`;
+        const animation = managed ? "fade" : "none";
+        const namespaces = [
+            { ns: "launcher_overlay", blur: true },
+            { ns: "clipboard_overlay", blur: false },
+            { ns: "emoji_overlay", blur: false }
+        ];
 
-        const namespaces = ["launcher_overlay", "clipboard_overlay", "emoji_overlay"];
         for (let i = 0; i < namespaces.length; i++) {
-            const ns = namespaces[i];
+            const entry = namespaces[i];
+            const blur = managed && entry.blur;
+            const rule = `no_anim = false, blur = ${blur}, animation = "${animation}"`;
+
             if (usingLua)
-                Quickshell.execDetached(["hyprctl", "eval", `hl.layer_rule({ match = { namespace = "${ns}" }, ${rule} })`]);
-            else if (managed)
-                Quickshell.execDetached(["hyprctl", "keyword", `layerrule blur, 1, animation, fade, match:namespace ${ns}`]);
+                Quickshell.execDetached(["hyprctl", "eval", `hl.layer_rule({ match = { namespace = "${entry.ns}" }, ${rule} })`]);
             else
-                Quickshell.execDetached(["hyprctl", "keyword", `layerrule blur, 0, animation, none, match:namespace ${ns}`]);
+                Quickshell.execDetached(["hyprctl", "keyword", `layerrule blur, ${blur ? 1 : 0}, animation, ${animation}, match:namespace ${entry.ns}`]);
         }
 
         if (!managed)
