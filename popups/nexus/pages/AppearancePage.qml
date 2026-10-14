@@ -380,7 +380,7 @@ PageBase {
             id: wallpaperPicker
             anchors.fill: parent
             visible: root.pickingFromWallpaper
-            color: Qt.rgba(0, 0, 0, 0.8)
+            color: "transparent"
 
             MouseArea {
                 anchors.fill: parent
@@ -420,31 +420,6 @@ PageBase {
                             family: "Google Sans"
                             pixelSize: 16
                             weight: Font.Medium
-                        }
-                    }
-
-                    MouseArea {
-                        id: closeArea
-                        anchors.right: parent.right
-                        anchors.rightMargin: 12
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 38
-                        height: 38
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            root.pendingHex = "";
-                            root.pickingFromWallpaper = false;
-                        }
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "close"
-                            color: closeArea.containsMouse ? Theme.on_surface : Theme.on_surface_variant
-                            font {
-                                family: "Material Symbols Rounded"
-                                pixelSize: 20
-                            }
                         }
                     }
                 }
