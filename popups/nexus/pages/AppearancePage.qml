@@ -32,6 +32,36 @@ PageBase {
         ? ImageSampler.imageWidth / ImageSampler.imageHeight
         : 16 / 9
 
+    function applySample(fx, fy, hex) {
+        if (hex.length !== 7)
+            return;
+
+        sampleX = fx;
+        sampleY = fy;
+        pendingHex = hex;
+
+        const c = Qt.color(hex);
+        hue = c.hsvHue < 0 ? hue : c.hsvHue * 360;
+        saturation = c.hsvSaturation;
+        lightness = c.hsvValue;
+    }
+
+    function sampleAtPointer(mouse, img) {
+        if (!img)
+            return;
+        const w = img.drawW;
+        const h = img.drawH;
+        if (w <= 0 || h <= 0)
+            return;
+
+        const fx = (mouse.x - (img.width - w) / 2) / w;
+        const fy = (mouse.y - (img.height - h) / 2) / h;
+        if (fx < 0 || fx > 1 || fy < 0 || fy > 1)
+            return;
+
+        root.applySample(fx, fy, ImageSampler.sampleAtFraction(fx, fy));
+    }
+
     function loadSampler() {
         if (ThemeService.hasWallpaper)
             ImageSampler.load("file://" + ThemeService.currentWallpaper);
@@ -454,24 +484,15 @@ PageBase {
                     MouseArea {
                         anchors.fill: parent
                         enabled: wallImage.status === Image.Ready
+                        hoverEnabled: true
                         cursorShape: Qt.CrossCursor
-                        onClicked: function(mouse) {
-                            const w = wallImage.drawW;
-                            const h = wallImage.drawH;
-                            const fx = (mouse.x - (wallImage.width - w) / 2) / Math.max(1, w);
-                            const fy = (mouse.y - (wallImage.height - h) / 2) / Math.max(1, h);
-                            if (fx < 0 || fx > 1 || fy < 0 || fy > 1)
-                                return;
-                            const hex = ImageSampler.sampleAtFraction(fx, fy);
-                            if (hex.length !== 7)
-                                return;
-                            root.sampleX = fx;
-                            root.sampleY = fy;
-                            root.pendingHex = hex;
-                            const c = Qt.color(hex);
-                            root.hue = c.hsvHue < 0 ? root.hue : c.hsvHue * 360;
-                            root.saturation = c.hsvSaturation;
-                            root.lightness = c.hsvValue;
+                        preventStealing: true
+                        onPressed: function(mouse) {
+                            root.sampleAtPointer(mouse, wallImage);
+                        }
+                        onPositionChanged: function(mouse) {
+                            if (pressed)
+                                root.sampleAtPointer(mouse, wallImage);
                         }
                     }
                 }
