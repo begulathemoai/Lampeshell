@@ -45,7 +45,13 @@ PanelWindow {
         PanelState.screenName = quickSettingsWindow.screen
             ? quickSettingsWindow.screen.name
             : "";
-        PanelState.setContentSize(quickSettingsWindow.width, content.implicitHeight + 36);
+        const height = content.implicitHeight + 36;
+        if (!quickSettingsWindow.shown && !quickSettingsWindow.visible) {
+            PanelState.panelWidth = quickSettingsWindow.width;
+            PanelState.cardHeight = height;
+            return;
+        }
+        PanelState.setContentSize(quickSettingsWindow.width, height);
     }
 
     onWidthChanged: publishGeometry()
@@ -56,6 +62,9 @@ PanelWindow {
         quickSettingsBackend.refreshBrightness();
         quickSettingsWindow.openedAt = Date.now();
         quickSettingsWindow.targetScreen = quickSettingsWindow.screenForFocus();
+        PanelState.panelWidth = quickSettingsWindow.width;
+        PanelState.cardHeight = content.implicitHeight + 36;
+        PanelState.progress = 0;
         quickSettingsWindow.settling = true;
         settleTimer.restart();
         quickSettingsWindow.visible = true;
@@ -129,8 +138,11 @@ PanelWindow {
         id: hideWhenDone
         interval: 460
         onTriggered: {
-            if (!quickSettingsWindow.shown)
+            if (!quickSettingsWindow.shown) {
                 quickSettingsWindow.visible = false;
+                PanelState.progress = 0;
+                PanelState.cardHeight = content.implicitHeight + 36;
+            }
         }
     }
 
