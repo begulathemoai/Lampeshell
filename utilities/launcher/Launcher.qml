@@ -209,7 +209,6 @@ PanelWindow {
         launcherWindow.shown = true;
         publishGeometry();
         launcherWindow.visible = true;
-        ctrl.searchText = "";
         Qt.callLater(function() {
             focusGrab.active = true;
             contentRoot.focusSearch();
@@ -221,7 +220,6 @@ PanelWindow {
             return;
         launcherWindow.shown = false;
         focusGrab.active = false;
-        ctrl.searchText = "";
         hideWhenDone.restart();
     }
 
@@ -317,8 +315,10 @@ PanelWindow {
                         listView.decrementCurrentIndex();
                         event.accepted = true;
                     } else if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
-                        if (listView.currentItem)
+                        if (listView.currentItem) {
                             listView.currentItem.launch();
+                            ctrl.searchText = "";
+                        }
                         event.accepted = true;
                     }
                 }
@@ -495,7 +495,7 @@ PanelWindow {
                         radius: height / 2
                         color: Theme.surface_container
                     }
-
+                    text: ctrl.searchText
                     onTextChanged: {
                         ctrl.searchText = text;
                         listView.currentIndex = 0;
@@ -505,8 +505,10 @@ PanelWindow {
 
                     Keys.onPressed: event => {
                         if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
-                            if (listView.currentItem)
+                            if (listView.currentItem) {
                                 listView.currentItem.launch();
+                                ctrl.searchText = "";
+                            }
                             event.accepted = true;
                         } else if (event.key === Qt.Key_Down) {
                             listView.incrementCurrentIndex();
