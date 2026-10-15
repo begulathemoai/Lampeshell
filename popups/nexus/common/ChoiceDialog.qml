@@ -8,11 +8,24 @@ Item {
     property var model: []
     property string current: ""
     property string checkIcon: "check"
+    property bool searchable: false
+    property string query: ""
+    readonly property var filteredModel: {
+        if (!root.searchable || root.query.trim().length === 0)
+            return root.model;
+        const needle = root.query.trim().toLowerCase();
+        return root.model.filter(item => String(item.label).toLowerCase().indexOf(needle) >= 0);
+    }
 
     property bool open: false
 
     signal chosen(string value)
     signal dismissed()
+
+    onOpenChanged: {
+        if (open)
+            query = "";
+    }
 
     visible: open
     opacity: open ? 1 : 0
@@ -38,7 +51,9 @@ Item {
         id: sheet
         anchors.centerIn: parent
         width: Math.min(parent.width - 48, 420)
-        height: sheetColumn.implicitHeight + 32
+        height: root.searchable
+            ? Math.min(parent.height - 48, 620)
+            : sheetColumn.implicitHeight + 32
         radius: 28
         color: Theme.surface_container_high
         border.width: 1
@@ -71,15 +86,48 @@ Item {
                 }
             }
 
-            Repeater {
-                model: root.model
+            Rectangle {
+                visible: root.searchable
+                width: sheetColumn.width
+                height: root.searchable ? 42 : 0
+                radius: 16
+                color: Theme.surface_container_highest
 
-                delegate: Rectangle {
+                TextInput {
+                    anchors.fill: parent
+                    anchors.leftMargin: 14
+                    anchors.rightMargin: 14
+                    verticalAlignment: TextInput.AlignVCenter
+                    color: Theme.on_surface
+                    clip: true
+                    text: root.query
+                    onTextChanged: root.query = text
+                    font.pixelSize: 14
+                }
+            }
+
+            Flickable {
+                width: sheetColumn.width
+                height: root.searchable
+                    ? Math.max(0, sheet.height - 150)
+                    : optionsColumn.implicitHeight
+                clip: true
+                contentWidth: width
+                contentHeight: optionsColumn.implicitHeight
+
+                Column {
+                    id: optionsColumn
+                    width: parent.width
+
+            Repeater {
+                model: root.filteredModel
+
+                        delegate: Rectangle {
                     required property var modelData
 
                     readonly property bool isCurrent: root.current === modelData.key
 
-                    width: sheetColumn.width
+                    width: optionsColumn.width
                     height: 50
                     radius: 18
                     color: isCurrent
@@ -126,10 +174,14 @@ Item {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: root.chosen(modelData.key)
                     }
+                        }
+                    }
                 }
             }
 
             Text {
+                visible: !root.searchable
+                height: root.searchable ? 0 : implicitHeight
                 anchors.right: parent.right
                 width: parent.width
                 horizontalAlignment: Text.AlignRight

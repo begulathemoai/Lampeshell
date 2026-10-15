@@ -1,5 +1,6 @@
 import QtQuick
 import qs.theme
+import qs.services
 
 Rectangle {
     id: root
@@ -237,7 +238,7 @@ Rectangle {
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: Qt.formatTime(root.liveTime, "hh")
+                text: Time.hourText
                 color: Theme.primary
                 font.family: "Google Sans"
                 font.pointSize: 88
@@ -245,11 +246,21 @@ Rectangle {
             }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: Qt.formatTime(root.liveTime, "mm")
+                text: Time.minuteText
                 color: Theme.on_surface
                 font.family: "Google Sans"
                 font.pointSize: 88
                 font.weight: Font.Bold
+            }
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: !Time.use24Hour
+                text: Time.periodText
+                color: Theme.on_surface_variant
+                font.family: "Google Sans"
+                font.pointSize: 14
+                font.weight: Font.Medium
             }
         }
 
@@ -259,7 +270,7 @@ Rectangle {
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: Qt.formatDate(new Date(root.selectedYear, root.selectedMonth, root.selectedDay), "dddd")
+                text: Time.weekdayDate
                 color: Theme.primary
                 font.family: "Google Sans"
                 font.pointSize: 18
@@ -267,7 +278,7 @@ Rectangle {
             }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: Qt.formatDate(new Date(root.selectedYear, root.selectedMonth, root.selectedDay), "MMMM d, yyyy")
+                text: Time.longDate
                 color: Theme.on_surface_variant
                 font.family: "Google Sans"
                 font.pointSize: 13

@@ -1,10 +1,11 @@
 import QtQuick
 import qs.theme
+import qs.services
 
 Item {
     id: root
 
-    property date currentDate: new Date()
+    property date currentDate: new Date(Time.year, Time.month, Time.day)
     property date liveTime: new Date()
     property int displayMonth: currentDate.getMonth()
     property int displayYear: currentDate.getFullYear()
@@ -93,7 +94,7 @@ Item {
 
     onIsWindowVisibleChanged: {
         if (isWindowVisible) {
-            let d = new Date();
+            let d = new Date(Time.year, Time.month, Time.day);
             root.liveTime = d;
 
             selectedDay = d.getDate();
@@ -168,7 +169,7 @@ Item {
     }
 
     function jumpToToday() {
-        currentDate = new Date();
+        currentDate = new Date(Time.year, Time.month, Time.day);
         selectedDay = currentDate.getDate();
         selectedMonth = currentDate.getMonth();
         selectedYear = currentDate.getFullYear();
