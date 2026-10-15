@@ -638,6 +638,15 @@ case "${1:-help}" in
                 if [ "$use_freeze" = 1 ]; then
                     freeze_shot="$state_dir/freeze-$(date +%s%N).png"
                     grim -o "$output" "$freeze_shot" || { err "grim failed"; exit 1; }
+                    cpos=$(hyprctl cursorpos -j 2>/dev/null)
+                    ccx=$(printf '%s' "$cpos" | jq -r '.x // empty')
+                    ccy=$(printf '%s' "$cpos" | jq -r '.y // empty')
+                    case "${ccx:-}${ccy:-}" in
+                        ''|*[!0-9-]*) ;;
+                        *)
+                            magick "$freeze_shot" -region "40x40+$((ccx - 20))+$((ccy - 20))" -blur "0x12" "$freeze_shot" 2>/dev/null || true
+                            ;;
+                    esac
                 fi
 
                 printf '{"image":"%s","monitor":"%s","freeze":%s,"out":"%s"}\n' \
