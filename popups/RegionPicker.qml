@@ -34,6 +34,7 @@ Variants {
         property bool releaseCaptureActive: false
         property bool aiming: false
         property bool captured: false
+        property bool captureReady: false
 
         readonly property real rsx: Math.min(sx, ex)
         readonly property real rsy: Math.min(sy, ey)
@@ -91,18 +92,6 @@ Variants {
             picker.ey = h / 2 + 100;
         }
 
-        function beginCapture() {
-            picker.aiming = false;
-            captureDelay.restart();
-        }
-
-        function captureNow() {
-            if (RegionPick.freeze)
-                frozenLoader.active = true;
-            else
-                liveLoader.active = true;
-        }
-
         function save() {
             const rx = Math.ceil(picker.rsx);
             const ry = Math.ceil(picker.rsy);
@@ -153,7 +142,7 @@ Variants {
             });
         }
 
-        WlrLayershell.layer: WlrLayer.Top
+        WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "region_picker"
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         WlrLayershell.keyboardFocus: picker.picking ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
@@ -171,22 +160,15 @@ Variants {
             picker.releaseCaptureActive = false;
             liveLoader.active = false;
             frozenLoader.active = false;
-            picker.aiming = true;
+            picker.aiming = !RegionPick.freeze;
+            picker.captured = false;
+            picker.captureReady = !RegionPick.freeze;
             picker.resetSelection();
-
-            if (RegionPick.freeze) {
-                frozenLoader.active = true;
-            }
 
             Qt.callLater(function() {
                 surface.forceActiveFocus();
                 cursorProc.running = true;
             });
-        }
-
-        onVisibleChanged: {
-            if (!visible) {
-            }
         }
 
         Process {
@@ -205,12 +187,32 @@ Variants {
             }
         }
 
+        Process {
+            id: captureProc
+            command: ["grim", "-o", RegionPick.monitor, RegionPick.image]
+
+            onExited: (exitCode) => {
+                if (exitCode !== 0)
+                    return;
+                picker.captureReady = true;
+                frozenLoader.active = true;
+                picker.aiming = true;
+            }
+        }
+
+        function startCapture() {
+            if (!RegionPick.freeze || picker.captured || RegionPick.image.length === 0)
+                return;
+            picker.captured = true;
+            captureProc.running = true;
+        }
+
         Loader {
             id: frozenLoader
             anchors.fill: parent
             active: false
             asynchronous: true
-            visible: RegionPick.freeze && picker.picking
+            visible: RegionPick.freeze && picker.picking && picker.captureReady
 
             sourceComponent: RegionPick.image.length > 0 ? imageComp : screencopyComp
 
@@ -264,7 +266,6 @@ Variants {
                     if (!hasContent)
                         return;
 
-                    picker.aiming = true;
                     if (picker.releaseCaptureActive)
                         picker.save();
                 }
@@ -276,34 +277,38 @@ Variants {
             anchors.fill: parent
             focus: true
 
-            Rectangle {
-                x: 0; y: 0
-                width: surface.width
-                height: Math.max(0, picker.rsy)
-                color: Theme.scrim
-                opacity: 0.55
-            }
+                Rectangle {
+                    x: 0; y: 0
+                    width: surface.width
+                    height: Math.max(0, picker.rsy)
+                    color: Theme.scrim
+                    opacity: 0.55
+                    visible: picker.captureReady
+                }
             Rectangle {
                 x: 0; y: picker.rsy + picker.sh
                 width: surface.width
-                height: Math.max(0, surface.height - picker.rsy - picker.sh)
-                color: Theme.scrim
-                opacity: 0.55
-            }
+                    height: Math.max(0, surface.height - picker.rsy - picker.sh)
+                    color: Theme.scrim
+                    opacity: 0.55
+                    visible: picker.captureReady
+                }
             Rectangle {
                 x: 0; y: picker.rsy
                 width: Math.max(0, picker.rsx)
-                height: picker.sh
-                color: Theme.scrim
-                opacity: 0.55
-            }
+                    height: picker.sh
+                    color: Theme.scrim
+                    opacity: 0.55
+                    visible: picker.captureReady
+                }
             Rectangle {
                 x: picker.rsx + picker.sw; y: picker.rsy
                 width: Math.max(0, surface.width - picker.rsx - picker.sw)
-                height: picker.sh
-                color: Theme.scrim
-                opacity: 0.55
-            }
+                    height: picker.sh
+                    color: Theme.scrim
+                    opacity: 0.55
+                    visible: picker.captureReady
+                }
 
             Rectangle {
                 x: picker.rsx
@@ -313,6 +318,7 @@ Variants {
                 color: "transparent"
                 border.color: Theme.primary
                 border.width: 2
+                visible: picker.captureReady
 
                 Rectangle {
                     anchors.left: parent.left
@@ -344,8 +350,9 @@ Variants {
                 hoverEnabled: true
                 cursorShape: picker.aiming ? Qt.CrossCursor : Qt.BlankCursor
 
-
                 acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+
+                onEntered: Qt.callLater(function() { picker.startCapture(); })
 
                 onPressed: function(event) {
                     if (event.button === Qt.RightButton || event.button === Qt.MiddleButton) {
