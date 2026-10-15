@@ -136,7 +136,7 @@ PanelWindow {
 
     Timer {
         id: hideWhenDone
-        interval: 460
+        interval: Motion.duration(Motion.defaultSpatial) + 50
         onTriggered: {
             if (!quickSettingsWindow.shown) {
                 quickSettingsWindow.visible = false;
@@ -254,7 +254,6 @@ PanelWindow {
         transform: Translate {
             x: PanelState.cardOffset
         }
-        opacity: Math.max(0, Math.min(1, 1 - PanelState.offsetScale))
 
         onImplicitHeightChanged: quickSettingsWindow.publishGeometry()
 
