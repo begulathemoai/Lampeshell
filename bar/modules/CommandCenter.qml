@@ -19,6 +19,7 @@ Item {
     readonly property var networkDevices: Networking.devices?.values ?? []
     readonly property var connectedWifiNetwork: {
         for (const dev of networkDevices) {
+            if (dev.type !== DeviceType.Wifi) continue;
             const nets = dev.networks?.values ?? [];
             const found = nets.find(n => n.connected);
             if (found)
@@ -26,7 +27,7 @@ Item {
         }
         return null;
     }
-    readonly property bool ethernetConnected: networkDevices.some(dev => dev.networks === undefined && dev.connected)
+    readonly property bool ethernetConnected: networkDevices.some(dev => dev.type === DeviceType.Wired && dev.connected)
     readonly property color networkColor: (connectedWifiNetwork || ethernetConnected) ? Theme.on_surface : Theme.on_surface_variant
 
     function networkIcon() {
