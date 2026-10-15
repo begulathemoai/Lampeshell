@@ -36,10 +36,11 @@ readonly property string summary: {
 
     readonly property string appLabel: root.notif && root.notif.appName.length > 0 ? root.notif.appName : ""
 
-    readonly property real iconInset: Layout.s(18)
-    readonly property real textInset: Layout.s(42)
+    readonly property real iconBox: Layout.s(34)
+    readonly property real textInset: Layout.s(50)
 
-    implicitHeight: Layout.s(22) + Layout.s(18) + (hasBody ? Layout.s(4) + bodyText.implicitHeight : 0)
+    implicitHeight: Layout.s(16) + headerRow.height
+        + (hasBody ? Layout.s(4) + bodyText.implicitHeight : 0) + Layout.s(8)
 
     Rectangle {
         anchors.fill: parent
@@ -102,16 +103,26 @@ readonly property string summary: {
         anchors.right: root.appLabel.length > 0 ? appNameText.left : timeText.left
         anchors.rightMargin: Layout.s(12)
         anchors.top: parent.top
-        anchors.topMargin: Layout.s(9)
-        height: Layout.s(18)
+        anchors.topMargin: Layout.s(8)
+        height: root.iconBox
 
-        IconImage {
+        Rectangle {
+            id: iconContainer
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            width: root.iconInset
-            height: root.iconInset
-            source: root.iconUrl
-            visible: root.iconUrl.length > 0
+            width: root.iconBox
+            height: root.iconBox
+            radius: Layout.s(10)
+            color: Theme.surface_container_highest
+
+            IconImage {
+                anchors.centerIn: parent
+                width: Layout.s(20)
+                height: Layout.s(20)
+                source: root.iconUrl.length > 0
+                    ? root.iconUrl
+                    : "image://icon/notifications"
+            }
         }
 
         Text {
