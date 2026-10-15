@@ -628,14 +628,20 @@ case "${1:-help}" in
                 job="$state_dir/region-job.json"
                 mkdir -p "$state_dir" \
                     || { err "could not create $state_dir"; exit 1; }
+                freeze_shot=""
                 cleanup_region() {
-                    rm -f "$job" 2>/dev/null
+                    rm -f "$job" "$freeze_shot" 2>/dev/null
                     call regionPicker cancel >/dev/null 2>&1
                 }
                 trap cleanup_region EXIT
 
-                printf '{"image":"","monitor":"%s","freeze":%s,"out":"%s"}\n' \
-                    "$output" "$([ "$use_freeze" = 1 ] && echo true || echo false)" "$outfile" > "$job" \
+                if [ "$use_freeze" = 1 ]; then
+                    freeze_shot="$state_dir/freeze-$(date +%s%N).png"
+                    grim -o "$output" "$freeze_shot" || { err "grim failed"; exit 1; }
+                fi
+
+                printf '{"image":"%s","monitor":"%s","freeze":%s,"out":"%s"}\n' \
+                    "$freeze_shot" "$output" "$([ "$use_freeze" = 1 ] && echo true || echo false)" "$outfile" > "$job" \
                     || { err "could not write the picker job to $job"; exit 1; }
                 call regionPicker open >/dev/null 2>&1
 

@@ -114,6 +114,19 @@ Variants {
                 return;
             }
 
+            if (RegionPick.image.length > 0) {
+                const scale = picker.pxScale > 0 ? picker.pxScale : 1;
+                RegionPick.finish({
+                    path: RegionPick.image,
+                    out: RegionPick.outPath,
+                    x: Math.round(rx * scale),
+                    y: Math.round(ry * scale),
+                    w: Math.round(rw * scale),
+                    h: Math.round(rh * scale)
+                });
+                return;
+            }
+
             const target = RegionPick.freeze ? frozenLoader.item : liveLoader.item;
             if (!target) {
                 RegionPick.finish(null);
@@ -140,7 +153,7 @@ Variants {
             });
         }
 
-        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.layer: WlrLayer.Top
         WlrLayershell.namespace: "region_picker"
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         WlrLayershell.keyboardFocus: picker.picking ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
@@ -158,22 +171,21 @@ Variants {
             picker.releaseCaptureActive = false;
             liveLoader.active = false;
             frozenLoader.active = false;
-            picker.aiming = !RegionPick.freeze;
-            picker.captured = false;
+            picker.aiming = true;
             picker.resetSelection();
+
+            if (RegionPick.freeze) {
+                frozenLoader.active = true;
+            }
+
             Qt.callLater(function() {
                 surface.forceActiveFocus();
                 cursorProc.running = true;
             });
-
-            if (RegionPick.freeze)
-                captureFallback.restart();
         }
 
         onVisibleChanged: {
             if (!visible) {
-                captureDelay.stop();
-                captureFallback.stop();
             }
         }
 
@@ -200,45 +212,45 @@ Variants {
             asynchronous: true
             visible: RegionPick.freeze && picker.picking
 
-            sourceComponent: ScreencopyView {
-                id: frozen
-                anchors.fill: parent
-                captureSource: picker.screen
-                live: false
-                paintCursor: false
+            sourceComponent: RegionPick.image.length > 0 ? imageComp : screencopyComp
 
-                onHasContentChanged: {
-                    if (!hasContent)
-                        return;
+            Component {
+                id: imageComp
+                Image {
+                    anchors.fill: parent
+                    source: "file://" + RegionPick.image
+                    fillMode: Image.Stretch
+                    asynchronous: false
 
-                    picker.aiming = true;
-                    if (picker.releaseCaptureActive)
-                        picker.save();
+                    Component.onCompleted: {
+                        if (picker.releaseCaptureActive)
+                            picker.save();
+                    }
+                }
+            }
+
+            Component {
+                id: screencopyComp
+                ScreencopyView {
+                    id: frozen
+                    anchors.fill: parent
+                    captureSource: picker.screen
+                    live: false
+                    paintCursor: false
+
+                    onHasContentChanged: {
+                        if (!hasContent)
+                            return;
+
+                        picker.aiming = true;
+                        if (picker.releaseCaptureActive)
+                            picker.save();
+                    }
                 }
             }
         }
 
-        Timer {
-            id: captureDelay
-            interval: 140
-            repeat: false
 
-            onTriggered: {
-                if (picker.captured)
-                    return;
-
-                picker.captured = true;
-                picker.captureNow();
-            }
-        }
-
-        Timer {
-            id: captureFallback
-            interval: 600
-            repeat: false
-
-            onTriggered: picker.beginCapture();
-        }
 
         Loader {
             id: liveLoader
@@ -337,12 +349,7 @@ Variants {
                 hoverEnabled: true
                 cursorShape: picker.aiming ? Qt.CrossCursor : Qt.BlankCursor
 
-                onEntered: {
-                    if (RegionPick.freeze && !picker.captured) {
-                        captureFallback.stop();
-                        picker.beginCapture();
-                    }
-                }
+
                 acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
 
                 onPressed: function(event) {
