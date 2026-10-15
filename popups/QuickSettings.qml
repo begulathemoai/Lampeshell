@@ -438,7 +438,7 @@ PanelWindow {
 
                             property bool revealed: false
 
-                            opacity: quickSettingsWindow.shown && notifRow.revealed ? 1 : 0
+                            opacity: notifRow.revealed ? 1 : 0
 
                             Behavior on opacity {
                                 NumberAnimation {
