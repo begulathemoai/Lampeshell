@@ -2,7 +2,11 @@
 
 set -uo pipefail
 
-repo="${LAMP_SHELL_REPO:-$HOME/.config/quickshell/lampshell}"
+repo="${LAMP_SHELL_REPO:-}"
+if [ -z "$repo" ] && [ -r /etc/lampshell/repo ]; then
+    repo=$(head -n 1 /etc/lampshell/repo)
+fi
+repo="${repo:-$HOME/.config/quickshell/lampshell}"
 script="$repo/scripts/lampshell"
 
 [ -x "$script" ] || exit 0
@@ -28,6 +32,17 @@ PY
 
     echo "lampshell: re-added the arch-update hook" >&2
 }
+
+if [ "$(id -u)" -eq 0 ] && [ -z "${LAMPSHELL_UPDATER_USER:-}" ]; then
+    ensure_arch_update_hook
+    owner=$(stat -c '%U' "$repo" 2>/dev/null || true)
+    home=$(getent passwd "$owner" 2>/dev/null | cut -d: -f6)
+    if [ -n "$owner" ] && [ "$owner" != root ] && [ -n "$home" ] && command -v runuser >/dev/null 2>&1; then
+        uid=$(id -u "$owner" 2>/dev/null || true)
+        runtime="/run/user/$uid"
+        exec runuser -u "$owner" -- env HOME="$home" XDG_RUNTIME_DIR="$runtime" LAMP_SHELL_REPO="$repo" LAMPSHELL_UPDATER_USER=1 "$0"
+    fi
+fi
 
 ensure_arch_update_hook
 "$script" update 2>&1 | tee /dev/stderr >/dev/null

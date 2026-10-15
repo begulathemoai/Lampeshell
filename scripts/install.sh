@@ -18,11 +18,29 @@ TARGET="$QS_DIR/$CONFIG_NAME"
 RUNTIME_PKGS=(
     qt6-base
     qt6-declarative
+    hyprland
     matugen
+    jq
+    git
+    curl
     wl-clipboard
+    grim
+    imagemagick
     brightnessctl
     ddcutil
+    gammastep
     slurp
+    libqalculate
+    playerctl
+    cliphist
+    gpu-screen-recorder
+    hyprlock
+    libnotify
+    ffmpeg
+    networkmanager
+    bluez-utils
+    wireplumber
+    swappy
     ttf-material-symbols-variable
     noto-fonts-emoji
 )
@@ -34,7 +52,6 @@ BUILD_PKGS=(
 )
 
 AUR_PKGS=(
-    quickshell-git
     ttf-google-sans
 )
 
@@ -48,12 +65,14 @@ FISH_PKGS=(
 DRY_RUN=0
 AUTO_START=1
 INSTALL_FISH=1
+INSTALL_UPDATE_HOOK=1
 
 for arg in "$@"; do
     case "$arg" in
         --dry-run) DRY_RUN=1 ;;
         --no-start) AUTO_START=0 ;;
         --no-fish) INSTALL_FISH=0 ;;
+        --no-update-hook) INSTALL_UPDATE_HOOK=0 ;;
         -h | --help)
             cat <<EOF
 usage: install.sh [options]
@@ -61,6 +80,7 @@ usage: install.sh [options]
   --dry-run   print what would happen without changing anything
   --no-start  install and build, but do not launch the shell
   --no-fish   leave your fish config alone (greeting, colours)
+  --no-update-hook  do not install the pacman update hook
 EOF
             exit 0
             ;;
@@ -109,7 +129,7 @@ install_arch_pkgs() {
 }
 
 install_aur_pkgs() {
-    local helper="" helper_cmd=()
+    local helper=""
     for candidate in paru yay pikaur; do
         if command -v "$candidate" >/dev/null 2>&1; then
             helper="$candidate"
@@ -131,9 +151,38 @@ install_aur_pkgs() {
         return 0
     fi
 
-    warn "quickshell-git is an AUR package and no AUR helper was found."
-    warn "Install one of paru, yay or pikaur and re-run, otherwise the shell"
-    warn "cannot start: it requires the git build of quickshell."
+    warn "no AUR helper found; skipping optional AUR packages: ${AUR_PKGS[*]}"
+}
+
+has_quickshell() {
+    command -v qs >/dev/null 2>&1 || command -v quickshell >/dev/null 2>&1
+}
+
+install_quickshell() {
+    has_quickshell && return 0
+
+    if pacman -Si quickshell >/dev/null 2>&1; then
+        install_arch_pkgs quickshell
+    else
+        local helper=""
+        for candidate in paru yay pikaur; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+                helper="$candidate"
+                break
+            fi
+        done
+        if [ -z "$helper" ]; then
+            if [ "$DRY_RUN" -eq 1 ]; then
+                printf '  [dry-run] install an AUR helper, then install quickshell-git\n'
+                return 0
+            fi
+            die "quickshell is unavailable in the configured repositories and no AUR helper was found; install paru, yay, or pikaur"
+        fi
+        say "installing quickshell-git from the AUR with $helper"
+        [ "$DRY_RUN" -eq 1 ] || "$helper" -S --needed --noconfirm quickshell-git
+    fi
+
+    [ "$DRY_RUN" -eq 1 ] || has_quickshell || die "quickshell installed unsuccessfully; expected qs or quickshell on PATH"
 }
 
 deploy_fish() {
@@ -175,6 +224,10 @@ if ! command -v pacman >/dev/null 2>&1; then
 package names here will not be right elsewhere."
 fi
 
+if [ "$(id -u)" -ne 0 ] && ! command -v sudo >/dev/null 2>&1; then
+    die "sudo is required to install Arch packages"
+fi
+
 printf '\n'
 say "installing runtime dependencies"
 install_arch_pkgs "${RUNTIME_PKGS[@]}"
@@ -185,11 +238,8 @@ install_arch_pkgs "${BUILD_PKGS[@]}"
 
 printf '\n'
 say "installing quickshell"
+install_quickshell
 install_aur_pkgs
-
-if [ "$DRY_RUN" -eq 0 ] && ! command -v quickshell >/dev/null 2>&1; then
-    die "quickshell is still not on PATH after installing, cannot continue"
-fi
 
 if [ "$INSTALL_FISH" -eq 1 ]; then
     printf '\n'
@@ -202,8 +252,11 @@ if [ -d "$TARGET/.git" ]; then
     say "existing checkout at $TARGET, refreshing it"
     if [ "$DRY_RUN" -eq 1 ]; then
         printf '  [dry-run] git -C %s pull --ff-only\n' "$TARGET"
-    elif ! git -C "$TARGET" pull --ff-only --quiet 2>/dev/null; then
-        warn "could not fast-forward $TARGET (local changes?), using it as it is"
+    else
+        if [ -n "$(git -C "$TARGET" status --porcelain 2>/dev/null)" ]; then
+            die "$TARGET has local changes; commit or stash them before running the installer again"
+        fi
+        git -C "$TARGET" pull --ff-only
     fi
 else
     if [ -e "$TARGET" ] && [ -n "$(ls -A "$TARGET" 2>/dev/null)" ]; then
@@ -245,20 +298,11 @@ elif ! as_root ln -sf "$TARGET/scripts/lampshell" /usr/local/bin/lampshell 2>/de
     warn "or just call $TARGET/scripts/lampshell directly"
 fi
 
-if [ "$AUTO_START" -eq 1 ]; then
-    printf '\n'
-    if [ "$DRY_RUN" -eq 1 ]; then
-        printf '  [dry-run] %s/scripts/lampshell start\n' "$TARGET"
-    else
-        say "starting the shell"
-        "$TARGET/scripts/lampshell" start
-    fi
-fi
-
 install_update_hook() {
     local updater="/usr/local/bin/lampshell-git-update"
     local hookdir="/usr/share/libalpm/hooks"
     local hook="$hookdir/90-lampshell.hook"
+    local repo_file="/etc/lampshell/repo"
 
     if [ ! -d "$hookdir" ]; then
         warn "no pacman hook directory, skipping"
@@ -267,7 +311,7 @@ install_update_hook() {
     fi
 
     if [ "$DRY_RUN" -eq 1 ]; then
-        printf '  [dry-run] would install %s and %s\n' "$updater" "$hook"
+        printf '  [dry-run] would install %s, %s and %s\n' "$updater" "$hook" "$repo_file"
         return 0
     fi
 
@@ -278,10 +322,30 @@ install_update_hook() {
 
     as_root install -Dm755 "$TARGET/scripts/lampshell-git-update" "$updater"
     as_root install -Dm644 "$TARGET/scripts/lampshell-pacman-hook.hook" "$hook"
+    tmp_repo=$(mktemp)
+    printf '%s\n' "$TARGET" > "$tmp_repo"
+    as_root install -Dm644 "$tmp_repo" "$repo_file"
+    rm -f "$tmp_repo"
 
     say "every pacman transaction will now pull and rebuild Lampshell"
     printf '  that covers %s and %s\n' "cachy-update" "paru -Syu"
 }
+
+if [ "$INSTALL_UPDATE_HOOK" -eq 1 ]; then
+    printf '\n'
+    say "installing the updater hook"
+    install_update_hook
+fi
+
+if [ "$AUTO_START" -eq 1 ]; then
+    printf '\n'
+    if [ "$DRY_RUN" -eq 1 ]; then
+        printf '  [dry-run] %s/scripts/lampshell start\n' "$TARGET"
+    else
+        say "starting the shell"
+        "$TARGET/scripts/lampshell" start
+    fi
+fi
 
 printf '\n'
 say "done"
@@ -290,16 +354,3 @@ if [ "$DRY_RUN" -eq 0 ]; then
 fi
 
 printf '\n'
-if [ "$DRY_RUN" -eq 1 ]; then
-    reply="y"
-elif [ -t 0 ]; then
-    printf 'Let system updates keep Lampshell current, so you never have to run\n'
-    printf 'lampshell update yourself? [Y/n] '
-    read -r reply
-else
-    reply="n"
-fi
-case "$reply" in
-    [nN] | [nN][oO]) printf '  skipped\n' ;;
-    *) install_update_hook ;;
-esac

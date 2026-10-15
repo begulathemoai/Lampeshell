@@ -2,6 +2,9 @@
 
 
 QS="${QS:-qs}"
+if ! command -v "$QS" >/dev/null 2>&1 && command -v quickshell >/dev/null 2>&1; then
+    QS=quickshell
+fi
 CONFIG="${LAMPSHELL_CONFIG:-lampshell}"
 
 notify() {
@@ -225,18 +228,28 @@ case "${1:-help}" in
         fi
         command -v git >/dev/null 2>&1 || { err "update needs git"; exit 1; }
 
+        if [ -n "$(git -C "$REPO_DIR" status --porcelain 2>/dev/null)" ]; then
+            err "local changes detected in $REPO_DIR; commit or stash them before updating"
+            git -C "$REPO_DIR" status --short >&2
+            exit 1
+        fi
+
         was_running=0
         is_running && was_running=1
 
         before=$(git -C "$REPO_DIR" rev-parse HEAD 2>/dev/null || echo "")
 
-        echo "lampshell: fetching updates"
-        if ! git -C "$REPO_DIR" fetch --quiet origin 2>&1; then
+        remote="${LAMP_SHELL_REMOTE:-origin}"
+        branch=$(git -C "$REPO_DIR" symbolic-ref --quiet --short HEAD 2>/dev/null || true)
+        [ -n "$branch" ] || { err "cannot update a detached HEAD; check out a branch first"; exit 1; }
+
+        echo "lampshell: fetching updates from $remote/$branch"
+        if ! git -C "$REPO_DIR" fetch --quiet "$remote" "$branch" 2>&1; then
             err "could not reach the remote; staying on the current revision"
             exit 1
         fi
 
-        if ! git -C "$REPO_DIR" merge --ff-only --quiet "origin/$(git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD)"; then
+        if ! git -C "$REPO_DIR" merge --ff-only --quiet "$remote/$branch"; then
             after=$(git -C "$REPO_DIR" rev-parse --short HEAD)
             if [ "$before" = "$(git -C "$REPO_DIR" rev-parse HEAD)" ] || [ -z "$before" ]; then
                 echo "lampshell: already up to date"
@@ -264,6 +277,44 @@ case "${1:-help}" in
             exec "$0" start
         fi
         echo "lampshell: not running, not starting it"
+        ;;
+
+    doctor)
+        missing_required=0
+        check_required() {
+            if command -v "$1" >/dev/null 2>&1; then
+                printf 'ok   %-24s %s\n' "$1" "$2"
+            else
+                printf 'miss %-24s %s\n' "$1" "$2"
+                missing_required=1
+            fi
+        }
+        check_optional() {
+            if command -v "$1" >/dev/null 2>&1; then
+                printf 'ok   %-24s %s\n' "$1" "$2"
+            else
+                printf 'opt  %-24s %s\n' "$1" "$2"
+            fi
+        }
+        check_required "$QS" "Quickshell"
+        check_required hyprctl "Hyprland"
+        check_required jq "JSON processing"
+        check_required git "updates"
+        check_required cmake "native plugin build"
+        check_required ninja "native plugin build"
+        check_required grim "screenshots"
+        check_required magick "screenshot cropping"
+        check_required wl-copy "clipboard"
+        check_required matugen "dynamic theming"
+        check_required curl "weather and emoji data"
+        check_optional brightnessctl "backlight controls"
+        check_optional ddcutil "DDC brightness controls"
+        check_optional gammastep "night-light fallback"
+        check_optional gpu-screen-recorder "screen recording"
+        check_optional cliphist "clipboard history"
+        check_optional qalc "launcher calculator"
+        check_optional notify-send "desktop notifications"
+        exit "$missing_required"
         ;;
 
     plugin)

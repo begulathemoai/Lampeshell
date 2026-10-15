@@ -21,7 +21,8 @@ curl -fsSL https://raw.githubusercontent.com/l6t9/lampshell/main/scripts/install
 
 It will ask for your password when it needs to install packages. Add
 `--dry-run` to see everything it would do first, or `--no-start` to build
-without launching the shell. Add `--no-fish` to leave your fish config alone.
+without launching the shell. Add `--no-fish` to leave your fish config alone,
+or `--no-update-hook` to skip the optional pacman update hook.
 
 It is a bash script, but piping it to zsh or another shell is fine, it
 re-executes itself under bash rather than failing on `mapfile` or
@@ -41,9 +42,20 @@ existing checkout is fast-forwarded rather than replaced.
 lampshell update
 ```
 
-Pulls new commits, rebuilds the plugin only when the plugin sources actually
-changed, and restarts the shell if it was running. It refuses to guess when
-your local checkout has diverged and leaves it alone.
+Fetches the current branch, fast-forwards only, rebuilds the plugin only when
+the plugin sources actually changed, and restarts the shell if it was running.
+It refuses to run with local changes, a detached HEAD, or a non-fast-forward
+branch, so it never overwrites work in progress.
+
+Check the installation with:
+
+```bash
+lampshell doctor
+```
+
+This reports missing commands for the shell, plugin build, screenshots,
+recording, clipboard history, theming, weather, audio, Bluetooth, and other
+enabled features.
 
 ####  doing it by hand
 
@@ -51,7 +63,7 @@ Clone, then use `scripts/lampshell`, which builds the plugin on first run and
 launches detached:
 
 ```bash
-git clone https://github.com/l6t9/lampshell.git ~/.config/quickshell
+git clone https://github.com/l6t9/lampshell.git ~/.config/quickshell/lampshell
 ~/.config/quickshell/lampshell/scripts/lampshell start
 ```
 
@@ -72,12 +84,20 @@ gitignored and `QML_IMPORT_PATH` is only set by the launcher script.
 
 ####  dependencies
 
-Runtime: `quickshell-git` and `ttf-google-sans` (both AUR, so these need an
-AUR helper rather than pacman), `qt6-base`, `qt6-declarative` (this also
-provides `QtQuick.Shapes`), `hyprland`, `matugen`, `wl-clipboard`,
-`brightnessctl` or `ddcutil`, `slurp`, and the fonts
-`ttf-material-symbols-variable` and `noto-fonts-emoji`.
+The installer targets Arch Linux and installs the complete feature set. Core
+runtime packages are `quickshell` (or `quickshell-git` through an AUR helper),
+`hyprland`, `qt6-base`, `qt6-declarative`, `matugen`, `jq`, `git`, `curl`,
+`wl-clipboard`, `grim`, `imagemagick`, `brightnessctl`, `ddcutil`, `slurp`,
+`gammastep`, `libqalculate`, `playerctl`, `cliphist`, `gpu-screen-recorder`,
+`hyprlock`, `libnotify`, `ffmpeg`, `networkmanager`, `bluez-utils`,
+`wireplumber`, and `swappy`.
 
-Build, needed once: `cmake`, `ninja` and a C++20 compiler. Arch ships the Qt6
-headers inside `qt6-base` and `qt6-declarative` themselves, so there are no
-separate `-devel` packages to install.
+Fonts are `ttf-google-sans` when an AUR helper is available,
+`ttf-material-symbols-variable`, and `noto-fonts-emoji`. Fish extras add
+`fish`, `eza`, `zoxide`, and `direnv` unless `--no-fish` is passed.
+
+The native services plugin needs `cmake`, `ninja`, and a C++20 compiler.
+Arch provides the Qt6 headers through `qt6-base` and `qt6-declarative`.
+Optional shell integrations such as DDC brightness, NetworkManager, Bluetooth,
+recording, weather, and night-light controls degrade gracefully when their
+backend is unavailable; `lampshell doctor` shows exactly what is missing.
