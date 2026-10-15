@@ -221,11 +221,6 @@ Variants {
                     source: "file://" + RegionPick.image
                     fillMode: Image.Stretch
                     asynchronous: false
-
-                    Component.onCompleted: {
-                        if (picker.releaseCaptureActive)
-                            picker.save();
-                    }
                 }
             }
 
@@ -387,13 +382,7 @@ Variants {
                         return;
                     }
                     picker.releaseCaptureActive = true;
-
-                    if (RegionPick.freeze) {
-                        if (frozenLoader.item && frozenLoader.item.hasContent)
-                            picker.save();
-                    } else {
-                        picker.beginCapture();
-                    }
+                    picker.save();
                 }
             }
 

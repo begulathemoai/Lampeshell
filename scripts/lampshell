@@ -637,6 +637,8 @@ case "${1:-help}" in
 
                 if [ "$use_freeze" = 1 ]; then
                     freeze_shot="$state_dir/freeze-$(date +%s%N).png"
+                    wayland_disp=$(ls /run/user/$(id -u)/wayland-* 2>/dev/null | head -1)
+                    [ -n "$wayland_disp" ] && export WAYLAND_DISPLAY="$(basename "$wayland_disp")"
                     grim -o "$output" "$freeze_shot" || { err "grim failed"; exit 1; }
                     cpos=$(hyprctl cursorpos -j 2>/dev/null)
                     ccx=$(printf '%s' "$cpos" | jq -r '.x // empty')
@@ -655,7 +657,7 @@ case "${1:-help}" in
                 call regionPicker open >/dev/null 2>&1
 
                 sel=""; waited=0
-                while [ "$waited" -lt 400 ]; do
+                while [ "$waited" -lt 20 ]; do
                     sel=$(call regionPicker state 2>/dev/null)
                     [ -n "$sel" ] && break
                     if ! is_running; then
