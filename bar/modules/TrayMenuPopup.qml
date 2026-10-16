@@ -22,9 +22,9 @@ PanelWindow {
     visible: false
     exclusiveZone: -1
 
-    screen: PanelState.screenName
-        ? (Quickshell.screens.find(s => s.name === PanelState.screenName) ?? Quickshell.screens[0])
-        : Quickshell.screens[0]
+        screen: monitorName.length > 0
+            ? (Quickshell.screens.find(s => s.name === monitorName) ?? Quickshell.screens[0])
+            : Quickshell.screens[0]
 
     anchors {
         top: true
@@ -55,8 +55,7 @@ PanelWindow {
     function publishGeometry() {
         if (!visible)
             return;
-        PanelState.screenName = root.monitorName;
-        PanelState.setContentSize(root.width + Layout.s(18), root.height);
+        PanelState.setContentSizeFor("tray", root.width + Layout.s(18), root.height);
     }
 
     function show(handle) {
@@ -66,7 +65,10 @@ PanelWindow {
             return;
 
         visible = true;
-        PanelState.open = true;
+        if (!PanelState.beginFor("tray", root.monitorName, root.width + Layout.s(18), root.height)) {
+            visible = false;
+            return;
+        }
         reveal.visible = true;
         Qt.callLater(root.publishGeometry);
 
@@ -80,15 +82,16 @@ PanelWindow {
         id: hideTimer
 
         interval: Motion.duration(Motion.defaultSpatial)
-        onTriggered: root.visible = false
+        onTriggered: {
+            root.visible = false;
+        }
     }
 
     function close() {
         reveal.visible = false;
         hideTimer.restart();
         entry = null;
-        PanelState.open = false;
-        PanelState.setContentSize(0, 0);
+        PanelState.closeFor("tray");
     }
 
     onWidthChanged: publishGeometry()

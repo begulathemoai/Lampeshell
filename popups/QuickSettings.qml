@@ -42,16 +42,8 @@ PanelWindow {
     screen: targetScreen
 
     function publishGeometry() {
-        PanelState.screenName = quickSettingsWindow.screen
-            ? quickSettingsWindow.screen.name
-            : "";
         const height = content.implicitHeight + 36;
-        if (!quickSettingsWindow.shown && !quickSettingsWindow.visible) {
-            PanelState.panelWidth = quickSettingsWindow.width;
-            PanelState.cardHeight = height;
-            return;
-        }
-        PanelState.setContentSize(quickSettingsWindow.width, height);
+        PanelState.setContentSizeFor("quickSettings", quickSettingsWindow.width, height);
     }
 
     onWidthChanged: publishGeometry()
@@ -62,9 +54,10 @@ PanelWindow {
         quickSettingsBackend.refreshBrightness();
         quickSettingsWindow.openedAt = Date.now();
         quickSettingsWindow.targetScreen = quickSettingsWindow.screenForFocus();
-        PanelState.panelWidth = quickSettingsWindow.width;
-        PanelState.cardHeight = content.implicitHeight + 36;
-        PanelState.progress = 0;
+        if (!PanelState.beginFor("quickSettings", quickSettingsWindow.screen
+                ? quickSettingsWindow.screen.name : "", quickSettingsWindow.width,
+                content.implicitHeight + 36))
+            return;
         quickSettingsWindow.settling = true;
         settleTimer.restart();
         quickSettingsWindow.visible = true;
@@ -102,7 +95,7 @@ PanelWindow {
 
     function close() {
         quickSettingsWindow.shown = false;
-        PanelState.open = false;
+        PanelState.closeFor("quickSettings");
         focusGrab.active = false;
         hideWhenDone.restart();
     }
@@ -115,8 +108,6 @@ PanelWindow {
     }
 
     property bool shown: false
-
-    onShownChanged: PanelState.open = shown;
 
     property bool settling: false
 
@@ -140,8 +131,7 @@ PanelWindow {
         onTriggered: {
             if (!quickSettingsWindow.shown) {
                 quickSettingsWindow.visible = false;
-                PanelState.progress = 0;
-                PanelState.cardHeight = content.implicitHeight + 36;
+                PanelState.clearFor("quickSettings");
             }
         }
     }
@@ -261,7 +251,7 @@ PanelWindow {
             id: notifCard
             width: parent.width
             readonly property int listHeight: Math.min(notifColumn.implicitHeight, Layout.s(210))
-            readonly property int bodyHeight: Notifs.notClosed.length > 0
+            readonly property int bodyHeight: Notifs.history.length > 0
                 ? Math.max(listHeight, Layout.s(88))
                 : Layout.s(88)
             implicitHeight: 14 + notifHeader.height + Layout.s(16) + bodyHeight + 14
@@ -374,7 +364,7 @@ PanelWindow {
                 anchors.top: notifHeader.bottom
                 anchors.topMargin: Layout.s(16)
                 height: Layout.s(88)
-                visible: Notifs.notClosed.length === 0
+                        visible: Notifs.history.length === 0
 
                 Column {
                     anchors.centerIn: parent
@@ -414,7 +404,7 @@ PanelWindow {
                 contentWidth: width
                 contentHeight: notifColumn.implicitHeight
                 boundsBehavior: Flickable.StopAtBounds
-                visible: Notifs.notClosed.length > 0
+                visible: Notifs.history.length > 0
 
                 ScrollBar.vertical: ThemedScrollBar {}
 
@@ -424,7 +414,7 @@ PanelWindow {
                     spacing: 2
 
                     Repeater {
-                        model: Notifs.notClosed
+                        model: Notifs.history
 
                         delegate: NotifHistoryRow {
                             required property var modelData
@@ -437,20 +427,69 @@ PanelWindow {
                             id: notifRow
 
                             property bool revealed: false
+                            property bool leaving: false
+                            property real exitFactor: 1
+                            property real exitOffset: 0
 
-                            opacity: notifRow.revealed ? 1 : 0
+                            x: exitOffset
+                            height: implicitHeight
+                            opacity: notifRow.revealed ? exitFactor : 0
+                            clip: true
 
-                            Behavior on opacity {
+                            function startExit() {
+                                if (notifRow.leaving)
+                                    return;
+                                stagger.stop();
+                                notifRow.revealed = true;
+                                exitAnimation.start();
+                            }
+
+                            Component.onCompleted: {
+                                modelData.lock(notifRow);
+                                if (modelData.closed)
+                                    Qt.callLater(notifRow.startExit);
+                            }
+
+                            Component.onDestruction: modelData.unlock(notifRow)
+
+                            Connections {
+                                target: modelData
+
+                                function onClosedChanged() {
+                                    if (modelData.closed)
+                                        notifRow.startExit();
+                                }
+                            }
+
+                            ParallelAnimation {
+                                id: exitAnimation
+
                                 NumberAnimation {
-                                    duration: 210
+                                    target: notifRow
+                                    property: "exitFactor"
+                                    to: 0
+                                    duration: Motion.duration(Motion.standard)
                                     easing.type: Easing.OutCubic
                                 }
+                                NumberAnimation {
+                                    target: notifRow
+                                    property: "exitOffset"
+                                    to: Layout.s(18)
+                                    duration: Motion.duration(Motion.standard)
+                                    easing.type: Easing.OutCubic
+                                }
+
+                                onStarted: notifRow.leaving = true
+                                onFinished: modelData.unlock(notifRow)
                             }
 
                             Timer {
                                 id: stagger
                                 interval: Math.min(notifRow.index * 24, 420)
-                                onTriggered: notifRow.revealed = true
+                                onTriggered: {
+                                    if (!notifRow.leaving)
+                                        notifRow.revealed = true;
+                                }
                             }
 
                             Connections {

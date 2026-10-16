@@ -49,9 +49,12 @@ Item {
     readonly property bool isFresh: Date.now() - notif.timeMs < 1500
     Component.onCompleted: {
         card.notif.lock(card);
+        card.notif.popupLease = true;
         if (card.notif.exiting) {
             card.x = cardWidth;
             card.opacity = 0;
+            card.notif.popupLease = false;
+            card.notif.unlock(card);
         } else if (card.isFresh) {
             slideIn.start();
         } else {
@@ -99,6 +102,7 @@ Item {
             if (!card.notif)
                 return;
             card.notif.unlock(card);
+            card.notif.popupLease = false;
             card.notif.endExit();
         }
     }
@@ -117,7 +121,10 @@ Item {
         card.notif.close();
     }
 
-    Component.onDestruction: card.notif.unlock(card)
+    Component.onDestruction: {
+        card.notif.popupLease = false;
+        card.notif.unlock(card);
+    }
 
     Connections {
         target: card.notif

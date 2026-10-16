@@ -12,6 +12,7 @@ QtObject {
     property bool closed: false
 
     property bool exiting: false
+    property bool popupLease: false
 
     property var locks: []
 

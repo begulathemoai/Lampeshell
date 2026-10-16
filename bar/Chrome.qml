@@ -24,8 +24,10 @@ Variants {
         readonly property HyprlandMonitor monitor: Hyprland.monitorFor(screen)
         visible: !FullscreenState.isFullscreen(monitor)
 
-        readonly property bool hasCard: PanelState.screenName.length === 0
-            || PanelState.screenName === modelData.name
+         readonly property bool hasCard: PanelState.owner.length > 0
+             && PanelState.progress > 0.001
+             && (PanelState.screenName.length === 0
+                 || PanelState.screenName === modelData.name)
 
         readonly property bool hasDashCard: DashboardState.screenName.length === 0
             || DashboardState.screenName === modelData.name
@@ -75,7 +77,7 @@ Variants {
             readonly property real cutB: sh - Layout.bottomBarHeight
 
             readonly property real cardWinW: PanelState.panelWidth
-            readonly property real cardH: PanelState.cardHeight
+             readonly property real cardH: PanelState.revealHeight
             readonly property real cardX: sw - cardWinW + PanelState.leftInset
                 + PanelState.cardOffset
             readonly property real cardY: cutT
