@@ -55,7 +55,7 @@ PanelWindow {
     function publishGeometry() {
         if (!visible)
             return;
-        PanelState.setContentSizeFor("tray", root.width + Layout.s(18), root.height);
+        PanelState.setContentSizeFor(root, root.width + Layout.s(18), root.height);
     }
 
     function show(handle) {
@@ -64,11 +64,13 @@ PanelWindow {
         if (!entry)
             return;
 
-        visible = true;
-        if (!PanelState.beginFor("tray", root.monitorName, root.width + Layout.s(18), root.height)) {
+        const token = PanelState.beginFor(root, root.monitorName, root.width + Layout.s(18), root.height);
+        if (!token) {
             visible = false;
             return;
         }
+        root.panelGeneration = token;
+        visible = true;
         reveal.visible = true;
         Qt.callLater(root.publishGeometry);
 
@@ -78,20 +80,29 @@ PanelWindow {
         });
     }
 
-    Timer {
-        id: hideTimer
-
-        interval: Motion.duration(Motion.defaultSpatial)
-        onTriggered: {
-            root.visible = false;
-        }
-    }
-
     function close() {
         reveal.visible = false;
-        hideTimer.restart();
-        entry = null;
-        PanelState.closeFor("tray");
+        PanelState.closeFor(root, root.panelGeneration);
+    }
+
+    property int panelGeneration: 0
+
+    Connections {
+        target: PanelState
+        function onAcquired(acquiredOwner, acquiredGeneration) {
+            if (acquiredOwner !== root)
+                return;
+            root.panelGeneration = acquiredGeneration;
+            root.visible = true;
+            reveal.visible = true;
+            root.publishGeometry();
+        }
+        function onReleased(releasedOwner, releasedGeneration) {
+            if (releasedOwner === root && releasedGeneration === root.panelGeneration)
+                entry = null;
+            if (releasedOwner === root && releasedGeneration === root.panelGeneration)
+                root.visible = false;
+        }
     }
 
     onWidthChanged: publishGeometry()

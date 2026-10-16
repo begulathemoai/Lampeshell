@@ -15,7 +15,8 @@ PanelWindow {
     id: quickSettingsWindow
 
     implicitWidth: 400
-    implicitHeight: content.implicitHeight + 36
+    property real panelHeight: 0
+    implicitHeight: panelHeight > 0 ? panelHeight : content.implicitHeight + 36
     color: "transparent"
     visible: false
 
@@ -43,7 +44,9 @@ PanelWindow {
 
     function publishGeometry() {
         const height = content.implicitHeight + 36;
-        PanelState.setContentSizeFor("quickSettings", quickSettingsWindow.width, height);
+        if (PanelState.owner === quickSettingsWindow && !PanelState.closing)
+            quickSettingsWindow.panelHeight = height;
+        PanelState.setContentSizeFor(quickSettingsWindow, quickSettingsWindow.width, height);
     }
 
     onWidthChanged: publishGeometry()
@@ -52,27 +55,28 @@ PanelWindow {
 
     function open() {
         quickSettingsBackend.refreshBrightness();
+        showKick.stop();
+        settleTimer.stop();
         quickSettingsWindow.openedAt = Date.now();
         quickSettingsWindow.targetScreen = quickSettingsWindow.screenForFocus();
-        if (!PanelState.beginFor("quickSettings", quickSettingsWindow.screen
+        const token = PanelState.beginFor(quickSettingsWindow, quickSettingsWindow.screen
                 ? quickSettingsWindow.screen.name : "", quickSettingsWindow.width,
-                content.implicitHeight + 36))
+                content.implicitHeight + 36);
+        if (!token) {
+            quickSettingsWindow.visible = false;
             return;
+        }
+        quickSettingsWindow.panelGeneration = token;
+        quickSettingsWindow.panelHeight = content.implicitHeight + 36;
         quickSettingsWindow.settling = true;
         settleTimer.restart();
+        quickSettingsWindow.shown = true;
         quickSettingsWindow.visible = true;
 
         publishGeometry();
 
-        Qt.callLater(function() {
-            focusGrab.active = true;
-            panelSurface.forceActiveFocus();
-        });
-        if (quickSettingsWindow.shown) {
-            quickSettingsWindow.openedAt = Date.now();
-        } else {
-            showKick.restart();
-        }
+        focusGrab.active = true;
+        panelSurface.forceActiveFocus();
     }
 
     property var settingsHandler: null
@@ -94,10 +98,14 @@ PanelWindow {
     }
 
     function close() {
+        if (!quickSettingsWindow.shown && !quickSettingsWindow.visible)
+            return;
         quickSettingsWindow.shown = false;
-        PanelState.closeFor("quickSettings");
+        quickSettingsWindow.settling = false;
+        settleTimer.stop();
+        showKick.stop();
+        PanelState.closeFor(quickSettingsWindow, quickSettingsWindow.panelGeneration);
         focusGrab.active = false;
-        hideWhenDone.restart();
     }
 
     function toggle() {
@@ -108,8 +116,32 @@ PanelWindow {
     }
 
     property bool shown: false
+    property int panelGeneration: 0
 
     property bool settling: false
+
+    Connections {
+        target: PanelState
+        function onAcquired(acquiredOwner, acquiredGeneration) {
+            if (acquiredOwner !== quickSettingsWindow)
+                return;
+            quickSettingsWindow.panelGeneration = acquiredGeneration;
+            quickSettingsWindow.panelHeight = content.implicitHeight + 36;
+            quickSettingsWindow.settling = true;
+            quickSettingsWindow.shown = true;
+            quickSettingsWindow.visible = true;
+            focusGrab.active = true;
+            panelSurface.forceActiveFocus();
+        }
+        function onReleased(releasedOwner, releasedGeneration) {
+            if (releasedOwner === quickSettingsWindow
+                    && releasedGeneration === quickSettingsWindow.panelGeneration) {
+                quickSettingsWindow.visible = false;
+                quickSettingsWindow.shown = false;
+                quickSettingsWindow.panelHeight = 0;
+            }
+        }
+    }
 
     Timer {
         id: settleTimer
@@ -122,17 +154,6 @@ PanelWindow {
         interval: 1
         onTriggered: {
             quickSettingsWindow.shown = true;
-        }
-    }
-
-    Timer {
-        id: hideWhenDone
-        interval: Motion.duration(Motion.defaultSpatial) + 50
-        onTriggered: {
-            if (!quickSettingsWindow.shown) {
-                quickSettingsWindow.visible = false;
-                PanelState.clearFor("quickSettings");
-            }
         }
     }
 
@@ -194,8 +215,11 @@ PanelWindow {
                 quickSettingsWindow.closePending = true;
                 return;
             }
-            if (quickSettingsWindow.settling) {
-                Qt.callLater(function() { focusGrab.active = true; });
+            if (quickSettingsWindow.settling && quickSettingsWindow.shown) {
+                Qt.callLater(function() {
+                    if (quickSettingsWindow.shown && quickSettingsWindow.visible)
+                        focusGrab.active = true;
+                });
                 return;
             }
             quickSettingsWindow.close();

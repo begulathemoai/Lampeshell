@@ -38,6 +38,7 @@ Item {
         return "";
     }
     readonly property bool hasImage: displayImage !== ""
+    property bool leaseReleased: false
 
     width: cardWidth
     height: cardInner.height + 20
@@ -49,12 +50,9 @@ Item {
     readonly property bool isFresh: Date.now() - notif.timeMs < 1500
     Component.onCompleted: {
         card.notif.lock(card);
-        card.notif.popupLease = true;
-        if (card.notif.exiting) {
-            card.x = cardWidth;
-            card.opacity = 0;
-            card.notif.popupLease = false;
-            card.notif.unlock(card);
+        card.notif.popupLeaseOwner = card;
+        if (card.notif.exiting || card.notif.closed) {
+            card.releaseLease();
         } else if (card.isFresh) {
             slideIn.start();
         } else {
@@ -102,7 +100,8 @@ Item {
             if (!card.notif)
                 return;
             card.notif.unlock(card);
-            card.notif.popupLease = false;
+            if (card.notif.popupLeaseOwner === card)
+                card.notif.popupLeaseOwner = null;
             card.notif.endExit();
         }
     }
@@ -110,9 +109,22 @@ Item {
     function startExit() {
         if (slideOut.running || !card.notif)
             return;
-        if (card.opacity === 0)
+        slideIn.stop();
+        if (card.opacity <= 0.001) {
+            releaseLease();
             return;
+        }
         slideOut.start();
+    }
+
+    function releaseLease() {
+        if (leaseReleased || !card.notif)
+            return;
+        leaseReleased = true;
+        if (card.notif.popupLeaseOwner === card)
+            card.notif.popupLeaseOwner = null;
+        card.notif.unlock(card);
+        card.notif.endExit();
     }
 
     function dismiss() {
@@ -122,8 +134,7 @@ Item {
     }
 
     Component.onDestruction: {
-        card.notif.popupLease = false;
-        card.notif.unlock(card);
+        card.releaseLease();
     }
 
     Connections {

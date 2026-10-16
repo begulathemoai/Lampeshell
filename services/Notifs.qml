@@ -17,7 +17,7 @@ Singleton {
     property var list: []
     readonly property var notClosed: list.filter(n => !n.closed)
     readonly property var history: list
-    readonly property var popups: list.filter(n => n.popupLease || (n.popup && !n.closed))
+    readonly property var popups: list.filter(n => n.popupLeaseOwner !== null || (n.popup && !n.closed))
 
     readonly property bool dnd: SettingsStore.get("dnd") ?? false
     function setDnd(enabled) {

@@ -24,7 +24,7 @@ Variants {
         readonly property HyprlandMonitor monitor: Hyprland.monitorFor(screen)
         visible: !FullscreenState.isFullscreen(monitor)
 
-         readonly property bool hasCard: PanelState.owner.length > 0
+         readonly property bool hasCard: PanelState.owner !== null
              && PanelState.progress > 0.001
              && (PanelState.screenName.length === 0
                  || PanelState.screenName === modelData.name)
