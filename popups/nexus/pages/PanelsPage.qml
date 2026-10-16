@@ -1,5 +1,6 @@
 import QtQuick
 import qs.theme
+import qs.services
 import qs.popups.settings
 import qs.popups.nexus
 import qs.popups.nexus.common
@@ -21,6 +22,14 @@ PageBase {
         InfoRow {
             label: "Hidden on fullscreen"
             value: "yes"
+        }
+        ToggleRow {
+            icon: "music_note"
+            label: "Show Now Playing widget"
+            description: "Shows the Now Playing status and allows to control playback directly from your bar."
+
+            checked: SettingsStore.values.musicPlayerWidgetEnabled
+            onToggled: checked => SettingsStore.set("musicPlayerWidgetEnabled", checked)
         }
     }
 

@@ -121,21 +121,44 @@ Item {
             ]
 
             delegate: Rectangle {
+                id:model
                 required property var modelData
-
+                property bool hovered
+                anchors.verticalCenter: parent.verticalCenter
                 width: modelData.action === "toggle" ? Layout.s(46) : Layout.s(36)
                 height: width
                 radius: width / 2
-                color: modelData.action === "toggle" ? root.accent : "transparent"
+                scale: model.hovered ? 1.1 : 1.0
+                color: modelData.action === "toggle" ? (model.hovered ? Theme.secondary : Theme.primary) : "transparent"
                 opacity: modelData.enabled ? 1 : 0.4
+                Behavior on scale {
+                    NumberAnimation {
+                        duration: 150
+                        easing.type: Easing.OutCubic
+                    }
+                }
+                Behavior on color {
+                    ColorAnimation {
+                        duration: 150
+                        easing.type: Easing.OutCubic
+                    }
 
+                }
                 Text {
                     anchors.centerIn: parent
                     text: modelData.icon
-                    color: modelData.action === "toggle" ? Theme.on_primary : Theme.on_surface
+                    color: modelData.action === "toggle" ? (model.hovered ? Theme.on_secondary : Theme.on_primary) : Theme.on_surface
+                    id:modelText
                     font {
                         family: Layout.fontIcons
                         pixelSize: Layout.s(modelData.size)
+                    }
+                    Behavior on color {
+                        ColorAnimation {
+                            duration: 150
+                            easing.type: Easing.OutCubic
+                        }
+
                     }
                 }
 
@@ -144,6 +167,12 @@ Item {
                     enabled: modelData.enabled
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
+                    onEntered: {
+                        model.hovered = true
+                    }
+                    onExited: {
+                        model.hovered = false
+                    }
                     onClicked: {
                         if (!root.player)
                             return;

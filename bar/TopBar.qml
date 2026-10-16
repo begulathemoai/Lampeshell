@@ -50,6 +50,15 @@ Variants {
             anchors.centerIn: parent
         }
 
+        Mpris {
+            id: mprisModule
+            anchors {
+                left : calendarModule.right
+                right : statusModule.left
+                verticalCenter: parent.verticalCenter
+            }
+        }
+
         SystemTray {
             id: statusModule
             windowHandle: mainBar

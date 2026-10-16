@@ -114,6 +114,13 @@ QtObject {
         },
         {
             page: "Panels",
+            title: "Show Now Playing widget",
+            desc: "Toggle Now Playing widget visibility",
+            icon: "music_note",
+            keywords: "music playing player bar panel"
+        },
+        {
+            page: "Panels",
             title: "Workspace slots",
             desc: "Workspaces shown in the bar",
             icon: "view_week",

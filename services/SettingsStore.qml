@@ -17,6 +17,7 @@ Singleton {
         dnd: false,
         defaultExpireTimeout: 5000,
         fullscreenExpireTimeout: 2000,
+        musicPlayerWidgetEnabled: false,
         caffeine: false,
         nightLightEnabled: false,
         nightLightTemperature: 4500,

@@ -199,20 +199,43 @@ Item {
                     ]
 
                     delegate: Rectangle {
+                        id: model
                         required property var modelData
-
+                        property bool hovered
+                        anchors.verticalCenter: parent.verticalCenter
                         width: modelData.size + Layout.s(16)
                         height: width
                         radius: width / 2
-                        color: modelData.action === "toggle" ? Theme.primary : "transparent"
+                        scale: model.hovered ? 1.1 : 1.0
+                        color: modelData.action === "toggle" ? (model.hovered ? Theme.secondary : Theme.primary) : "transparent"
+                        Behavior on scale {
+                            NumberAnimation {
+                                duration: 150
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: 150
+                                easing.type: Easing.OutCubic
+                            }
 
+                        }
                         Text {
                             anchors.centerIn: parent
                             text: modelData.icon
-                            color: modelData.action === "toggle" ? Theme.on_primary : Theme.on_surface
+                            color: modelData.action === "toggle" ? (model.hovered ? Theme.on_secondary : Theme.on_primary) : Theme.on_surface
+                            id:modelText
                             font {
                                 family: Layout.fontIcons
-                                pixelSize: modelData.size
+                                pixelSize: Layout.s(modelData.size)
+                            }
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: 150
+                                    easing.type: Easing.OutCubic
+                                }
+
                             }
                         }
 
@@ -220,6 +243,12 @@ Item {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
+                            onEntered: {
+                                model.hovered = true
+                            }
+                            onExited: {
+                                model.hovered = false
+                            }
                             onClicked: {
                                 if (!root.player)
                                     return;
