@@ -52,7 +52,7 @@ BUILD_PKGS=(
 )
 
 AUR_PKGS=(
-    ttf-google-sans
+    qt6-m3shapes-git
 )
 
 FISH_PKGS=(
@@ -185,6 +185,58 @@ install_quickshell() {
     [ "$DRY_RUN" -eq 1 ] || has_quickshell || die "quickshell installed unsuccessfully; expected qs or quickshell on PATH"
 }
 
+install_google_sans() {
+    if fc-list : family 2>/dev/null | tr ',' '\n' | grep -qx "Google Sans"; then
+        return 0
+    fi
+
+    local fontdir="${XDG_DATA_HOME:-$HOME/.local/share}/fonts"
+    if [ "$DRY_RUN" -eq 1 ]; then
+        printf '  [dry-run] fetch Google Sans (400/500/700) from the Google Fonts API into %s and run fc-cache\n' "$fontdir"
+        return 0
+    fi
+
+    say "installing Google Sans from the Google Fonts API"
+    local css
+    css=$(curl -fsS -m 15 -A "Mozilla/4.0" \
+        "https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700") || {
+        warn "could not fetch the Google Sans stylesheet;"
+        warn "the shell will fall back to another font"
+        return 0
+    }
+
+    local tmp url weight name
+    tmp=$(mktemp -d)
+    while read -r weight url; do
+        case "$weight" in
+            400) name=Regular ;;
+            500) name=Medium ;;
+            700) name=Bold ;;
+            *) continue ;;
+        esac
+        curl -fsS -m 30 -o "$tmp/GoogleSans-$name.ttf" "$url" || {
+            warn "could not download Google Sans $name"
+            rm -rf "$tmp"
+            return 0
+        }
+    done < <(printf '%s\n' "$css" | awk '
+        /font-weight:/ { w = $2; gsub(/;/, "", w) }
+        /src: url/ { if (match($0, /https:[^)]+/)) print w, substr($0, RSTART, RLENGTH) }
+    ')
+
+    if ! ls "$tmp"/*.ttf >/dev/null 2>&1; then
+        warn "the Google Sans stylesheet had no usable font URLs"
+        rm -rf "$tmp"
+        return 0
+    fi
+
+    mkdir -p "$fontdir"
+    cp "$tmp"/*.ttf "$fontdir/"
+    rm -rf "$tmp"
+    fc-cache -f "$fontdir" >/dev/null 2>&1 || true
+    say "installed Google Sans into $fontdir"
+}
+
 deploy_fish() {
     local src="$TARGET/extras/fish"
     local conf="${XDG_CONFIG_HOME:-$HOME/.config}"
@@ -231,6 +283,7 @@ fi
 printf '\n'
 say "installing runtime dependencies"
 install_arch_pkgs "${RUNTIME_PKGS[@]}"
+install_google_sans
 
 printf '\n'
 say "installing build dependencies"

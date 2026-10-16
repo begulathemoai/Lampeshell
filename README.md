@@ -92,7 +92,8 @@ runtime packages are `quickshell` (or `quickshell-git` through an AUR helper),
 `hyprlock`, `libnotify`, `ffmpeg`, `networkmanager`, `bluez-utils`,
 `wireplumber`, and `swappy`.
 
-Fonts are `ttf-google-sans` when an AUR helper is available,
+Fonts are Google Sans (fetched from the Google Fonts API, since the
+`ttf-google-sans` AUR package's upstream source is dead),
 `ttf-material-symbols-variable`, and `noto-fonts-emoji`. Fish extras add
 `fish`, `eza`, `zoxide`, and `direnv` unless `--no-fish` is passed.
 
