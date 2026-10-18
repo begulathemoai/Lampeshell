@@ -1,7 +1,5 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Shapes
-import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
@@ -14,9 +12,8 @@ import qs.popups.nexus.common
 PanelWindow {
     id: quickSettingsWindow
 
-    implicitWidth: 400
-    property real panelHeight: 0
-    implicitHeight: panelHeight > 0 ? panelHeight : content.implicitHeight + 36
+    implicitWidth: Layout.s(400) + Layout.s(24)
+    implicitHeight: content.implicitHeight + 36 + Layout.s(24)
     color: "transparent"
     visible: false
 
@@ -26,13 +23,17 @@ PanelWindow {
     exclusiveZone: -1
 
     anchors {
-        top: true
-        right: true
+        top: Layout.barAtTop
+        bottom: Layout.barAtBottom || Layout.barVertical
+        left: Layout.barAtLeft
+        right: Layout.barAtRight || Layout.barHorizontal
     }
 
     margins {
-        top: Layout.topBarHeight
-        right: 0
+        top: Layout.barAtTop ? Layout.topBarHeight : 0
+        bottom: Layout.barAtBottom || Layout.barVertical ? Layout.bottomBarHeight : 0
+        left: Layout.barAtLeft ? Layout.sideBarWidth : 0
+        right: Layout.barAtRight || Layout.barHorizontal ? Layout.rightBarWidth : 0
     }
 
     function screenForFocus() {
@@ -42,41 +43,21 @@ PanelWindow {
     property var targetScreen: screenForFocus()
     screen: targetScreen
 
-    function publishGeometry() {
-        const height = content.implicitHeight + 36;
-        if (PanelState.owner === quickSettingsWindow && !PanelState.closing)
-            quickSettingsWindow.panelHeight = height;
-        PanelState.setContentSizeFor(quickSettingsWindow, quickSettingsWindow.width, height);
-    }
-
-    onWidthChanged: publishGeometry()
-
-    onTargetScreenChanged: publishGeometry()
-
     function open() {
         quickSettingsBackend.refreshBrightness();
-        showKick.stop();
-        settleTimer.stop();
-        quickSettingsWindow.openedAt = Date.now();
         quickSettingsWindow.targetScreen = quickSettingsWindow.screenForFocus();
-        const token = PanelState.beginFor(quickSettingsWindow, quickSettingsWindow.screen
-                ? quickSettingsWindow.screen.name : "", quickSettingsWindow.width,
-                content.implicitHeight + 36);
+        const token = PanelState.beginFor(quickSettingsWindow);
         if (!token) {
             quickSettingsWindow.visible = false;
             return;
         }
         quickSettingsWindow.panelGeneration = token;
-        quickSettingsWindow.panelHeight = content.implicitHeight + 36;
-        quickSettingsWindow.settling = true;
-        settleTimer.restart();
         quickSettingsWindow.shown = true;
         quickSettingsWindow.visible = true;
-
-        publishGeometry();
-
-        focusGrab.active = true;
-        panelSurface.forceActiveFocus();
+        Qt.callLater(function() {
+            focusGrab.active = true;
+            panelSurface.forceActiveFocus();
+        });
     }
 
     property var settingsHandler: null
@@ -101,11 +82,9 @@ PanelWindow {
         if (!quickSettingsWindow.shown && !quickSettingsWindow.visible)
             return;
         quickSettingsWindow.shown = false;
-        quickSettingsWindow.settling = false;
-        settleTimer.stop();
-        showKick.stop();
         PanelState.closeFor(quickSettingsWindow, quickSettingsWindow.panelGeneration);
         focusGrab.active = false;
+        hideWhenDone.restart();
     }
 
     function toggle() {
@@ -118,7 +97,14 @@ PanelWindow {
     property bool shown: false
     property int panelGeneration: 0
 
-    property bool settling: false
+    Timer {
+        id: hideWhenDone
+        interval: Motion.duration(Motion.defaultSpatial) + 50
+        onTriggered: {
+            if (!quickSettingsWindow.shown)
+                quickSettingsWindow.visible = false;
+        }
+    }
 
     Connections {
         target: PanelState
@@ -126,8 +112,6 @@ PanelWindow {
             if (acquiredOwner !== quickSettingsWindow)
                 return;
             quickSettingsWindow.panelGeneration = acquiredGeneration;
-            quickSettingsWindow.panelHeight = content.implicitHeight + 36;
-            quickSettingsWindow.settling = true;
             quickSettingsWindow.shown = true;
             quickSettingsWindow.visible = true;
             focusGrab.active = true;
@@ -138,22 +122,7 @@ PanelWindow {
                     && releasedGeneration === quickSettingsWindow.panelGeneration) {
                 quickSettingsWindow.visible = false;
                 quickSettingsWindow.shown = false;
-                quickSettingsWindow.panelHeight = 0;
             }
-        }
-    }
-
-    Timer {
-        id: settleTimer
-        interval: 700
-        onTriggered: quickSettingsWindow.settling = false
-    }
-
-    Timer {
-        id: showKick
-        interval: 1
-        onTriggered: {
-            quickSettingsWindow.shown = true;
         }
     }
 
@@ -196,17 +165,6 @@ PanelWindow {
         }
     }
 
-    MouseArea {
-        id: backdrop
-        anchors.fill: parent
-        onPressed: quickSettingsWindow.pointerHeld = true
-        onReleased: {
-            quickSettingsWindow.releasePointer();
-            quickSettingsWindow.close();
-        }
-        onCanceled: quickSettingsWindow.releasePointer()
-    }
-
     HyprlandFocusGrab {
         id: focusGrab
         windows: [quickSettingsWindow]
@@ -215,27 +173,12 @@ PanelWindow {
                 quickSettingsWindow.closePending = true;
                 return;
             }
-            if (quickSettingsWindow.settling && quickSettingsWindow.shown) {
-                Qt.callLater(function() {
-                    if (quickSettingsWindow.shown && quickSettingsWindow.visible)
-                        focusGrab.active = true;
-                });
-                return;
-            }
             quickSettingsWindow.close();
         }
     }
 
     mask: Region {
-        item: cardHitArea
-    }
-
-    Item {
-        id: cardHitArea
-        x: PanelState.leftInset + PanelState.cardOffset
-        width: Math.max(0, parent.width - PanelState.leftInset
-            - PanelState.cardOffset - Layout.rightBarWidth)
-        height: PanelState.cardHeight
+        item: surface
     }
 
     Item {
@@ -249,27 +192,74 @@ PanelWindow {
         }
     }
 
-    MouseArea {
-        anchors.fill: parent
-    }
+    PanelSurface {
+        id: surface
 
-    Column {
-        id: content
         anchors.top: parent.top
-        anchors.topMargin: 18
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 18
-        anchors.left: parent.left
-        anchors.leftMargin: Layout.s(36)
         anchors.right: parent.right
-        anchors.rightMargin: Layout.s(18)
-        spacing: 14
+        anchors.left: parent.left
+        anchors.bottom: parent.bottom
+        anchors.topMargin: Layout.barAtTop || Layout.barVertical ? 0 : Layout.s(24)
+        anchors.rightMargin: Layout.barAtRight || Layout.barHorizontal ? 0 : Layout.s(24)
+        anchors.leftMargin: Layout.barAtLeft ? 0 : Layout.s(24)
+        anchors.bottomMargin: Layout.barAtBottom ? 0 : Layout.s(24)
 
-        transform: Translate {
-            x: PanelState.cardOffset
+        // Flush edges stay square; the corner that lands on the bezel's rounded
+        // cutout corner takes the bezel radius so the panel nests into the frame.
+        topLeftRadius: Layout.barAtBottom ? Layout.panelRadius
+            : Layout.barAtLeft ? Layout.cornerRadius
+            : 0
+        topRightRadius: Layout.barAtBottom ? Layout.panelRadius
+            : Layout.barAtLeft ? 0
+            : Layout.cornerRadius
+        bottomLeftRadius: Layout.barAtLeft || Layout.barAtBottom ? 0 : Layout.panelRadius
+        bottomRightRadius: Layout.barAtTop || Layout.barAtLeft ? Layout.panelRadius
+            : Layout.barAtRight ? 0
+            : Layout.cornerRadius
+
+        opacity: quickSettingsWindow.shown ? 1 : 0
+        x: quickSettingsWindow.shown ? 0
+            : (Layout.barAtLeft ? -Layout.s(16) : Layout.barAtRight ? Layout.s(16) : 0)
+        y: quickSettingsWindow.shown ? 0
+            : (Layout.barAtTop ? -Layout.s(16) : Layout.barAtBottom ? Layout.s(16) : 0)
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Motion.duration(Motion.defaultSpatial)
+                easing.type: Easing.OutCubic
+            }
         }
 
-        onImplicitHeightChanged: quickSettingsWindow.publishGeometry()
+        Behavior on x {
+            NumberAnimation {
+                duration: Motion.duration(Motion.defaultSpatial)
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        Behavior on y {
+            NumberAnimation {
+                duration: Motion.duration(Motion.defaultSpatial)
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        MouseArea {
+            id: backdrop
+            anchors.fill: parent
+            onPressed: quickSettingsWindow.pointerHeld = true
+            onReleased: {
+                quickSettingsWindow.releasePointer();
+                quickSettingsWindow.close();
+            }
+            onCanceled: quickSettingsWindow.releasePointer()
+        }
+
+        Column {
+            id: content
+            anchors.fill: parent
+            anchors.margins: 18
+            spacing: 14
 
         Rectangle {
             id: notifCard
@@ -616,56 +606,11 @@ PanelWindow {
                         }
                     }
 
-                    Rectangle {
+                    Switch {
                         id: keepAwakeSwitch
                         anchors.verticalCenter: parent.verticalCenter
-
-                        readonly property bool checked: Idle.caffeine
-
-                        implicitWidth: 46
-                        implicitHeight: 28
-                        radius: height / 2
-                        color: checked ? Theme.primary : Theme.surface_container_high
-
-                        Behavior on color {
-                            ColorAnimation {
-                                duration: 160
-                                easing.type: Easing.OutCubic
-                            }
-                        }
-
-                        Rectangle {
-                            width: keepAwakeSwitch.checked ? 20 : 16
-                            height: width
-                            radius: width / 2
-                            y: (parent.height - height) / 2
-                            x: keepAwakeSwitch.checked ? parent.width - width - 4 : 4
-                            color: keepAwakeSwitch.checked ? Theme.on_primary : Theme.outline
-
-                            Behavior on width {
-                                NumberAnimation {
-                                    duration: 160
-                                }
-                            }
-                            Behavior on x {
-                                NumberAnimation {
-                                    duration: 200
-                                    easing.type: Easing.OutBack
-                                }
-                            }
-                            Behavior on color {
-                                ColorAnimation {
-                                    duration: 160
-                                }
-                            }
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: Idle.setCaffeine(!Idle.caffeine)
-                        }
+                        checked: Idle.caffeine
+                        onToggled: next => Idle.setCaffeine(next)
                     }
                 }
 
@@ -850,5 +795,6 @@ PanelWindow {
                 }
             }
         }
+    }
     }
 }

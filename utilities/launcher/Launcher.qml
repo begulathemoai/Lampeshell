@@ -19,8 +19,19 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
     exclusiveZone: -1
 
-    anchors.bottom: true
-    margins.bottom: Layout.bottomBarHeight
+    // Always opposite the bar (and thus the dashboard), attached to the bezel there.
+    anchors {
+        top: Layout.barAtBottom
+        bottom: Layout.barAtTop
+        left: Layout.barAtRight
+        right: Layout.barAtLeft
+    }
+    margins {
+        top: Layout.barAtBottom ? Layout.topBarHeight : 0
+        bottom: Layout.barAtTop ? Layout.bottomBarHeight : 0
+        left: Layout.barAtRight ? Layout.sideBarWidth : 0
+        right: Layout.barAtLeft ? Layout.rightBarWidth : 0
+    }
 
     function screenForFocus() {
         const active = Hyprland.focusedMonitor ?? null;
@@ -193,21 +204,11 @@ PanelWindow {
 
     property bool shown: false
 
-    function publishGeometry() {
-        LauncherState.screenName = launcherWindow.screen ? launcherWindow.screen.name : "";
-        LauncherState.setContentSize(Math.round(contentRoot.contentWidth), Math.round(contentRoot.contentHeight));
-    }
-
-    onWidthChanged: publishGeometry()
-    onHeightChanged: publishGeometry()
-    onTargetScreenChanged: publishGeometry()
-
     onShownChanged: LauncherState.open = shown
 
     function openMenu() {
         launcherWindow.targetScreen = launcherWindow.screenForFocus();
         launcherWindow.shown = true;
-        publishGeometry();
         launcherWindow.visible = true;
         Qt.callLater(function() {
             focusGrab.active = true;
@@ -262,29 +263,53 @@ PanelWindow {
         onCleared: launcherWindow.closeMenu()
     }
 
+    mask: Region {
+        item: contentRoot
+    }
+
     Item {
         id: reveal
 
-        anchors.bottom: parent.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
-        height: LauncherState.revealHeight
+        anchors.top: Layout.barAtBottom ? parent.top : undefined
+        anchors.bottom: Layout.barAtTop ? parent.bottom : undefined
+        anchors.left: Layout.barAtRight ? parent.left : undefined
+        anchors.right: Layout.barAtLeft ? parent.right : undefined
+        anchors.verticalCenter: Layout.barVertical ? parent.verticalCenter : undefined
+        anchors.horizontalCenter: Layout.barHorizontal ? parent.horizontalCenter : undefined
+
+        width: Layout.barHorizontal ? parent.width : (launcherWindow.shown ? contentRoot.width : 0)
+        height: Layout.barHorizontal ? (launcherWindow.shown ? contentRoot.height : 0) : parent.height
         clip: true
+
+        Behavior on width {
+            NumberAnimation {
+                duration: Motion.duration(Motion.defaultSpatial)
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        Behavior on height {
+            NumberAnimation {
+                duration: Motion.duration(Motion.defaultSpatial)
+                easing.type: Easing.OutCubic
+            }
+        }
 
         Item {
             id: contentRoot
 
-            anchors.bottom: parent.bottom
-            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: Layout.barAtBottom ? parent.top : undefined
+            anchors.bottom: Layout.barAtTop ? parent.bottom : undefined
+            anchors.left: Layout.barAtRight ? parent.left : undefined
+            anchors.right: Layout.barAtLeft ? parent.right : undefined
+            anchors.verticalCenter: Layout.barVertical ? parent.verticalCenter : undefined
+            anchors.horizontalCenter: Layout.barHorizontal ? parent.horizontalCenter : undefined
 
             width: card.width
             height: card.height
 
             readonly property real contentWidth: card.width
             readonly property real contentHeight: card.height
-
-            onWidthChanged: launcherWindow.publishGeometry()
-            onHeightChanged: launcherWindow.publishGeometry()
 
             function focusSearch() {
                 searchField.forceActiveFocus();
@@ -296,7 +321,13 @@ PanelWindow {
                 width: Math.min(632, (launcherWindow.screen ? launcherWindow.screen.width : 632) - 96)
                 height: 16 + listArea.height + 16 + searchField.height + 6
                 radius: Layout.panelRadius
-                color: "transparent"
+                color: Theme.surface_container_lowest
+
+                // Corners touching the bezel stay square so the card reads as attached.
+                topLeftRadius: Layout.barAtBottom || Layout.barAtRight ? 0 : Layout.panelRadius
+                topRightRadius: Layout.barAtBottom || Layout.barAtLeft ? 0 : Layout.panelRadius
+                bottomLeftRadius: Layout.barAtTop || Layout.barAtRight ? 0 : Layout.panelRadius
+                bottomRightRadius: Layout.barAtTop || Layout.barAtLeft ? 0 : Layout.panelRadius
 
                 Keys.onPressed: event => {
                     if (searchField.activeFocus)

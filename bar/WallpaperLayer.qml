@@ -39,15 +39,6 @@ Variants {
 
             anchors.fill: parent
 
-            opacity: FullscreenState.isFullscreen(wallpaperWindow.monitor) ? 0 : 1
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: 260
-                    easing.type: Easing.OutCubic
-                }
-            }
-
         Image {
             id: image
 

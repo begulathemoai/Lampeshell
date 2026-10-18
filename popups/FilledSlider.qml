@@ -27,7 +27,7 @@ Item {
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
         height: parent.height
-        radius: height / 2
+        radius: 12
         color: Theme.surface_container_high
     }
 
@@ -38,7 +38,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         height: parent.height
         width: root.handleX + root.handleSize / 2
-        radius: height / 2
+        radius: 12
         color: Theme.secondary
 
         Behavior on width {
@@ -57,7 +57,7 @@ Item {
         x: root.handleX
         width: root.handleSize
         height: root.handleSize
-        radius: width / 2
+        radius: 12
         color: Theme.inverse_surface
         scale: mouse.pressed ? 1.06 : 1.0
 

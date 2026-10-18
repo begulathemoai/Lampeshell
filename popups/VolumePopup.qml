@@ -26,7 +26,7 @@ Variants {
         }
 
         margins {
-            bottom: 70
+            bottom: Layout.bottomBarHeight + Layout.s(60)
         }
 
         WlrLayershell.layer: WlrLayer.Overlay

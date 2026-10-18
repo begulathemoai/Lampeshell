@@ -43,7 +43,10 @@ Variants {
         mask: Region { item: stack }
 
         anchors { top: true; right: true }
-        margins { top: 40; right: 5 }
+        margins {
+            top: Layout.topBarHeight + Layout.s(8)
+            right: Layout.rightBarWidth + Layout.s(8)
+        }
 
         visible: notifWindow.surfaceActive
         implicitWidth: notifWindow.surfaceActive ? 390 : 0

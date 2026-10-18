@@ -11,10 +11,17 @@ PanelWindow {
     implicitHeight: Layout.s(480)
     color: "transparent"
 
-    anchors.top: true
+    anchors {
+        top: Layout.barAtTop
+        bottom: Layout.barAtBottom
+        left: Layout.barAtLeft
+        right: Layout.barAtRight
+    }
     margins {
-        top: Layout.topBarHeight + Layout.s(20)
-        right: Layout.s(16)
+        top: Layout.barAtTop ? Layout.topBarHeight : 0
+        bottom: Layout.barAtBottom ? Layout.bottomBarHeight : 0
+        left: Layout.barAtLeft ? Layout.sideBarWidth : 0
+        right: Layout.barAtRight ? Layout.rightBarWidth : 0
     }
 
     WlrLayershell.namespace: "calendar_widget"
@@ -33,6 +40,10 @@ PanelWindow {
         anchors.fill: parent
         color: Theme.surface_container_lowest
         radius: 32
+        topLeftRadius: (Layout.barAtTop || Layout.barAtLeft) ? 0 : 32
+        topRightRadius: (Layout.barAtTop || Layout.barAtRight) ? 0 : 32
+        bottomLeftRadius: (Layout.barAtBottom || Layout.barAtLeft) ? 0 : 32
+        bottomRightRadius: (Layout.barAtBottom || Layout.barAtRight) ? 0 : 32
 
         border.color: Theme.outline_variant
         border.width: 1

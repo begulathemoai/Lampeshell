@@ -2,6 +2,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import QtQuick
+import "widgets"
 import qs.theme
 import qs.services
 
@@ -9,11 +10,15 @@ Variants {
     id: root
     model: Quickshell.screens
 
+    property var statusPillHandler: function() {}
+
     delegate: PanelWindow {
         id: bottomBarWindow
 
         required property var modelData
         screen: modelData
+
+        readonly property bool active: Layout.barPosition === "bottom"
 
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "quickshell-bottombar"
@@ -36,6 +41,19 @@ Variants {
             NumberAnimation {
                 duration: 180
                 easing.type: Easing.OutCubic
+            }
+        }
+
+        Loader {
+            anchors.fill: parent
+            active: bottomBarWindow.active
+            visible: !bottomBarWindow.fullscreen
+
+            sourceComponent: Component {
+                BarContent {
+                    windowHandle: bottomBarWindow
+                    statusPillHandler: root.statusPillHandler
+                }
             }
         }
     }

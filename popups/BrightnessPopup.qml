@@ -23,7 +23,7 @@ Variants {
         visible: showOsd
 
         anchors { bottom: true }
-        margins { bottom: 70 }
+        margins { bottom: Layout.bottomBarHeight + Layout.s(60) }
 
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "brightness_osd"

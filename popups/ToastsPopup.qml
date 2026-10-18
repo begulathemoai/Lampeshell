@@ -26,7 +26,7 @@ Variants {
         color: "transparent"
 
         anchors { bottom: true; right: true }
-        margins { bottom: 40; right: 5 }
+        margins { bottom: Layout.bottomBarHeight + Layout.s(30); right: Layout.rightBarWidth + Layout.s(5) }
 
         visible: toastWindow.surfaceActive
         implicitWidth: toastWindow.surfaceActive ? 390 : 0

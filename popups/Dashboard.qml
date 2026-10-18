@@ -10,8 +10,8 @@ import qs.popups.dashboard
 PanelWindow {
     id: root
 
-    implicitWidth: Layout.s(1060)
-    implicitHeight: Layout.s(560)
+    implicitWidth: body.implicitWidth + (Layout.barVertical ? Layout.s(24) : Layout.s(48))
+    implicitHeight: body.implicitHeight + (Layout.barHorizontal ? Layout.s(24) : Layout.s(48))
     color: "transparent"
     visible: false
 
@@ -20,8 +20,18 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
     exclusiveZone: -1
 
-    anchors.top: true
-    margins.top: Layout.topBarHeight
+    anchors {
+        top: Layout.barAtTop
+        bottom: Layout.barAtBottom
+        left: Layout.barAtLeft
+        right: Layout.barAtRight
+    }
+    margins {
+        top: Layout.barAtTop ? Layout.topBarHeight : 0
+        bottom: Layout.barAtBottom ? Layout.bottomBarHeight : 0
+        left: Layout.barAtLeft ? Layout.sideBarWidth : 0
+        right: Layout.barAtRight ? Layout.rightBarWidth : 0
+    }
 
     function screenForFocus() {
         const active = Hyprland.focusedMonitor ?? null;
@@ -29,14 +39,6 @@ PanelWindow {
     }
     property var targetScreen: screenForFocus()
     screen: targetScreen
-
-    function publishGeometry() {
-        DashboardState.screenName = root.screen ? root.screen.name : "";
-        DashboardState.setContentSize(root.width, root.height);
-    }
-
-    onWidthChanged: publishGeometry()
-    onTargetScreenChanged: publishGeometry()
 
     property bool shown: false
 
@@ -49,7 +51,6 @@ PanelWindow {
             closeSidebarHandler();
         root.targetScreen = root.screenForFocus();
         root.shown = true;
-        publishGeometry();
         root.visible = true;
         SystemStats.active = true;
         Weather.reload();
@@ -128,21 +129,48 @@ PanelWindow {
         }
     }
 
+    mask: Region {
+        item: surface
+    }
+
     Item {
         id: reveal
 
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        height: DashboardState.revealHeight
+        anchors.top: Layout.barAtTop || Layout.barVertical ? parent.top : undefined
+        anchors.bottom: Layout.barAtBottom ? parent.bottom : undefined
+        anchors.left: Layout.barAtLeft || Layout.barHorizontal ? parent.left : undefined
+        anchors.right: Layout.barAtRight ? parent.right : undefined
+
+        width: Layout.barHorizontal ? parent.width : (root.shown ? parent.width : 0)
+        height: Layout.barHorizontal ? (root.shown ? parent.height : 0) : parent.height
         clip: true
 
-        Content {
-            id: body
+        Behavior on width {
+            NumberAnimation {
+                duration: Motion.duration(Motion.defaultSpatial)
+                easing.type: Easing.OutCubic
+            }
+        }
 
-            width: root.implicitWidth
-            height: DashboardState.cardHeight
-            anchors.top: parent.top
+        Behavior on height {
+            NumberAnimation {
+                duration: Motion.duration(Motion.defaultSpatial)
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        PanelSurface {
+            id: surface
+
+            anchors.fill: parent
+            anchors.topMargin: Layout.barAtTop ? 0 : Layout.s(24)
+            anchors.bottomMargin: Layout.barAtBottom ? 0 : Layout.s(24)
+            anchors.leftMargin: Layout.barAtLeft ? 0 : Layout.s(24)
+            anchors.rightMargin: Layout.barAtRight ? 0 : Layout.s(24)
+
+            Content {
+                id: body
+            }
         }
     }
 }

@@ -8,9 +8,16 @@ import qs.utilities.emoji
 import qs.utilities.launcher
 import qs.popups
 import qs.services
+import qs.theme
 
 ShellRoot {
     id: root
+
+    Binding {
+        target: Layout
+        property: "barPosition"
+        value: SettingsStore.get("barPosition")
+    }
 
     readonly property bool idleServiceUp: Idle.caffeine !== undefined
     readonly property bool gameModeUp: GameMode.enabled !== undefined
@@ -22,12 +29,15 @@ ShellRoot {
 
     BottomBar {
         id: bottomBar
+        statusPillHandler: quickSettingsWindow.toggle
     }
     LeftBar {
         id: leftBar
+        statusPillHandler: quickSettingsWindow.toggle
     }
     RightBar {
         id: rightBar
+        statusPillHandler: quickSettingsWindow.toggle
     }
 
     Chrome {

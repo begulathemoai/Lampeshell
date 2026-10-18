@@ -27,16 +27,8 @@ Item {
         radius: height / 2
 
         color: root.checked ? Theme.primary : Theme.surface_variant
-        border.width: 2
-        border.color: root.checked ? Theme.primary : Theme.outline
 
         Behavior on color {
-            ColorAnimation {
-                duration: 180
-                easing.type: Easing.OutCubic
-            }
-        }
-        Behavior on border.color {
             ColorAnimation {
                 duration: 180
                 easing.type: Easing.OutCubic
@@ -47,11 +39,14 @@ Item {
     Rectangle {
         id: thumb
 
-        width: root.checked ? 24 : 16
-        height: width
-        radius: width / 2
-        x: root.checked ? 24 : 4
-        y: (root.height - height) / 2
+        readonly property int pad: 2
+        readonly property bool squeezed: pressArea.pressed
+
+        width: squeezed ? height * 1.2 : height
+        height: root.height - pad * 2
+        radius: height / 2
+        x: root.checked ? root.width - width - pad : pad
+        y: pad
 
         color: root.checked ? Theme.on_primary : Theme.outline
 
@@ -61,9 +56,16 @@ Item {
             color: root.checked ? Theme.primary : Theme.on_surface_variant
             font {
                 family: "Material Symbols Rounded"
-                pixelSize: root.checked ? 16 : 12
+                pixelSize: 16
             }
-            opacity: 0
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            color: root.checked ? Theme.primary : Theme.on_surface
+            opacity: pressArea.pressed ? 0.1 : pressArea.containsMouse ? 0.08 : 0
+
             Behavior on opacity {
                 NumberAnimation {
                     duration: 120
@@ -77,21 +79,9 @@ Item {
                 easing.type: Easing.OutBack
             }
         }
-        Behavior on height {
-            NumberAnimation {
-                duration: 220
-                easing.type: Easing.OutBack
-            }
-        }
         Behavior on x {
             NumberAnimation {
                 duration: 260
-                easing.type: Easing.OutBack
-            }
-        }
-        Behavior on y {
-            NumberAnimation {
-                duration: 220
                 easing.type: Easing.OutBack
             }
         }
@@ -104,6 +94,7 @@ Item {
     }
 
     MouseArea {
+        id: pressArea
         anchors.fill: parent
         enabled: root.enabled
         hoverEnabled: true

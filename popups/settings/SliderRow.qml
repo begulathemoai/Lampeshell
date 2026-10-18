@@ -88,26 +88,26 @@ Item {
             id: track
             anchors.verticalCenter: parent.verticalCenter
             width: Math.max(0, row.width - iconText.width - labelText.width - valueText.width - valueBadge.width - row.spacing * 4)
-            height: 8
-            radius: 4
+            height: 24
+            radius: 8
             color: Theme.surface_container_highest
 
             Rectangle {
-                width: track.width * ((root.value - root.from) / Math.max(1, root.to - root.from))
+                id: fill
+                width: Math.min(parent.width, handle.x + handle.width / 2)
                 height: parent.height
                 radius: parent.radius
                 color: Theme.primary
             }
 
             Rectangle {
+                id: handle
                 x: Math.max(0, Math.min(track.width - width, track.width * ((root.value - root.from) / Math.max(1, root.to - root.from)) - width / 2))
                 y: (track.height - height) / 2
-                width: 20
-                height: 20
-                radius: 10
+                width: 6
+                height: track.height
+                radius: width / 2
                 color: Theme.primary
-                border.width: 2
-                border.color: Theme.surface_container_low
 
                 scale: dragMouse.pressed ? 1.15 : 1.0
                 Behavior on scale {

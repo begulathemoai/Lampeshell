@@ -193,9 +193,9 @@ Item {
 
                 Repeater {
                     model: [
-                        { icon: "skip_previous", action: "previous", size: 30 },
+                        { icon: "skip_previous", action: "previous", size: 44 },
                         { icon: root.player && root.player.isPlaying ? "pause" : "play_arrow", action: "toggle", size: 44 },
-                        { icon: "skip_next", action: "next", size: 30 }
+                        { icon: "skip_next", action: "next", size: 44 }
                     ]
 
                     delegate: Rectangle {
@@ -226,16 +226,18 @@ Item {
                             text: modelData.icon
                             color: modelData.action === "toggle" ? (model.hovered ? Theme.on_secondary : Theme.on_primary) : Theme.on_surface
                             id:modelText
+                            renderType: Text.NativeRendering
                             font {
                                 family: Layout.fontIcons
                                 pixelSize: Layout.s(modelData.size)
+                                hintingPreference: Font.PreferNoHinting
+                                variableAxes: ({ "FILL": 1.0, "opsz": Layout.s(modelData.size) })
                             }
                             Behavior on color {
                                 ColorAnimation {
                                     duration: 150
                                     easing.type: Easing.OutCubic
                                 }
-
                             }
                         }
 

@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls.impl
+import QtQuick.Layouts as QL
 import Quickshell
 import Quickshell.Networking
 import Quickshell.Bluetooth
@@ -12,6 +13,8 @@ Item {
     id: root
 
     signal clicked
+
+    property bool vertical: false
 
     implicitWidth: visualPill.implicitWidth
     implicitHeight: visualPill.implicitHeight
@@ -90,9 +93,9 @@ Item {
         id: visualPill
         anchors.centerIn: parent
 
-        implicitWidth: iconsRow.implicitWidth + Layout.s(32)
-        implicitHeight: iconsRow.implicitHeight + Layout.s(16)
-        radius: height / 2
+        implicitWidth: iconsLayout.implicitWidth + Layout.s(root.vertical ? 16 : 32)
+        implicitHeight: iconsLayout.implicitHeight + Layout.s(root.vertical ? 32 : 16)
+        radius: Math.min(width, height) / 2
 
         color: pillMouse.containsMouse ? Qt.tint(Theme.surface_container, Qt.rgba(Theme.on_surface.r, Theme.on_surface.g, Theme.on_surface.b, 0.08)) : Theme.surface_container
         scale: pillMouse.pressed ? 0.95 : 1.0
@@ -108,15 +111,20 @@ Item {
             onClicked: root.clicked()
         }
 
-        Row {
-            id: iconsRow
+        QL.GridLayout {
+            id: iconsLayout
             anchors.centerIn: parent
-            spacing: Layout.s(14)
+
+            flow: root.vertical ? QL.GridLayout.TopToBottom : QL.GridLayout.LeftToRight
+            columns: root.vertical ? 1 : -1
+            rows: root.vertical ? -1 : 1
+            columnSpacing: Layout.s(14)
+            rowSpacing: Layout.s(14)
 
             Text {
                 text: root.networkIcon()
                 color: root.networkColor
-                anchors.verticalCenter: parent.verticalCenter
+                QL.Layout.alignment: root.vertical ? Qt.AlignHCenter : Qt.AlignVCenter
                 font { family: Layout.fontIcons; pixelSize: Layout.s(20) }
                 Behavior on color { ColorAnimation { duration: 150 } }
             }
@@ -124,7 +132,7 @@ Item {
             Text {
                 text: root.bluetoothIcon()
                 color: root.bluetoothColor
-                anchors.verticalCenter: parent.verticalCenter
+                QL.Layout.alignment: root.vertical ? Qt.AlignHCenter : Qt.AlignVCenter
                 font { family: "Material Symbols Rounded"; pixelSize: 20 }
                 Behavior on color { ColorAnimation { duration: 150 } }
             }
@@ -132,7 +140,7 @@ Item {
             Text {
                 text: root.volumeIcon()
                 color: root.volumeColor
-                anchors.verticalCenter: parent.verticalCenter
+                QL.Layout.alignment: root.vertical ? Qt.AlignHCenter : Qt.AlignVCenter
                 font { family: "Material Symbols Rounded"; pixelSize: 20 }
                 Behavior on color { ColorAnimation { duration: 150 } }
             }
@@ -140,7 +148,7 @@ Item {
             Row {
                 visible: KbLayout.available
                 spacing: Layout.s(6)
-                anchors.verticalCenter: parent.verticalCenter
+                QL.Layout.alignment: root.vertical ? Qt.AlignHCenter : Qt.AlignVCenter
 
                 Text {
                     text: KbLayout.activeLayout
@@ -162,7 +170,7 @@ Item {
                 visible: root.batteryPresent
                 implicitWidth: Layout.s(30)
                 implicitHeight: Layout.s(22)
-                anchors.verticalCenter: parent.verticalCenter
+                QL.Layout.alignment: root.vertical ? Qt.AlignHCenter : Qt.AlignVCenter
 
                 Text {
                     id: batteryGlyph

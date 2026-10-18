@@ -19,7 +19,7 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
     exclusiveZone: -1
     anchors.bottom: true
-    margins.bottom: 150
+    margins.bottom: Layout.bottomBarHeight + Layout.s(140)
 
     EmojiBackend {
         id: ctrl

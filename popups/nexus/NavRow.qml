@@ -62,10 +62,13 @@ Item {
             Text {
                 anchors.centerIn: parent
                 text: root.page.icon ?? ""
-                color: Theme.on_surface_variant
+                color: root.selected ? Theme.on_secondary_container : Theme.on_surface_variant
+                renderType: Text.NativeRendering
                 font {
                     family: Layout.fontIcons
                     pixelSize: 24
+                    hintingPreference: Font.PreferNoHinting
+                    variableAxes: ({ "FILL": root.selected ? 1.0 : 0.0, "opsz": 24 })
                 }
             }
         }

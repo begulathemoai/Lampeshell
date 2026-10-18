@@ -22,13 +22,17 @@ PanelWindow {
     exclusiveZone: -1
 
     anchors {
-        top: true
-        right: true
+        top: Layout.barAtTop || Layout.barVertical
+        bottom: Layout.barAtBottom
+        left: Layout.barAtLeft
+        right: Layout.barAtRight || Layout.barHorizontal
     }
 
     margins {
-        top: Layout.topBarHeight + Layout.s(12)
-        right: Layout.s(15)
+        top: Layout.barAtTop ? Layout.topBarHeight + Layout.s(12) : (Layout.barVertical ? Layout.s(12) : 0)
+        bottom: Layout.barAtBottom ? Layout.bottomBarHeight + Layout.s(12) : 0
+        left: Layout.barAtLeft ? Layout.sideBarWidth + Layout.s(12) : 0
+        right: Layout.barAtRight ? Layout.rightBarWidth + Layout.s(12) : (Layout.barHorizontal ? Layout.s(15) : 0)
     }
 
     property var targetScreen: {

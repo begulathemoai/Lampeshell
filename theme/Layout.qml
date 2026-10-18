@@ -3,10 +3,25 @@ pragma Singleton
 import QtQuick
 
 QtObject {
-    property int topBarHeight: s(50)
-    property int sideBarWidth: 10
-    property int rightBarWidth: 10
-    property int bottomBarHeight: s(10)
+    // Where the content bar lives. Bound from SettingsStore by shell.qml.
+    property string barPosition: "top"
+
+    readonly property bool barHorizontal: barPosition === "top" || barPosition === "bottom"
+    readonly property bool barVertical: barPosition === "left" || barPosition === "right"
+
+    readonly property bool barAtTop: barPosition === "top"
+    readonly property bool barAtBottom: barPosition === "bottom"
+    readonly property bool barAtLeft: barPosition === "left"
+    readonly property bool barAtRight: barPosition === "right"
+
+    // Thickness of the content bar and of the decorative frame on the other edges.
+    property int barThickness: s(50)
+    property int frameThickness: s(10)
+
+    property int topBarHeight: barPosition === "top" ? barThickness : frameThickness
+    property int sideBarWidth: barPosition === "left" ? barThickness : frameThickness
+    property int rightBarWidth: barPosition === "right" ? barThickness : frameThickness
+    property int bottomBarHeight: barPosition === "bottom" ? barThickness : frameThickness
 
     property int cornerRadius: 20
 

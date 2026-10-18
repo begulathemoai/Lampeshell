@@ -20,7 +20,7 @@ PanelWindow {
     exclusiveZone: -1
 
     anchors.bottom: true
-    margins.bottom: 100
+    margins.bottom: Layout.bottomBarHeight + Layout.s(90)
 
     ClipboardBackend {
         id: ctrl

@@ -27,13 +27,17 @@ PanelWindow {
             : Quickshell.screens[0]
 
     anchors {
-        top: true
-        right: true
+        top: Layout.barAtTop
+        bottom: Layout.barAtBottom || Layout.barVertical
+        left: Layout.barAtLeft
+        right: Layout.barAtRight || Layout.barHorizontal
     }
 
     margins {
-        top: Layout.topBarHeight
-        right: 0
+        top: Layout.barAtTop ? Layout.topBarHeight : 0
+        bottom: Layout.barAtBottom ? Layout.bottomBarHeight : (Layout.barVertical ? Layout.bottomBarHeight : 0)
+        left: Layout.barAtLeft ? Layout.sideBarWidth : 0
+        right: Layout.barAtRight ? Layout.rightBarWidth : 0
     }
 
     WlrLayershell.layer: WlrLayer.Top
@@ -52,19 +56,13 @@ PanelWindow {
         }
     }
 
-    function publishGeometry() {
-        if (!visible)
-            return;
-        PanelState.setContentSizeFor(root, root.width + Layout.s(18), root.height);
-    }
-
     function show(handle) {
         entry = handle;
 
         if (!entry)
             return;
 
-        const token = PanelState.beginFor(root, root.monitorName, root.width + Layout.s(18), root.height);
+        const token = PanelState.beginFor(root);
         if (!token) {
             visible = false;
             return;
@@ -72,7 +70,6 @@ PanelWindow {
         root.panelGeneration = token;
         visible = true;
         reveal.visible = true;
-        Qt.callLater(root.publishGeometry);
 
         Qt.callLater(function() {
             if (entry && entry.updateLayout)
@@ -95,7 +92,6 @@ PanelWindow {
             root.panelGeneration = acquiredGeneration;
             root.visible = true;
             reveal.visible = true;
-            root.publishGeometry();
         }
         function onReleased(releasedOwner, releasedGeneration) {
             if (releasedOwner === root && releasedGeneration === root.panelGeneration)
@@ -104,10 +100,6 @@ PanelWindow {
                 root.visible = false;
         }
     }
-
-    onWidthChanged: publishGeometry()
-    onHeightChanged: publishGeometry()
-    onScreenChanged: publishGeometry()
 
     Rectangle {
         id: card

@@ -175,12 +175,14 @@ Item {
             sourceComponent: Text {
                 text: "favorite"
                 color: Theme.primary
+                renderType: Text.NativeRendering
 
                 font {
                     family: "Material Symbols Rounded"
                     pointSize: 15
                     weight: Font.Normal
-                    variableAxes: ({ "FILL": 1.0 })
+                    hintingPreference: Font.PreferNoHinting
+                    variableAxes: ({ "FILL": 1.0, "opsz": 15 })
                 }
             }
         }

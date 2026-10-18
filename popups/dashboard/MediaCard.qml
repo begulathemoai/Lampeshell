@@ -115,9 +115,9 @@ Item {
 
         Repeater {
             model: [
-                { icon: "skip_previous", action: "previous", size: 26, enabled: !!root.player && root.player.canGoPrevious },
+                { icon: "skip_previous", action: "previous", size: 34, enabled: !!root.player && root.player.canGoPrevious },
                 { icon: root.player && root.player.isPlaying ? "pause" : "play_arrow", action: "toggle", size: 34, enabled: !!root.player && root.player.canTogglePlaying },
-                { icon: "skip_next", action: "next", size: 26, enabled: !!root.player && root.player.canGoNext }
+                { icon: "skip_next", action: "next", size: 34, enabled: !!root.player && root.player.canGoNext }
             ]
 
             delegate: Rectangle {
@@ -125,7 +125,7 @@ Item {
                 required property var modelData
                 property bool hovered
                 anchors.verticalCenter: parent.verticalCenter
-                width: modelData.action === "toggle" ? Layout.s(46) : Layout.s(36)
+                width: Layout.s(46)
                 height: width
                 radius: width / 2
                 scale: model.hovered ? 1.1 : 1.0
@@ -149,9 +149,12 @@ Item {
                     text: modelData.icon
                     color: modelData.action === "toggle" ? (model.hovered ? Theme.on_secondary : Theme.on_primary) : Theme.on_surface
                     id:modelText
+                    renderType: Text.NativeRendering
                     font {
                         family: Layout.fontIcons
                         pixelSize: Layout.s(modelData.size)
+                        hintingPreference: Font.PreferNoHinting
+                        variableAxes: ({ "FILL": 1.0, "opsz": Layout.s(modelData.size) })
                     }
                     Behavior on color {
                         ColorAnimation {

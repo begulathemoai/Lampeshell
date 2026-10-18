@@ -11,13 +11,48 @@ PageBase {
     title: "Panels"
     description: "Bars, tray and status items"
 
+    readonly property string position: Layout.barPosition
+
+    function positions() {
+        return [
+            { key: "top", label: "Top", icon: "vertical_align_top" },
+            { key: "bottom", label: "Bottom", icon: "vertical_align_bottom" },
+            { key: "left", label: "Left", icon: "align_horizontal_left" },
+            { key: "right", label: "Right", icon: "align_horizontal_right" }
+        ];
+    }
+
     SettingsGroup {
-        title: "Top bar"
-        description: "Always spans the full width of each monitor."
+        title: "Bar position"
+        description: "Move the bar to any edge. Panels follow the bar."
+
+        Row {
+            width: parent.width
+            spacing: 8
+
+            Repeater {
+                model: root.positions()
+
+                SegmentedChoice {
+                    required property var modelData
+
+                    width: (parent.width - 24) / 4
+                    label: modelData.label
+                    icon: modelData.icon
+                    active: root.position === modelData.key
+                    onPicked: SettingsStore.set("barPosition", modelData.key)
+                }
+            }
+        }
+    }
+
+    SettingsGroup {
+        title: "Bar"
+        description: "Always spans the full edge of each monitor."
 
         InfoRow {
-            label: "Height"
-            value: Math.round(Layout.topBarHeight) + " px"
+            label: "Thickness"
+            value: Math.round(Layout.barThickness) + " px"
         }
         InfoRow {
             label: "Hidden on fullscreen"
@@ -46,12 +81,7 @@ PageBase {
         }
         InfoRow {
             label: "Tray and status"
-            value: "right"
+            value: "end"
         }
-    }
-
-    SectionHeader {
-        text: "Not yet configurable"
-        description: "Panel layout is currently fixed in bar/TopBar.qml. Making the entries reorderable means describing them in data and instantiating from that, the way Caelestia's Bar.qml does with Config.bar.entries."
     }
 }

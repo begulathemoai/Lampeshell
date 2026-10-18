@@ -3,6 +3,7 @@ import Quickshell.Wayland
 import Quickshell.Hyprland
 import QtQuick
 import "modules"
+import "widgets"
 import qs.theme
 import qs.services
 
@@ -16,6 +17,8 @@ Variants {
         id: mainBar
         required property var modelData
         screen: modelData
+
+        readonly property bool active: Layout.barPosition === "top"
 
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "quickshell-topbar"
@@ -33,49 +36,19 @@ Variants {
         implicitHeight: Layout.topBarHeight
         WlrLayershell.exclusiveZone: Layout.topBarHeight
 
-        visible: !mainBar.fullscreen
+        visible: !fullscreen
 
-        Workspaces {
-            id: workspaceModule
-            targetMonitor: mainBar.modelData.name
-            anchors {
-                left: parent.left
-                leftMargin: Layout.s(15)
-                verticalCenter: parent.verticalCenter
-            }
-        }
+        Loader {
+            anchors.fill: parent
+            active: mainBar.active
+            visible: !mainBar.fullscreen
 
-        Calendar {
-            id: calendarModule
-            anchors.centerIn: parent
-        }
-
-        Mpris {
-            id: mprisModule
-            anchors {
-                left : calendarModule.right
-                right : statusModule.left
-                verticalCenter: parent.verticalCenter
-            }
-        }
-
-        SystemTray {
-            id: statusModule
-            windowHandle: mainBar
-            anchors {
-                right: commandCenterModule.left
-                rightMargin: Layout.s(15)
-                verticalCenter: parent.verticalCenter
-            }
-        }
-
-        CommandCenter {
-            id: commandCenterModule
-            onClicked: root.statusPillHandler()
-            anchors {
-                right: parent.right
-                rightMargin: Layout.s(15)
-                verticalCenter: parent.verticalCenter
+            sourceComponent: Component {
+                BarContent {
+                    windowHandle: mainBar
+                    statusPillHandler: root.statusPillHandler
+                    showMpris: true
+                }
             }
         }
     }
