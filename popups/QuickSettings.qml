@@ -199,38 +199,23 @@ PanelWindow {
         anchors.right: parent.right
         anchors.left: parent.left
         anchors.bottom: parent.bottom
-        anchors.topMargin: Layout.barAtTop || Layout.barVertical ? 0 : Layout.s(24)
+        anchors.topMargin: Layout.barAtTop ? 0 : Layout.s(24)
         anchors.rightMargin: Layout.barAtRight || Layout.barHorizontal ? 0 : Layout.s(24)
         anchors.leftMargin: Layout.barAtLeft ? 0 : Layout.s(24)
-        anchors.bottomMargin: Layout.barAtBottom ? 0 : Layout.s(24)
+        anchors.bottomMargin: Layout.barAtBottom || Layout.barVertical ? 0 : Layout.s(24)
 
-        // Flush edges stay square; the corner that lands on the bezel's rounded
-        // cutout corner takes the bezel radius so the panel nests into the frame.
-        topLeftRadius: Layout.barAtBottom ? Layout.panelRadius
-            : Layout.barAtLeft ? Layout.cornerRadius
-            : 0
-        topRightRadius: Layout.barAtBottom ? Layout.panelRadius
-            : Layout.barAtLeft ? 0
-            : Layout.cornerRadius
-        bottomLeftRadius: Layout.barAtLeft || Layout.barAtBottom ? 0 : Layout.panelRadius
-        bottomRightRadius: Layout.barAtTop || Layout.barAtLeft ? Layout.panelRadius
-            : Layout.barAtRight ? 0
-            : Layout.cornerRadius
+        // Corners on the edges shared with the bar/frame stay square so the
+        // panel reads as attached; the free-floating corners stay rounded.
+        topLeftRadius: Layout.barAtTop ? 0 : Layout.panelRadius
+        topRightRadius: Layout.barAtTop ? 0 : Layout.panelRadius
+        bottomLeftRadius: Layout.barAtBottom || Layout.barVertical ? 0 : Layout.panelRadius
+        bottomRightRadius: Layout.barAtBottom || Layout.barVertical ? 0 : Layout.panelRadius
 
         opacity: quickSettingsWindow.shown ? 1 : 0
-        x: quickSettingsWindow.shown ? 0
-            : (Layout.barAtLeft ? -Layout.s(16) : Layout.barAtRight ? Layout.s(16) : 0)
         y: quickSettingsWindow.shown ? 0
-            : (Layout.barAtTop ? -Layout.s(16) : Layout.barAtBottom ? Layout.s(16) : 0)
+            : (Layout.barAtTop ? -Layout.s(16) : Layout.s(16))
 
         Behavior on opacity {
-            NumberAnimation {
-                duration: Motion.duration(Motion.defaultSpatial)
-                easing.type: Easing.OutCubic
-            }
-        }
-
-        Behavior on x {
             NumberAnimation {
                 duration: Motion.duration(Motion.defaultSpatial)
                 easing.type: Easing.OutCubic
