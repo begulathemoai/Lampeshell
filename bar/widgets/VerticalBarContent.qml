@@ -11,13 +11,24 @@ Item {
 
     readonly property var screen: windowHandle ? windowHandle.screen : null
 
-    Workspaces {
-        id: workspaceModule
-        targetMonitor: root.screen ? root.screen.name : ""
-        vertical: true
+    Column {
         anchors.top: parent.top
         anchors.topMargin: Layout.s(6)
         anchors.horizontalCenter: parent.horizontalCenter
+        spacing: Layout.s(8)
+
+        DistroLogo {
+            id: logoModule
+            vertical: true
+            anchors.horizontalCenter: parent.horizontalCenter
+        }
+
+        Workspaces {
+            id: workspaceModule
+            targetMonitor: root.screen ? root.screen.name : ""
+            vertical: true
+            anchors.horizontalCenter: parent.horizontalCenter
+        }
     }
 
     Calendar {

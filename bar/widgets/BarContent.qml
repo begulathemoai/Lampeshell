@@ -12,12 +12,21 @@ Item {
 
     readonly property var screen: windowHandle ? windowHandle.screen : null
 
+    DistroLogo {
+        id: logoModule
+        anchors {
+            left: parent.left
+            leftMargin: Layout.s(15)
+            verticalCenter: parent.verticalCenter
+        }
+    }
+
     Workspaces {
         id: workspaceModule
         targetMonitor: root.screen ? root.screen.name : ""
         anchors {
-            left: parent.left
-            leftMargin: Layout.s(15)
+            left: logoModule.right
+            leftMargin: Layout.s(8)
             verticalCenter: parent.verticalCenter
         }
     }
